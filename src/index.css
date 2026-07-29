@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  body {
+    background-color: white !important;
+    color: #0f172a !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide navigation, sidebar, top header, floating action buttons, modals backdrop, and print-hidden elements */
+  header,
+  aside,
+  nav,
+  .print\:hidden,
+  button:not(.print-keep),
+  input[type="file"],
+  .fixed.inset-0.bg-slate-950\/60 {
+    display: none !important;
+  }
+
+  /* Make containers full width with no shadows or overflow scrolling */
+  main,
+  .print-container,
+  .p-8,
+  .p-6 {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+  }
+
+  /* Force borders and backgrounds to display in PDF export */
+  table, th, td, tr, div, span {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Table break handling */
+  tr {
+    page-break-inside: avoid;
+  }
+
+  .page-break {
+    page-break-before: always;
+  }
+}
