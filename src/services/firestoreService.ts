@@ -27,75 +27,122 @@ import {
   INITIAL_RAB_ITEMS,
 } from '../lib/seedData';
 
-// Generic subscribe function with local fallback & auto-seeding
+const LS_PREFIX = 'construx_erp_v1_';
+
+export function getStoredData<T>(key: string, defaultData: T): T {
+  try {
+    const raw = localStorage.getItem(LS_PREFIX + key);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(defaultData) && !Array.isArray(parsed)) {
+        return defaultData;
+      }
+      return parsed;
+    }
+  } catch (e) {
+    console.warn(`Error loading ${key} from localStorage:`, e);
+  }
+  return defaultData;
+}
+
+export function setStoredData<T>(key: string, data: T): void {
+  try {
+    localStorage.setItem(LS_PREFIX + key, JSON.stringify(data));
+  } catch (e) {
+    console.warn(`Error saving ${key} to localStorage:`, e);
+  }
+}
+
+// Generic subscribe function with LocalStorage persistence & Firestore sync
 export function subscribeToCollection<T extends { id: string }>(
   collectionName: string,
   initialSeed: T[],
   onUpdate: (data: T[]) => void
 ): () => void {
+  // Always trigger with local cached data first
+  const currentLocal = getStoredData<T[]>(collectionName, initialSeed);
+  onUpdate(currentLocal);
+
   const colRef = collection(db, collectionName);
-  let isInitial = true;
 
   const unsubscribe = onSnapshot(
     query(colRef),
     async (snapshot) => {
-      if (snapshot.empty && isInitial) {
-        isInitial = false;
-        // Auto-seed collection if empty
-        try {
-          await Promise.all(
-            initialSeed.map((item) => setDoc(doc(db, collectionName, item.id), item))
-          );
-        } catch (e) {
-          console.warn(`Could not seed ${collectionName} to Firestore, using memory data:`, e);
-          onUpdate(initialSeed);
-          return;
-        }
-      } else {
-        isInitial = false;
+      if (!snapshot.empty) {
         const items: T[] = [];
         snapshot.forEach((docSnap) => {
           items.push({ id: docSnap.id, ...docSnap.data() } as T);
         });
-        if (items.length > 0) {
-          onUpdate(items);
-        } else {
-          onUpdate(initialSeed);
+        setStoredData(collectionName, items);
+        onUpdate(items);
+      } else {
+        // If remote database is empty, seed it with current stored data
+        try {
+          await Promise.all(
+            currentLocal.map((item) =>
+              setDoc(doc(db, collectionName, item.id), item, { merge: true })
+            )
+          );
+        } catch (e) {
+          console.warn(`Could not seed empty Firestore collection ${collectionName}:`, e);
         }
       }
     },
     (error) => {
-      console.warn(`Firestore subscription error for ${collectionName}:`, error);
-      onUpdate(initialSeed);
+      console.warn(`Firestore subscription fallback for ${collectionName}:`, error);
+      // Keep cached local storage data on network/permission error
+      onUpdate(getStoredData<T[]>(collectionName, initialSeed));
     }
   );
 
   return unsubscribe;
 }
 
-// Add or update document in Firestore
+// Add or update document in both LocalStorage & Firestore
 export async function saveDocument<T extends { id: string }>(
   collectionName: string,
   item: T
-): Promise<void> {
+): Promise<T[]> {
+  const currentList = getStoredData<T[]>(collectionName, []);
+  const index = currentList.findIndex((x) => x.id === item.id);
+  let updatedList: T[];
+
+  if (index >= 0) {
+    updatedList = [...currentList];
+    updatedList[index] = item;
+  } else {
+    updatedList = [item, ...currentList];
+  }
+
+  setStoredData(collectionName, updatedList);
+
   try {
     const docRef = doc(db, collectionName, item.id);
     await setDoc(docRef, item, { merge: true });
   } catch (err) {
-    console.error(`Error saving document in ${collectionName}:`, err);
+    console.warn(`Error writing to Firestore collection ${collectionName}:`, err);
   }
+
+  return updatedList;
 }
 
-// Delete document from Firestore
-export async function deleteDocument(
+// Delete document from both LocalStorage & Firestore
+export async function deleteDocument<T extends { id: string }>(
   collectionName: string,
   id: string
-): Promise<void> {
+): Promise<T[]> {
+  const currentList = getStoredData<T[]>(collectionName, []);
+  const updatedList = currentList.filter((x) => x.id !== id);
+
+  setStoredData(collectionName, updatedList);
+
   try {
     await deleteDoc(doc(db, collectionName, id));
   } catch (err) {
-    console.error(`Error deleting document in ${collectionName}:`, err);
+    console.warn(`Error deleting from Firestore collection ${collectionName}:`, err);
   }
+
+  return updatedList;
 }
 
 // Helper to seed all collections manually if requested
@@ -119,6 +166,7 @@ export async function seedAllCollections(): Promise<void> {
   ];
 
   for (const [colName, data] of seeds) {
+    setStoredData(colName, data);
     for (const item of data) {
       await setDoc(doc(db, colName, item.id || item.code), item, { merge: true });
     }

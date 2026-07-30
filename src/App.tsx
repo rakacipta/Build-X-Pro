@@ -68,6 +68,8 @@ import {
   subscribeToCollection,
   saveDocument,
   deleteDocument,
+  getStoredData,
+  setStoredData,
 } from './services/firestoreService';
 import { testConnection } from './lib/firebase';
 
@@ -76,29 +78,66 @@ export default function App() {
   const [activeModule, setActiveModule] = useState<ModuleType>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Firestore Realtime Collections State
-  const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS);
-  const [tenders, setTenders] = useState<Tender[]>(INITIAL_TENDERS);
-  const [materials, setMaterials] = useState<Material[]>(INITIAL_MATERIALS);
-  const [purchases, setPurchases] = useState<PurchaseOrder[]>(INITIAL_PURCHASES);
-  const [salesOrders, setSalesOrders] = useState<SalesOrder[]>(INITIAL_SALES);
-  const [crmLeads, setCrmLeads] = useState<CrmLead[]>(INITIAL_LEADS);
-  const [equipment, setEquipment] = useState<Equipment[]>(INITIAL_EQUIPMENT);
-  const [employees, setEmployees] = useState<Employee[]>(INITIAL_EMPLOYEES);
-  const [payrollSlips, setPayrollSlips] = useState<PayrollSlip[]>(INITIAL_PAYROLL);
-  const [financeTransactions, setFinanceTransactions] =
-    useState<FinanceTransaction[]>(INITIAL_FINANCE);
-  const [coaList, setCoaList] = useState<ChartOfAccount[]>(INITIAL_COA);
-  const [journals, setJournals] = useState<JournalEntry[]>(INITIAL_JOURNALS);
-  const [approvals, setApprovals] = useState<ApprovalRequest[]>(INITIAL_APPROVALS);
-  const [ahspList, setAhspList] = useState<AHSPItem[]>(INITIAL_AHSP);
-  const [rabItems, setRabItems] = useState<RABItem[]>(INITIAL_RAB_ITEMS);
+  // Persistent Collections State
+  const [projects, setProjects] = useState<Project[]>(() =>
+    getStoredData('projects', INITIAL_PROJECTS)
+  );
+  const [tenders, setTenders] = useState<Tender[]>(() =>
+    getStoredData('tenders', INITIAL_TENDERS)
+  );
+  const [materials, setMaterials] = useState<Material[]>(() =>
+    getStoredData('materials', INITIAL_MATERIALS)
+  );
+  const [purchases, setPurchases] = useState<PurchaseOrder[]>(() =>
+    getStoredData('purchases', INITIAL_PURCHASES)
+  );
+  const [salesOrders, setSalesOrders] = useState<SalesOrder[]>(() =>
+    getStoredData('sales', INITIAL_SALES)
+  );
+  const [crmLeads, setCrmLeads] = useState<CrmLead[]>(() =>
+    getStoredData('crm_leads', INITIAL_LEADS)
+  );
+  const [equipment, setEquipment] = useState<Equipment[]>(() =>
+    getStoredData('equipment', INITIAL_EQUIPMENT)
+  );
+  const [employees, setEmployees] = useState<Employee[]>(() =>
+    getStoredData('employees', INITIAL_EMPLOYEES)
+  );
+  const [payrollSlips, setPayrollSlips] = useState<PayrollSlip[]>(() =>
+    getStoredData('payroll', INITIAL_PAYROLL)
+  );
+  const [financeTransactions, setFinanceTransactions] = useState<FinanceTransaction[]>(() =>
+    getStoredData('finance_transactions', INITIAL_FINANCE)
+  );
+  const [coaList, setCoaList] = useState<ChartOfAccount[]>(() =>
+    getStoredData('coa', INITIAL_COA)
+  );
+  const [journals, setJournals] = useState<JournalEntry[]>(() =>
+    getStoredData('journals', INITIAL_JOURNALS)
+  );
+  const [approvals, setApprovals] = useState<ApprovalRequest[]>(() =>
+    getStoredData('approvals', INITIAL_APPROVALS)
+  );
+  const [ahspList, setAhspList] = useState<AHSPItem[]>(() =>
+    getStoredData('ahsp', INITIAL_AHSP)
+  );
+  const [rabItems, setRabItems] = useState<RABItem[]>(() =>
+    getStoredData('rab_items', INITIAL_RAB_ITEMS)
+  );
 
   // Settings States
-  const [companyProfile, setCompanyProfile] = useState<CompanyProfile>(INITIAL_COMPANY_PROFILE);
-  const [letterhead, setLetterhead] = useState<LetterheadSettings>(INITIAL_LETTERHEAD);
-  const [systemUsers, setSystemUsers] = useState<SystemUser[]>(INITIAL_SYSTEM_USERS);
-  const [systemSettings, setSystemSettings] = useState<SystemSettings>(INITIAL_SYSTEM_SETTINGS);
+  const [companyProfile, setCompanyProfile] = useState<CompanyProfile>(() =>
+    getStoredData('company_profile', INITIAL_COMPANY_PROFILE)
+  );
+  const [letterhead, setLetterhead] = useState<LetterheadSettings>(() =>
+    getStoredData('letterhead', INITIAL_LETTERHEAD)
+  );
+  const [systemUsers, setSystemUsers] = useState<SystemUser[]>(() =>
+    getStoredData('system_users', INITIAL_SYSTEM_USERS)
+  );
+  const [systemSettings, setSystemSettings] = useState<SystemSettings>(() =>
+    getStoredData('system_settings', INITIAL_SYSTEM_SETTINGS)
+  );
 
   // Initialize Firestore Subscriptions
   useEffect(() => {
@@ -148,69 +187,158 @@ export default function App() {
 
   const pendingApprovalsCount = approvals.filter((a) => a.status === 'Pending').length;
 
-  // Handlers for Save and Delete
-  const handleSaveProject = (p: Project) => saveDocument('projects', p);
-  const handleDeleteProject = (id: string) => deleteDocument('projects', id);
+  // Persistent Handlers for Save and Delete
+  const handleSaveProject = async (p: Project) => {
+    const updated = await saveDocument('projects', p);
+    setProjects(updated);
+  };
+  const handleDeleteProject = async (id: string) => {
+    const updated = await deleteDocument<Project>('projects', id);
+    setProjects(updated);
+  };
 
-  const handleSaveTender = (t: Tender) => saveDocument('tenders', t);
-  const handleDeleteTender = (id: string) => deleteDocument('tenders', id);
+  const handleSaveTender = async (t: Tender) => {
+    const updated = await saveDocument('tenders', t);
+    setTenders(updated);
+  };
+  const handleDeleteTender = async (id: string) => {
+    const updated = await deleteDocument<Tender>('tenders', id);
+    setTenders(updated);
+  };
 
-  const handleSaveMaterial = (m: Material) => saveDocument('materials', m);
-  const handleDeleteMaterial = (id: string) => deleteDocument('materials', id);
+  const handleSaveMaterial = async (m: Material) => {
+    const updated = await saveDocument('materials', m);
+    setMaterials(updated);
+  };
+  const handleDeleteMaterial = async (id: string) => {
+    const updated = await deleteDocument<Material>('materials', id);
+    setMaterials(updated);
+  };
 
-  const handleSavePurchase = (po: PurchaseOrder) => saveDocument('purchases', po);
-  const handleDeletePurchase = (id: string) => deleteDocument('purchases', id);
+  const handleSavePurchase = async (po: PurchaseOrder) => {
+    const updated = await saveDocument('purchases', po);
+    setPurchases(updated);
+  };
+  const handleDeletePurchase = async (id: string) => {
+    const updated = await deleteDocument<PurchaseOrder>('purchases', id);
+    setPurchases(updated);
+  };
 
-  const handleSaveSalesOrder = (so: SalesOrder) => saveDocument('sales', so);
-  const handleDeleteSalesOrder = (id: string) => deleteDocument('sales', id);
+  const handleSaveSalesOrder = async (so: SalesOrder) => {
+    const updated = await saveDocument('sales', so);
+    setSalesOrders(updated);
+  };
+  const handleDeleteSalesOrder = async (id: string) => {
+    const updated = await deleteDocument<SalesOrder>('sales', id);
+    setSalesOrders(updated);
+  };
 
-  const handleSaveLead = (l: CrmLead) => saveDocument('crm_leads', l);
-  const handleDeleteLead = (id: string) => deleteDocument('crm_leads', id);
+  const handleSaveLead = async (l: CrmLead) => {
+    const updated = await saveDocument('crm_leads', l);
+    setCrmLeads(updated);
+  };
+  const handleDeleteLead = async (id: string) => {
+    const updated = await deleteDocument<CrmLead>('crm_leads', id);
+    setCrmLeads(updated);
+  };
 
-  const handleSaveEquipment = (e: Equipment) => saveDocument('equipment', e);
-  const handleDeleteEquipment = (id: string) => deleteDocument('equipment', id);
+  const handleSaveEquipment = async (e: Equipment) => {
+    const updated = await saveDocument('equipment', e);
+    setEquipment(updated);
+  };
+  const handleDeleteEquipment = async (id: string) => {
+    const updated = await deleteDocument<Equipment>('equipment', id);
+    setEquipment(updated);
+  };
 
-  const handleSaveEmployee = (e: Employee) => saveDocument('employees', e);
-  const handleDeleteEmployee = (id: string) => deleteDocument('employees', id);
+  const handleSaveEmployee = async (e: Employee) => {
+    const updated = await saveDocument('employees', e);
+    setEmployees(updated);
+  };
+  const handleDeleteEmployee = async (id: string) => {
+    const updated = await deleteDocument<Employee>('employees', id);
+    setEmployees(updated);
+  };
 
-  const handleSaveFinance = (f: FinanceTransaction) => saveDocument('finance_transactions', f);
-  const handleDeleteFinance = (id: string) => deleteDocument('finance_transactions', id);
+  const handleSaveFinance = async (f: FinanceTransaction) => {
+    const updated = await saveDocument('finance_transactions', f);
+    setFinanceTransactions(updated);
+  };
+  const handleDeleteFinance = async (id: string) => {
+    const updated = await deleteDocument<FinanceTransaction>('finance_transactions', id);
+    setFinanceTransactions(updated);
+  };
 
-  const handleSaveRabItem = (r: RABItem) => saveDocument('rab_items', r);
-  const handleDeleteRabItem = (id: string) => deleteDocument('rab_items', id);
-  const handleSaveAhsp = (a: AHSPItem) => saveDocument('ahsp', a);
+  const handleSaveRabItem = async (r: RABItem) => {
+    const updated = await saveDocument('rab_items', r);
+    setRabItems(updated);
+  };
+  const handleDeleteRabItem = async (id: string) => {
+    const updated = await deleteDocument<RABItem>('rab_items', id);
+    setRabItems(updated);
+  };
+
+  const handleSaveAhsp = async (a: AHSPItem) => {
+    const updated = await saveDocument('ahsp', a);
+    setAhspList(updated);
+  };
 
   // Settings Handlers
-  const handleSaveSystemUser = (u: SystemUser) => saveDocument('system_users', u);
-  const handleDeleteSystemUser = (id: string) => deleteDocument('system_users', id);
-  const handleUpdateCompanyProfile = (profile: CompanyProfile) => setCompanyProfile(profile);
-  const handleUpdateLetterhead = (lh: LetterheadSettings) => setLetterhead(lh);
-  const handleUpdateSystemSettings = (s: SystemSettings) => setSystemSettings(s);
+  const handleSaveSystemUser = async (u: SystemUser) => {
+    const updated = await saveDocument('system_users', u);
+    setSystemUsers(updated);
+  };
+  const handleDeleteSystemUser = async (id: string) => {
+    const updated = await deleteDocument<SystemUser>('system_users', id);
+    setSystemUsers(updated);
+  };
+
+  const handleUpdateCompanyProfile = (profile: CompanyProfile) => {
+    setCompanyProfile(profile);
+    setStoredData('company_profile', profile);
+    saveDocument('settings_single', { id: 'company_profile', ...profile });
+  };
+
+  const handleUpdateLetterhead = (lh: LetterheadSettings) => {
+    setLetterhead(lh);
+    setStoredData('letterhead', lh);
+    saveDocument('settings_single', { id: 'letterhead', ...lh });
+  };
+
+  const handleUpdateSystemSettings = (s: SystemSettings) => {
+    setSystemSettings(s);
+    setStoredData('system_settings', s);
+    saveDocument('settings_single', { id: 'system_settings', ...s });
+  };
 
   // Approval Handlers
-  const handleApprove = (id: string, notes: string) => {
+  const handleApprove = async (id: string, notes: string) => {
     const existing = approvals.find((a) => a.id === id);
     if (existing) {
-      saveDocument('approvals', {
+      const updatedApproval = {
         ...existing,
-        status: 'Approved',
+        status: 'Approved' as const,
         notes,
         approvalDate: new Date().toISOString().split('T')[0],
         approver: currentRole,
-      });
+      };
+      const updated = await saveDocument('approvals', updatedApproval);
+      setApprovals(updated);
     }
   };
 
-  const handleReject = (id: string, notes: string) => {
+  const handleReject = async (id: string, notes: string) => {
     const existing = approvals.find((a) => a.id === id);
     if (existing) {
-      saveDocument('approvals', {
+      const updatedApproval = {
         ...existing,
-        status: 'Rejected',
+        status: 'Rejected' as const,
         notes,
         approvalDate: new Date().toISOString().split('T')[0],
         approver: currentRole,
-      });
+      };
+      const updated = await saveDocument('approvals', updatedApproval);
+      setApprovals(updated);
     }
   };
 
