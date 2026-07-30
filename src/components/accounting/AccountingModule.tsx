@@ -13,6 +13,7 @@ import {
 import { ChartOfAccount, JournalEntry, CompanyProfile, LetterheadSettings } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
 import { PrintHeader } from '../common/PrintHeader';
+import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import { getStoredData } from '../../services/firestoreService';
 import { INITIAL_COMPANY_PROFILE, INITIAL_LETTERHEAD } from '../../lib/seedData';
@@ -311,6 +312,8 @@ export const AccountingModule: React.FC<AccountingModuleProps> = ({
           </div>
         </div>
       )}
+
+      <PrintSignature note="Laporan Keuangan Resmi (Jurnal Umum, Laba Rugi & Neraca Keseimbangan)" />
     </div>
   );
 };

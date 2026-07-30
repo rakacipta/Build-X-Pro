@@ -15,6 +15,7 @@ import {
 import { AHSPItem, RABItem } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
 import { PrintHeader } from '../common/PrintHeader';
+import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 
 interface EstimatorModuleProps {
@@ -163,11 +164,11 @@ export const EstimatorModule: React.FC<EstimatorModuleProps> = ({
               </span>
             </div>
 
-            <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl print:border-none">
-              <span className="text-xs text-amber-300 font-bold uppercase block">
+            <div className="bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-xl print:border-none">
+              <span className="text-[11px] text-amber-300 font-bold uppercase block">
                 Grand Total RAB Kontrak
               </span>
-              <span className="text-2xl font-black text-amber-400 mt-0.5 block">
+              <span className="text-lg font-bold text-amber-400 mt-0.5 block">
                 {formatRupiah(grandTotalRAB)}
               </span>
             </div>
@@ -298,11 +299,11 @@ export const EstimatorModule: React.FC<EstimatorModuleProps> = ({
                     </td>
                     <td className="print:hidden"></td>
                   </tr>
-                  <tr className="bg-amber-100/60 text-slate-900 text-base">
-                    <td colSpan={6} className="p-3.5 text-right uppercase font-black">
+                  <tr className="bg-amber-100/60 text-slate-900 text-xs sm:text-sm">
+                    <td colSpan={6} className="p-2.5 text-right uppercase font-extrabold">
                       TOTAL RAB PENAWARAN (TERMASUK PAJAK):
                     </td>
-                    <td className="p-3.5 text-right font-black text-amber-700">
+                    <td className="p-2.5 text-right font-extrabold text-amber-800">
                       {formatRupiah(grandTotalRAB)}
                     </td>
                     <td className="print:hidden"></td>
@@ -364,6 +365,8 @@ export const EstimatorModule: React.FC<EstimatorModuleProps> = ({
           </div>
         </div>
       )}
+
+      <PrintSignature note="Dokumen Perhitungan Rencana Anggaran Biaya (RAB) & Analisa Harga Satuan Pekerjaan (AHSP)" />
 
       {/* Modal Add RAB Item */}
       {isRabModalOpen && editingRab && (

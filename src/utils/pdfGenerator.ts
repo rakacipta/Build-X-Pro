@@ -9,6 +9,42 @@ export interface PdfExportOptions {
 }
 
 /**
+ * Converts CSS strings containing modern 'oklch(...)' color functions
+ * into standard hex or rgba format using a canvas 2D context.
+ * This prevents html2canvas from throwing unsupported color function errors.
+ */
+function convertOklchColors(cssText: string): string {
+  if (!cssText || !cssText.includes('oklch')) return cssText;
+
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  return cssText.replace(/oklch\([^)]+\)/gi, (match) => {
+    if (ctx) {
+      try {
+        ctx.fillStyle = '#000000';
+        ctx.fillStyle = match;
+        const res1 = ctx.fillStyle;
+        if (res1 && res1 !== '#000000') {
+          return res1;
+        }
+        // Test if the match was true black e.g. oklch(0 0 0)
+        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = match;
+        const res2 = ctx.fillStyle;
+        if (res2 !== '#ffffff') {
+          return res2;
+        }
+        return '#000000';
+      } catch {
+        // Fallback below
+      }
+    }
+    return '#64748b';
+  });
+}
+
+/**
  * Generates and downloads a clean A4 PDF file from a DOM element ID.
  * Falls back to opening a clean popup print window if canvas generation is restricted.
  */
@@ -48,6 +84,52 @@ export async function generatePdfFromElement({
           }
         }
         return false;
+      },
+      onclone: (clonedDoc) => {
+        // 1. Process all <style> elements in clonedDoc
+        const styleElements = clonedDoc.querySelectorAll('style');
+        styleElements.forEach((styleEl) => {
+          if (styleEl.textContent && styleEl.textContent.includes('oklch')) {
+            styleEl.textContent = convertOklchColors(styleEl.textContent);
+          }
+        });
+
+        // 2. Process all inline style attributes in clonedDoc
+        const styledElements = clonedDoc.querySelectorAll('[style]');
+        styledElements.forEach((node) => {
+          if (node instanceof HTMLElement && node.style && node.style.cssText.includes('oklch')) {
+            node.style.cssText = convertOklchColors(node.style.cssText);
+          }
+        });
+
+        // 3. Extract and convert rules from main document styleSheets
+        try {
+          let extraCss = '';
+          Array.from(document.styleSheets).forEach((sheet) => {
+            try {
+              const rules = sheet.cssRules || sheet.rules;
+              if (rules) {
+                for (let i = 0; i < rules.length; i++) {
+                  const ruleText = rules[i].cssText;
+                  if (ruleText && ruleText.includes('oklch')) {
+                    extraCss += convertOklchColors(ruleText) + '\n';
+                  }
+                }
+              }
+            } catch {
+              // Ignore cross-origin stylesheets
+            }
+          });
+
+          if (extraCss) {
+            const newStyle = clonedDoc.createElement('style');
+            newStyle.setAttribute('type', 'text/css');
+            newStyle.textContent = extraCss;
+            clonedDoc.head.appendChild(newStyle);
+          }
+        } catch (err) {
+          console.warn('[PDF Export] Error processing styleSheets in onclone:', err);
+        }
       },
     });
 

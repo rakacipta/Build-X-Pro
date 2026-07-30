@@ -13,15 +13,20 @@ import {
   Edit2,
   FileText,
 } from 'lucide-react';
-import { CrmLead } from '../../types';
+import { CrmLead, Quotation } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
 import { PrintHeader } from '../common/PrintHeader';
+import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
+import { QuotationManager } from '../quotation/QuotationManager';
 
 interface CrmModuleProps {
   leads: CrmLead[];
   onSaveLead: (lead: CrmLead) => void;
   onDeleteLead: (id: string) => void;
+  quotations?: Quotation[];
+  onSaveQuotation?: (q: Quotation) => void;
+  onDeleteQuotation?: (id: string) => void;
 }
 
 const STAGES = [
@@ -37,8 +42,11 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
   leads,
   onSaveLead,
   onDeleteLead,
+  quotations = [],
+  onSaveQuotation = () => {},
+  onDeleteQuotation = () => {},
 }) => {
-  const [activeTab, setActiveTab] = useState<'pipeline' | 'contacts'>('pipeline');
+  const [activeTab, setActiveTab] = useState<'pipeline' | 'contacts' | 'quotation'>('pipeline');
   const [search, setSearch] = useState('');
   const [selectedStage, setSelectedStage] = useState<string>('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -112,11 +120,24 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
               onClick={() => setActiveTab('contacts')}
               className={`px-3 py-1.5 rounded-lg transition ${
                 activeTab === 'contacts'
-                  ? 'bg-white text-slate-900 shadow-sm'
+                  ? 'bg-white text-slate-900 shadow-sm font-bold'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Daftar Kontak
+            </button>
+            <button
+              onClick={() => setActiveTab('quotation')}
+              className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
+                activeTab === 'quotation'
+                  ? 'bg-white text-amber-700 shadow-sm font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <span>Penawaran (Quotation)</span>
+              <span className="px-1.5 py-0.2 bg-amber-100 text-amber-800 rounded-full text-[10px]">
+                {quotations.length}
+              </span>
             </button>
           </div>
 
@@ -127,14 +148,25 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
             variant="emerald"
           />
 
-          <button
-            onClick={handleOpenAddModal}
-            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow transition"
-          >
-            <Plus className="w-4 h-4" /> Prospek Baru
-          </button>
+          {activeTab !== 'quotation' && (
+            <button
+              onClick={handleOpenAddModal}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow transition"
+            >
+              <Plus className="w-4 h-4" /> Prospek Baru
+            </button>
+          )}
         </div>
       </div>
+
+      {activeTab === 'quotation' ? (
+        <QuotationManager
+          quotations={quotations}
+          onSaveQuotation={onSaveQuotation}
+          onDeleteQuotation={onDeleteQuotation}
+        />
+      ) : (
+        <>
 
       {/* Filters Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -314,6 +346,8 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
         </div>
       )}
 
+      <PrintSignature note="Laporan Pipeline Penjualan, CRM Prospek & Kontak Klien Perusahaan" />
+
       {/* Modal Add / Edit Lead */}
       {isModalOpen && editingLead && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -443,6 +477,8 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
             </form>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

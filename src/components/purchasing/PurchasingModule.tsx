@@ -14,6 +14,7 @@ import {
   Printer,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
+import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import { PurchaseOrder, CompanyProfile, LetterheadSettings } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
@@ -269,6 +270,9 @@ export const PurchasingModule: React.FC<PurchasingModuleProps> = ({
           </div>
         </div>
       )}
+
+      <PrintSignature note="Laporan Rekapitulasi Purchase Order & Pengadaan Material Proyek" />
+
       {/* Modal Cetak PO Document Printable */}
       {selectedPoForPrint && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-6 overflow-hidden">
@@ -485,29 +489,13 @@ export const PurchasingModule: React.FC<PurchasingModuleProps> = ({
               </div>
 
               {/* Signatures */}
-              <div className="grid grid-cols-3 gap-4 pt-6 text-center text-xs border-t border-slate-200">
-                <div className="space-y-12">
-                  <p className="font-semibold text-slate-600">Dibuat Oleh,</p>
-                  <div>
-                    <p className="font-bold text-slate-900 underline">{selectedPoForPrint.requestedBy || 'Tim Purchasing'}</p>
-                    <p className="text-[10px] text-slate-500">Staff Bagian Pengadaan</p>
-                  </div>
-                </div>
-                <div className="space-y-12">
-                  <p className="font-semibold text-slate-600">Disetujui Oleh,</p>
-                  <div>
-                    <p className="font-bold text-slate-900 underline">Budi Santoso, S.T.</p>
-                    <p className="text-[10px] text-slate-500">Project Manager / Director</p>
-                  </div>
-                </div>
-                <div className="space-y-12">
-                  <p className="font-semibold text-slate-600">Konfirmasi Vendor,</p>
-                  <div>
-                    <p className="font-bold text-slate-900 underline">{selectedPoForPrint.vendorName}</p>
-                    <p className="text-[10px] text-slate-500">Perwakilan Supplier</p>
-                  </div>
-                </div>
-              </div>
+              <PrintSignature
+                preparedBy={selectedPoForPrint.requestedBy || 'Tim Purchasing'}
+                preparedTitle="Staff Bagian Pengadaan"
+                verifiedBy={selectedPoForPrint.vendorName || 'Perwakilan Vendor'}
+                verifiedTitle="Konfirmasi Supplier / Vendor"
+                note="Dokumen Purchase Order Sah & Disetujui Secara Digital oleh Direksi"
+              />
             </div>
           </div>
         </div>

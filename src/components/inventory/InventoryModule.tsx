@@ -14,6 +14,7 @@ import {
   Printer,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
+import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import { Material } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
@@ -238,6 +239,8 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
           </table>
         </div>
       </div>
+
+      <PrintSignature note="Laporan Stock Opname, Mutasi & Inventaris Gudang Material Proyek" />
 
       {/* Modal Add / Edit Material */}
       {isModalOpen && editingMaterial && (

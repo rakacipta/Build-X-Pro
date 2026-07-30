@@ -17,6 +17,7 @@ import {
   Printer,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
+import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import { CompanyProfile, CompanyBank, FinanceTransaction, UserRole } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
@@ -422,6 +423,8 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
           </table>
         </div>
       </div>
+
+      <PrintSignature note="Laporan Rekening Perusahaan & Saldo Kas Perbankan" />
 
       {/* Bank Account Modal Form */}
       {isModalOpen && (

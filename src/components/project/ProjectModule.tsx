@@ -19,6 +19,7 @@ import {
   Printer,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
+import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import { Project, VariationOrder, DailyReport } from '../../types';
 import { formatRupiah, formatCompactNumber } from '../../utils/formatters';
@@ -407,6 +408,8 @@ export const ProjectModule: React.FC<ProjectModuleProps> = ({
             )}
           </div>
         )}
+
+        <PrintSignature note="Laporan Progress Fisik, Nilai Kontrak & Status Realisasi Proyek" />
       </div>
 
       {/* Modal Add / Edit Project */}

@@ -13,6 +13,7 @@ import {
   Printer,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
+import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import { FinanceTransaction } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
@@ -219,6 +220,8 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({
           </table>
         </div>
       </div>
+
+      <PrintSignature note="Laporan Arus Kas (Cash Flow), Penerimaan Termijn & Transaksi Operasional" />
 
       {/* Modal Add TRX */}
       {isModalOpen && (

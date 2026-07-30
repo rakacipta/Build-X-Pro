@@ -21,6 +21,7 @@ import {
   LetterheadSettings,
 } from '../../types';
 import { PrintHeader } from '../common/PrintHeader';
+import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import { formatRupiah, formatCompactNumber } from '../../utils/formatters';
 import { getStoredData } from '../../services/firestoreService';
@@ -270,6 +271,8 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({
             </table>
           </div>
         )}
+
+        <PrintSignature note="Laporan Eksekutif Komprehensif Manajemen & Operasional Perusahaan" />
       </div>
     </div>
   );

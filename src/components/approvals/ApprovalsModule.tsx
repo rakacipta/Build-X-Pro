@@ -12,6 +12,7 @@ import {
   Printer,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
+import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import { ApprovalRequest, UserRole } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
@@ -147,6 +148,8 @@ export const ApprovalsModule: React.FC<ApprovalsModuleProps> = ({
           </div>
         ))}
       </div>
+
+      <PrintSignature note="Laporan Pengesahan Otorisasi, Verifikasi & Persetujuan Direksi" />
 
       {/* Review & Approve Modal */}
       {selectedApp && (

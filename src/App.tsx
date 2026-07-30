@@ -23,6 +23,7 @@ import {
   UserRole,
   Project,
   Tender,
+  Quotation,
   Material,
   PurchaseOrder,
   SalesOrder,
@@ -45,6 +46,7 @@ import {
 import {
   INITIAL_PROJECTS,
   INITIAL_TENDERS,
+  INITIAL_QUOTATIONS,
   INITIAL_MATERIALS,
   INITIAL_PURCHASES,
   INITIAL_SALES,
@@ -84,6 +86,9 @@ export default function App() {
   );
   const [tenders, setTenders] = useState<Tender[]>(() =>
     getStoredData('tenders', INITIAL_TENDERS)
+  );
+  const [quotations, setQuotations] = useState<Quotation[]>(() =>
+    getStoredData('quotations', INITIAL_QUOTATIONS)
   );
   const [materials, setMaterials] = useState<Material[]>(() =>
     getStoredData('materials', INITIAL_MATERIALS)
@@ -204,6 +209,15 @@ export default function App() {
   const handleDeleteTender = async (id: string) => {
     const updated = await deleteDocument<Tender>('tenders', id);
     setTenders(updated);
+  };
+
+  const handleSaveQuotation = async (q: Quotation) => {
+    const updated = await saveDocument('quotations', q);
+    setQuotations(updated);
+  };
+  const handleDeleteQuotation = async (id: string) => {
+    const updated = await deleteDocument<Quotation>('quotations', id);
+    setQuotations(updated);
   };
 
   const handleSaveMaterial = async (m: Material) => {
@@ -383,6 +397,9 @@ export default function App() {
               leads={crmLeads}
               onSaveLead={handleSaveLead}
               onDeleteLead={handleDeleteLead}
+              quotations={quotations}
+              onSaveQuotation={handleSaveQuotation}
+              onDeleteQuotation={handleDeleteQuotation}
             />
           )}
 
@@ -391,6 +408,9 @@ export default function App() {
               tenders={tenders}
               onSaveTender={handleSaveTender}
               onDeleteTender={handleDeleteTender}
+              quotations={quotations}
+              onSaveQuotation={handleSaveQuotation}
+              onDeleteQuotation={handleDeleteQuotation}
             />
           )}
 

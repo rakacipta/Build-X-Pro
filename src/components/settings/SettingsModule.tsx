@@ -32,6 +32,7 @@ import {
   Printer,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
+import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import {
   CompanyProfile,
@@ -1461,6 +1462,8 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
           </div>
         </div>
       )}
+
+      <PrintSignature note="Laporan Konfigurasi Sistem, Identitas Perusahaan & Hak Akses ERP" />
 
       {/* USER MODAL (ADD / EDIT) */}
       {isUserModalOpen && (

@@ -17,21 +17,30 @@ import {
   Printer,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
+import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
-import { Tender } from '../../types';
+import { Tender, Quotation } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
+import { QuotationManager } from '../quotation/QuotationManager';
 
 interface TenderModuleProps {
   tenders: Tender[];
   onSaveTender: (tender: Tender) => void;
   onDeleteTender: (id: string) => void;
+  quotations?: Quotation[];
+  onSaveQuotation?: (q: Quotation) => void;
+  onDeleteQuotation?: (id: string) => void;
 }
 
 export const TenderModule: React.FC<TenderModuleProps> = ({
   tenders,
   onSaveTender,
   onDeleteTender,
+  quotations = [],
+  onSaveQuotation = () => {},
+  onDeleteQuotation = () => {},
 }) => {
+  const [activeTab, setActiveTab] = useState<'tenders' | 'quotations'>('tenders');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -91,20 +100,57 @@ export const TenderModule: React.FC<TenderModuleProps> = ({
         </div>
 
         <div className="flex items-center gap-3">
+          <div className="bg-slate-100 p-1 rounded-xl flex text-xs font-semibold">
+            <button
+              onClick={() => setActiveTab('tenders')}
+              className={`px-3 py-1.5 rounded-lg transition ${
+                activeTab === 'tenders'
+                  ? 'bg-white text-slate-900 shadow-sm font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Daftar Tender Lelang
+            </button>
+            <button
+              onClick={() => setActiveTab('quotations')}
+              className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
+                activeTab === 'quotations'
+                  ? 'bg-white text-amber-700 shadow-sm font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <span>Penawaran (Quotation)</span>
+              <span className="px-1.5 py-0.2 bg-amber-100 text-amber-800 rounded-full text-[10px]">
+                {quotations.length}
+              </span>
+            </button>
+          </div>
+
           <CetakPdfButton
             elementId="tender-module"
             filename="Laporan_Manajemen_Tender_Build_X_Pro.pdf"
             title="Laporan Tender & Dokumen Penawaran Lelang"
             variant="emerald"
           />
-          <button
-            onClick={handleOpenAddModal}
-            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow transition"
-          >
-            <Plus className="w-4 h-4" /> Input Tender Baru
-          </button>
+          {activeTab === 'tenders' && (
+            <button
+              onClick={handleOpenAddModal}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow transition"
+            >
+              <Plus className="w-4 h-4" /> Input Tender Baru
+            </button>
+          )}
         </div>
       </div>
+
+      {activeTab === 'quotations' ? (
+        <QuotationManager
+          quotations={quotations}
+          onSaveQuotation={onSaveQuotation}
+          onDeleteQuotation={onDeleteQuotation}
+        />
+      ) : (
+        <>
 
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -251,6 +297,8 @@ export const TenderModule: React.FC<TenderModuleProps> = ({
         })}
       </div>
 
+      <PrintSignature note="Dokumen Portofolio & Rekapitulasi Pendaftaran Tender Proyek" />
+
       {/* Modal Add / Edit Tender */}
       {isModalOpen && editingTender && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -388,6 +436,8 @@ export const TenderModule: React.FC<TenderModuleProps> = ({
             </form>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

@@ -18,6 +18,7 @@ import {
 import { Employee, PayrollSlip, CompanyProfile, LetterheadSettings } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
 import { PrintHeader } from '../common/PrintHeader';
+import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import { getStoredData } from '../../services/firestoreService';
 import { INITIAL_COMPANY_PROFILE, INITIAL_LETTERHEAD } from '../../lib/seedData';
@@ -295,6 +296,8 @@ export const HrPayrollModule: React.FC<HrPayrollModuleProps> = ({
         </div>
       )}
 
+      <PrintSignature note="Laporan Penggajian (Payroll), BPJS Ketenagakerjaan & PPh 21 Karyawan" />
+
       {/* Slip Gaji Modal Printable */}
       {selectedSlip && (() => {
         const matchedEmp = employees.find(
@@ -521,32 +524,13 @@ export const HrPayrollModule: React.FC<HrPayrollModuleProps> = ({
                   </div>
 
                   {/* Footer & Signatures */}
-                  <div className="pt-4 border-t border-slate-200 space-y-6">
-                    <div className="grid grid-cols-3 gap-2 text-center text-[11px]">
-                      <div className="space-y-10">
-                        <p className="font-semibold text-slate-500">Disiapkan Oleh (HRD/Payroll):</p>
-                        <div>
-                          <p className="font-bold text-slate-900 underline">Dewi Anggraini, S.Psi.</p>
-                          <p className="text-[9px] text-slate-400">HR & Payroll Officer</p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-10">
-                        <p className="font-semibold text-slate-500">Disetujui Oleh (Finance):</p>
-                        <div>
-                          <p className="font-bold text-slate-900 underline">Budi Santoso, S.T.</p>
-                          <p className="text-[9px] text-slate-400">Finance & Operations Director</p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-10">
-                        <p className="font-semibold text-slate-500">Penerima Gaji:</p>
-                        <div>
-                          <p className="font-bold text-slate-900 underline">{selectedSlip.employeeName}</p>
-                          <p className="text-[9px] text-slate-400">Karyawan Bersangkutan</p>
-                        </div>
-                      </div>
-                    </div>
+                  <PrintSignature
+                    preparedBy="Dewi Anggraini, S.Psi."
+                    preparedTitle="Staff HRD & Payroll"
+                    verifiedBy={selectedSlip.employeeName}
+                    verifiedTitle="Penerima Gaji (Karyawan)"
+                    note={`Slip Gaji Resmi Periode ${selectedSlip.period} — Disetujui Otoritas Direksi & HRD`}
+                  />
 
                     <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-[10px] text-slate-500 text-center flex items-center justify-center gap-2">
                       <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
@@ -554,7 +538,6 @@ export const HrPayrollModule: React.FC<HrPayrollModuleProps> = ({
                         Dokumen ini diterbitkan secara otomatis oleh sistem BUILD X PRO {getStoredData<CompanyProfile>('company_profile', INITIAL_COMPANY_PROFILE).name} dan sah secara elektronik.
                       </span>
                     </div>
-                  </div>
                 </div>
               </div>
             </div>

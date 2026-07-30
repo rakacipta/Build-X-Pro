@@ -164,7 +164,7 @@ export interface DailyReport {
   supervisor: string;
 }
 
-// --- TENDER ---
+// --- TENDER & QUOTATION ---
 export interface Tender {
   id: string;
   tenderNo: string;
@@ -176,6 +176,35 @@ export interface Tender {
   notes: string;
   boqTotal: number;
   category: string;
+}
+
+export interface QuotationItem {
+  id: string;
+  description: string;
+  unit: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+export interface Quotation {
+  id: string;
+  quotationNo: string;
+  clientName: string;
+  companyName: string;
+  clientAddress?: string;
+  projectName: string;
+  date: string;
+  validUntil: string;
+  status: 'Draft' | 'Sent' | 'Accepted' | 'Declined' | 'Expired';
+  items: QuotationItem[];
+  taxPercent: number;
+  subtotal: number;
+  taxAmount: number;
+  grandTotal: number;
+  notes: string;
+  preparedBy?: string;
+  approvedBy?: string;
 }
 
 // --- ESTIMATOR & AHSP ---

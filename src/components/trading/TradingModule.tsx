@@ -15,6 +15,7 @@ import {
 import { SalesOrder } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
 import { PrintHeader } from '../common/PrintHeader';
+import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 
 interface TradingModuleProps {
@@ -214,6 +215,8 @@ export const TradingModule: React.FC<TradingModuleProps> = ({
           </table>
         </div>
       </div>
+
+      <PrintSignature note="Laporan Penjualan (Sales Order), Pengiriman & Perdagangan Material Trading" />
 
       {/* Modal Add Sales Order */}
       {isModalOpen && editingSo && (
