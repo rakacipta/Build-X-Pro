@@ -17,10 +17,14 @@ import {
   FinanceTransaction,
   Employee,
   Material,
+  CompanyProfile,
+  LetterheadSettings,
 } from '../../types';
 import { PrintHeader } from '../common/PrintHeader';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import { formatRupiah, formatCompactNumber } from '../../utils/formatters';
+import { getStoredData } from '../../services/firestoreService';
+import { INITIAL_COMPANY_PROFILE, INITIAL_LETTERHEAD } from '../../lib/seedData';
 
 interface ReportsModuleProps {
   projects: Project[];
@@ -110,7 +114,7 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({
 
           <CetakPdfButton
             elementId="reports-module"
-            filename={`Laporan_Executive_${reportType}_Construx.pdf`}
+            filename={`Laporan_Executive_${reportType}_Build_X_Pro.pdf`}
             title={`Laporan Executive & Audit Trail (${reportType.toUpperCase()})`}
             variant="emerald"
             label="Cetak Laporan PDF"
@@ -122,7 +126,7 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({
       <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-6">
         <div className="text-center border-b pb-4">
           <h1 className="font-black text-xl text-slate-900 uppercase tracking-wide">
-            PT GRAHA MULTI KONSTRUKSI & TRADING
+            {getStoredData<LetterheadSettings>('letterhead', INITIAL_LETTERHEAD).headerTitle || getStoredData<CompanyProfile>('company_profile', INITIAL_COMPANY_PROFILE).name}
           </h1>
           <h3 className="font-bold text-sm text-amber-600 mt-1 uppercase">
             {reportType === 'project' && 'LAPORAN REALISASI BIAYA & PROGRESS PROYEK'}

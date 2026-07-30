@@ -122,7 +122,7 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
 
           <CetakPdfButton
             elementId="crm-module"
-            filename="Laporan_CRM_Leads_Construx.pdf"
+            filename="Laporan_CRM_Leads_Build_X_Pro.pdf"
             title="Laporan CRM & Pipeline Leads"
             variant="emerald"
           />

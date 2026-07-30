@@ -95,7 +95,7 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
         <div className="flex items-center gap-3">
           <CetakPdfButton
             elementId="inventory-module"
-            filename="Laporan_Inventaris_Material_Construx.pdf"
+            filename="Laporan_Inventaris_Material_Build_X_Pro.pdf"
             title="Laporan Inventaris Material & Stock Opname"
             variant="emerald"
           />

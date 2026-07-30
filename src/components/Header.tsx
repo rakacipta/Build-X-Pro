@@ -77,7 +77,7 @@ export const Header: React.FC<HeaderProps> = ({
                 {companyName}
               </h1>
               <span className="bg-blue-50 text-blue-700 border border-blue-200 text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">
-                Construx ERP
+                Build X Pro
               </span>
             </div>
             <p className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">

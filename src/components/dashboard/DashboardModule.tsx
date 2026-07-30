@@ -127,7 +127,7 @@ export const DashboardModule: React.FC<DashboardModuleProps> = ({
           <div className="flex items-center gap-3">
             <CetakPdfButton
               elementId="dashboard-module"
-              filename="Dashboard_Executive_KPI_Construx.pdf"
+              filename="Dashboard_Executive_KPI_Build_X_Pro.pdf"
               title="Dashboard Executive & KPI Realtime"
               variant="emerald"
             />

@@ -15,8 +15,10 @@ import {
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
 import { CetakPdfButton } from '../common/CetakPdfButton';
-import { PurchaseOrder } from '../../types';
+import { PurchaseOrder, CompanyProfile, LetterheadSettings } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
+import { getStoredData } from '../../services/firestoreService';
+import { INITIAL_COMPANY_PROFILE, INITIAL_LETTERHEAD } from '../../lib/seedData';
 
 interface PurchasingModuleProps {
   purchases: PurchaseOrder[];
@@ -94,7 +96,7 @@ export const PurchasingModule: React.FC<PurchasingModuleProps> = ({
         <div className="flex items-center gap-3">
           <CetakPdfButton
             elementId="purchasing-module"
-            filename="Laporan_Purchase_Order_Construx.pdf"
+            filename="Laporan_Purchase_Order_Build_X_Pro.pdf"
             title="Laporan Rekapitulasi Purchase Order (PO)"
             variant="emerald"
           />
@@ -311,37 +313,64 @@ export const PurchasingModule: React.FC<PurchasingModuleProps> = ({
               <div className="h-2 w-full bg-gradient-to-r from-blue-700 via-amber-500 to-emerald-600 rounded-t"></div>
 
               {/* Kop Surat Header */}
-              <div className="border-b-2 border-slate-900 pb-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-14 h-14 bg-gradient-to-br from-slate-900 to-slate-800 text-amber-400 font-black flex items-center justify-center text-2xl rounded-2xl shadow-md border border-slate-700">
-                      C
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-black text-slate-900 tracking-wider uppercase">
-                        PT GRAHA MULTI KONSTRUKSI
-                      </h2>
-                      <p className="text-xs font-bold text-amber-600">
-                        CONSTRUX ERP — General Contractor & Trading Material
-                      </p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
-                        Gedung Graha Construction Fl. 12, Jl. Jend. Sudirman No. 88, Jakarta Selatan 12190
-                      </p>
-                      <p className="text-[10px] text-slate-400">
-                        Telp: (021) 555-8899 / 555-8890 | Email: purchasing@grahamulti.co.id | www.grahamulti.co.id
-                      </p>
+              {(() => {
+                const profile = getStoredData<CompanyProfile>('company_profile', INITIAL_COMPANY_PROFILE);
+                const letterhead = getStoredData<LetterheadSettings>('letterhead', INITIAL_LETTERHEAD);
+                const title = letterhead.headerTitle || profile.name;
+                const subtitle = letterhead.headerSubtitle || profile.tagline;
+                const address = letterhead.addressLine1 || profile.address;
+                const contact = letterhead.contactLine || `Telp: ${profile.phone} | Email: ${profile.email}`;
+                const logoUrl = letterhead.logoUrl || profile.logoUrl;
+                const logoText = letterhead.logoText || profile.shortName || 'BX';
+                const logoBgColor = letterhead.logoBgColor || '#2563eb';
+
+                return (
+                  <div className="border-b-2 border-slate-900 pb-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-3.5">
+                        {letterhead.showLogo !== false && (
+                          logoUrl ? (
+                            <img
+                              src={logoUrl}
+                              alt="Logo"
+                              className="w-14 h-14 object-contain rounded-xl"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <div
+                              className="w-14 h-14 text-white font-black flex items-center justify-center text-xl rounded-2xl shadow-md"
+                              style={{ backgroundColor: logoBgColor }}
+                            >
+                              {logoText}
+                            </div>
+                          )
+                        )}
+                        <div>
+                          <h2 className="text-lg font-black text-slate-900 tracking-wider uppercase">
+                            {title}
+                          </h2>
+                          {subtitle && (
+                            <p className="text-xs font-bold text-amber-600">{subtitle}</p>
+                          )}
+                          <p className="text-[11px] text-slate-500 mt-0.5">{address}</p>
+                          {letterhead.addressLine2 && (
+                            <p className="text-[10px] text-slate-400">{letterhead.addressLine2}</p>
+                          )}
+                          <p className="text-[10px] text-slate-400">{contact}</p>
+                        </div>
+                      </div>
+                      <div className="text-right flex flex-col items-end">
+                        <span className="text-xs font-mono font-black text-amber-700 bg-amber-50 border border-amber-300 px-3 py-1 rounded-lg shadow-xs">
+                          PURCHASE ORDER
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-500 mt-1.5 block">
+                          NPWP: {profile.npwp}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right flex flex-col items-end">
-                    <span className="text-xs font-mono font-black text-amber-700 bg-amber-50 border border-amber-300 px-3 py-1 rounded-lg shadow-xs">
-                      PURCHASE ORDER
-                    </span>
-                    <span className="text-[10px] font-mono text-slate-500 mt-1.5 block">
-                      NPWP: 01.234.567.8-012.000
-                    </span>
-                  </div>
-                </div>
-              </div>
+                );
+              })()}
 
               {/* Title & Document Number */}
               <div className="text-center bg-slate-50 py-3 px-4 rounded-xl border border-slate-200/80">

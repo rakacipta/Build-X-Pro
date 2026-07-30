@@ -604,7 +604,7 @@ export const INITIAL_RAB_ITEMS: RABItem[] = [
 
 export const INITIAL_COMPANY_PROFILE: CompanyProfile = {
   name: 'PT GRAHA MULTI KONSTRUKSI',
-  shortName: 'GMK Construx',
+  shortName: 'GMK Build X Pro',
   tagline: 'General Contractor, Infrastructure Specialist & Trading Material',
   npwp: '01.345.678.9-012.000',
   nib: '9120003482193',
@@ -642,14 +642,14 @@ export const INITIAL_LETTERHEAD: LetterheadSettings = {
   addressLine1: 'Gedung Graha Konstruksi Lt. 8, Jl. Jend. Sudirman No. 88, Jakarta Selatan 12190',
   addressLine2: 'Izin Usaha Jasa Konstruksi (IUJK) No: 1/002/IUJK/PUPR/2021',
   contactLine: 'Telp: (021) 5790-1234 | Email: info@grahamulti.co.id | Web: www.grahamulti.co.id',
-  logoText: 'CX',
+  logoText: 'BX',
   logoBgColor: '#2563eb',
   showLogo: true,
   showDivider: true,
   dividerColor: '#2563eb',
   watermarkText: 'DOKUMEN RESMI - PT GRAHA MULTI KONSTRUKSI',
   showWatermark: true,
-  footerText: 'Dokumen ini dicetak otomatis dari Sistem ERP Construx dan sah tanpa tanda tangan basah jika dilengkapi Kode QR Verifikasi.',
+  footerText: 'Dokumen ini dicetak otomatis dari Sistem Build X Pro dan sah tanpa tanda tangan basah jika dilengkapi Kode QR Verifikasi.',
   documentCodePrefix: 'GMK/ERP',
 };
 

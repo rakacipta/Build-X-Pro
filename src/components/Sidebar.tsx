@@ -104,10 +104,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="p-4 border-b border-slate-800/80 mb-2">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-black text-white text-sm tracking-tight shadow-md shadow-blue-900/30">
-            CX
+            BX
           </div>
           <div>
-            <h1 className="text-white font-bold text-sm tracking-tight uppercase">Construx ERP</h1>
+            <h1 className="text-white font-bold text-sm tracking-tight uppercase">Build X Pro</h1>
             <p className="text-[10px] text-slate-400 font-medium">Enterprise Module Suite</p>
           </div>
         </div>

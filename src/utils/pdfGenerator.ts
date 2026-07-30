@@ -14,8 +14,8 @@ export interface PdfExportOptions {
  */
 export async function generatePdfFromElement({
   elementId,
-  filename = 'Laporan_Construx_ERP.pdf',
-  title = 'Laporan Resmi Construx ERP',
+  filename = 'Laporan_Build_X_Pro.pdf',
+  title = 'Laporan Resmi Build X Pro',
   landscape = false,
 }: PdfExportOptions): Promise<boolean> {
   const element = document.getElementById(elementId);

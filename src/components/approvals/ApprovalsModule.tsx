@@ -61,7 +61,7 @@ export const ApprovalsModule: React.FC<ApprovalsModuleProps> = ({
         <div className="flex items-center gap-3">
           <CetakPdfButton
             elementId="approvals-module"
-            filename="Laporan_Approval_Workflow_Construx.pdf"
+            filename="Laporan_Approval_Workflow_Build_X_Pro.pdf"
             title="Laporan Workflow Approval Multi-Level"
             variant="emerald"
           />

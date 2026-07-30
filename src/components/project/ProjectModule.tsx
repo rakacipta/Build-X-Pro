@@ -141,7 +141,7 @@ export const ProjectModule: React.FC<ProjectModuleProps> = ({
         <div className="flex items-center gap-3">
           <CetakPdfButton
             elementId="project-module"
-            filename="Laporan_Manajemen_Proyek_Construx.pdf"
+            filename="Laporan_Manajemen_Proyek_Build_X_Pro.pdf"
             title="Laporan Manajemen & Progress Fisik Proyek"
             variant="emerald"
           />

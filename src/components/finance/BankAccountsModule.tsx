@@ -169,7 +169,7 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
           <div className="flex items-center gap-3">
             <CetakPdfButton
               elementId="bank-accounts-module"
-              filename="Akun_Bank_Perusahaan_Construx.pdf"
+              filename="Akun_Bank_Perusahaan_Build_X_Pro.pdf"
               title="Laporan Master Akun Bank & Saldo Kas Resmi"
               variant="emerald"
             />

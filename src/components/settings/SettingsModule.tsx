@@ -192,7 +192,17 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
     onUpdateCompanyProfile(profileForm);
-    triggerNotification('Identitas Perusahaan berhasil diperbarui dan disimpan!');
+    const updatedLetterhead: LetterheadSettings = {
+      ...letterheadForm,
+      headerTitle: profileForm.name,
+      headerSubtitle: profileForm.tagline || letterheadForm.headerSubtitle,
+      addressLine1: profileForm.address ? `${profileForm.address}${profileForm.city ? `, ${profileForm.city}` : ''}` : letterheadForm.addressLine1,
+      contactLine: `Telp: ${profileForm.phone || ''} | Email: ${profileForm.email || ''}`,
+      logoText: profileForm.shortName || letterheadForm.logoText,
+    };
+    setLetterheadForm(updatedLetterhead);
+    onUpdateLetterhead(updatedLetterhead);
+    triggerNotification('Identitas Perusahaan dan Kop Surat berhasil diperbarui dan disinkronkan!');
   };
 
   const handleSaveLetterhead = (e: React.FormEvent) => {
@@ -320,7 +330,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
           <div className="flex items-center gap-3">
             <CetakPdfButton
               elementId="settings-module"
-              filename="Profil_dan_Aturan_ERP_Construx.pdf"
+              filename="Profil_dan_Aturan_ERP_Build_X_Pro.pdf"
               title="Profil Perusahaan & Aturan Konfigurasi ERP"
               variant="emerald"
             />
@@ -1414,7 +1424,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ companyProfile, letterhead, users, systemSettings }));
                   const downloadAnchor = document.createElement('a');
                   downloadAnchor.setAttribute("href", dataStr);
-                  downloadAnchor.setAttribute("download", `Backup_Construx_ERP_${new Date().toISOString().slice(0,10)}.json`);
+                  downloadAnchor.setAttribute("download", `Backup_Build_X_Pro_${new Date().toISOString().slice(0,10)}.json`);
                   document.body.appendChild(downloadAnchor);
                   downloadAnchor.click();
                   downloadAnchor.remove();

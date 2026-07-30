@@ -15,10 +15,12 @@ import {
   ShieldCheck,
   Award,
 } from 'lucide-react';
-import { Employee, PayrollSlip } from '../../types';
+import { Employee, PayrollSlip, CompanyProfile, LetterheadSettings } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
 import { PrintHeader } from '../common/PrintHeader';
 import { CetakPdfButton } from '../common/CetakPdfButton';
+import { getStoredData } from '../../services/firestoreService';
+import { INITIAL_COMPANY_PROFILE, INITIAL_LETTERHEAD } from '../../lib/seedData';
 
 interface HrPayrollModuleProps {
   employees: Employee[];
@@ -103,7 +105,7 @@ export const HrPayrollModule: React.FC<HrPayrollModuleProps> = ({
         <div className="flex items-center gap-3">
           <CetakPdfButton
             elementId="hr-payroll-module"
-            filename="Laporan_HR_Payroll_Construx.pdf"
+            filename="Laporan_HR_Payroll_Build_X_Pro.pdf"
             title="Laporan HR & Rekapitulasi Payroll"
             variant="emerald"
           />
@@ -344,34 +346,61 @@ export const HrPayrollModule: React.FC<HrPayrollModuleProps> = ({
                   <div className="h-2 w-full bg-gradient-to-r from-emerald-600 via-teal-500 to-amber-500 rounded-t"></div>
 
                   {/* Header Kop Perusahaan */}
-                  <div className="border-b-2 border-slate-900 pb-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-center gap-3.5">
-                        <div className="w-12 h-12 bg-gradient-to-br from-slate-900 to-slate-800 text-emerald-400 font-black flex items-center justify-center text-xl rounded-xl shadow-md border border-slate-700">
-                          C
-                        </div>
-                        <div>
-                          <h2 className="text-base font-black text-slate-900 tracking-wider uppercase">
-                            PT GRAHA MULTI KONSTRUKSI
-                          </h2>
-                          <p className="text-xs font-bold text-emerald-700">
-                            CONSTRUX ERP — Human Resources & General Contractor
-                          </p>
-                          <p className="text-[10px] text-slate-500 mt-0.5">
-                            Gedung Graha Construction, Jl. Jend. Sudirman No. 88, Jakarta Selatan
-                          </p>
+                  {(() => {
+                    const profile = getStoredData<CompanyProfile>('company_profile', INITIAL_COMPANY_PROFILE);
+                    const letterhead = getStoredData<LetterheadSettings>('letterhead', INITIAL_LETTERHEAD);
+                    const title = letterhead.headerTitle || profile.name;
+                    const subtitle = letterhead.headerSubtitle || profile.tagline;
+                    const address = letterhead.addressLine1 || profile.address;
+                    const contact = letterhead.contactLine || `Telp: ${profile.phone} | Email: ${profile.email}`;
+                    const logoUrl = letterhead.logoUrl || profile.logoUrl;
+                    const logoText = letterhead.logoText || profile.shortName || 'BX';
+                    const logoBgColor = letterhead.logoBgColor || '#10b981';
+
+                    return (
+                      <div className="border-b-2 border-slate-900 pb-5">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-center gap-3.5">
+                            {letterhead.showLogo !== false && (
+                              logoUrl ? (
+                                <img
+                                  src={logoUrl}
+                                  alt="Logo"
+                                  className="w-12 h-12 object-contain rounded-xl"
+                                  referrerPolicy="no-referrer"
+                                />
+                              ) : (
+                                <div
+                                  className="w-12 h-12 text-white font-black flex items-center justify-center text-xl rounded-xl shadow-md"
+                                  style={{ backgroundColor: logoBgColor }}
+                                >
+                                  {logoText}
+                                </div>
+                              )
+                            )}
+                            <div>
+                              <h2 className="text-base font-black text-slate-900 tracking-wider uppercase">
+                                {title}
+                              </h2>
+                              {subtitle && (
+                                <p className="text-xs font-bold text-emerald-700">{subtitle}</p>
+                              )}
+                              <p className="text-[10px] text-slate-500 mt-0.5">{address}</p>
+                              <p className="text-[10px] text-slate-400">{contact}</p>
+                            </div>
+                          </div>
+                          <div className="text-right flex flex-col items-end">
+                            <span className="text-[10px] font-mono font-black text-emerald-800 bg-emerald-50 border border-emerald-300 px-3 py-1 rounded-lg shadow-xs uppercase tracking-wider">
+                              CONFIDENTIAL PAYSLIP
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-500 mt-1 block">
+                              REF: SLIP/{selectedSlip.period}/{selectedSlip.employeeId.slice(0, 5).toUpperCase()}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right flex flex-col items-end">
-                        <span className="text-[10px] font-mono font-black text-emerald-800 bg-emerald-50 border border-emerald-300 px-3 py-1 rounded-lg shadow-xs uppercase tracking-wider">
-                          CONFIDENTIAL PAYSLIP
-                        </span>
-                        <span className="text-[10px] font-mono text-slate-500 mt-1 block">
-                          REF: SLIP/{selectedSlip.period}/{selectedSlip.employeeId.slice(0, 5).toUpperCase()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                    );
+                  })()}
 
                   {/* Document Title Banner */}
                   <div className="text-center bg-slate-900 text-white py-3 px-4 rounded-xl shadow-xs flex items-center justify-between">
@@ -522,7 +551,7 @@ export const HrPayrollModule: React.FC<HrPayrollModuleProps> = ({
                     <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-[10px] text-slate-500 text-center flex items-center justify-center gap-2">
                       <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
                       <span>
-                        Dokumen ini diterbitkan secara otomatis oleh sistem CONSTRUX ERP PT Graha Multi Konstruksi dan sah secara elektronik.
+                        Dokumen ini diterbitkan secara otomatis oleh sistem BUILD X PRO {getStoredData<CompanyProfile>('company_profile', INITIAL_COMPANY_PROFILE).name} dan sah secara elektronik.
                       </span>
                     </div>
                   </div>

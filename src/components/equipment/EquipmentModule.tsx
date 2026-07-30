@@ -87,7 +87,7 @@ export const EquipmentModule: React.FC<EquipmentModuleProps> = ({
         <div className="flex items-center gap-3">
           <CetakPdfButton
             elementId="equipment-module"
-            filename="Laporan_Alat_Berat_Construx.pdf"
+            filename="Laporan_Alat_Berat_Build_X_Pro.pdf"
             title="Laporan Alat Berat & Fleet Management"
             variant="emerald"
           />

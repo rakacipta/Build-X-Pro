@@ -90,7 +90,7 @@ export const TradingModule: React.FC<TradingModuleProps> = ({
         <div className="flex items-center gap-3">
           <CetakPdfButton
             elementId="trading-module"
-            filename="Laporan_Trading_SalesOrder_Construx.pdf"
+            filename="Laporan_Trading_SalesOrder_Build_X_Pro.pdf"
             title="Laporan Trading Material & Sales Order"
             variant="emerald"
           />

@@ -13,8 +13,8 @@ interface CetakPdfButtonProps {
 
 export const CetakPdfButton: React.FC<CetakPdfButtonProps> = ({
   elementId,
-  filename = 'Laporan_Construx_ERP.pdf',
-  title = 'Laporan Resmi Construx ERP',
+  filename = 'Laporan_Build_X_Pro.pdf',
+  title = 'Laporan Resmi Build X Pro',
   className = '',
   variant = 'emerald',
   label = 'Cetak PDF',

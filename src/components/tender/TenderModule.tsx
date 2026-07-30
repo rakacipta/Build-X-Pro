@@ -93,7 +93,7 @@ export const TenderModule: React.FC<TenderModuleProps> = ({
         <div className="flex items-center gap-3">
           <CetakPdfButton
             elementId="tender-module"
-            filename="Laporan_Manajemen_Tender_Construx.pdf"
+            filename="Laporan_Manajemen_Tender_Build_X_Pro.pdf"
             title="Laporan Tender & Dokumen Penawaran Lelang"
             variant="emerald"
           />

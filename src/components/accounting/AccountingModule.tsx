@@ -10,10 +10,12 @@ import {
   DollarSign,
   Printer,
 } from 'lucide-react';
-import { ChartOfAccount, JournalEntry } from '../../types';
+import { ChartOfAccount, JournalEntry, CompanyProfile, LetterheadSettings } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
 import { PrintHeader } from '../common/PrintHeader';
 import { CetakPdfButton } from '../common/CetakPdfButton';
+import { getStoredData } from '../../services/firestoreService';
+import { INITIAL_COMPANY_PROFILE, INITIAL_LETTERHEAD } from '../../lib/seedData';
 
 interface AccountingModuleProps {
   coaList: ChartOfAccount[];
@@ -121,7 +123,7 @@ export const AccountingModule: React.FC<AccountingModuleProps> = ({
 
           <CetakPdfButton
             elementId="accounting-module"
-            filename="Laporan_Keuangan_Akuntansi_Construx.pdf"
+            filename="Laporan_Keuangan_Akuntansi_Build_X_Pro.pdf"
             title="Laporan Akuntansi, Jurnal Umum & Financial Statements"
             variant="emerald"
             label="Cetak PDF"
@@ -207,7 +209,7 @@ export const AccountingModule: React.FC<AccountingModuleProps> = ({
             <h3 className="font-extrabold text-lg text-slate-900 uppercase">
               LAPORAN LABA RUGI PERUSAHAAN (P&L)
             </h3>
-            <p className="text-xs text-slate-500">PT GRAHA MULTI KONSTRUKSI & TRADING • TAHUN 2026</p>
+            <p className="text-xs text-slate-500">{getStoredData<LetterheadSettings>('letterhead', INITIAL_LETTERHEAD).headerTitle || getStoredData<CompanyProfile>('company_profile', INITIAL_COMPANY_PROFILE).name} • TAHUN 2026</p>
           </div>
 
           <div className="space-y-4 text-xs">
@@ -257,7 +259,7 @@ export const AccountingModule: React.FC<AccountingModuleProps> = ({
             <h3 className="font-extrabold text-lg text-slate-900 uppercase">
               LAPORAN NERACA KESEIMBANGAN (BALANCE SHEET)
             </h3>
-            <p className="text-xs text-slate-500">PT GRAHA MULTI KONSTRUKSI & TRADING • TAHUN 2026</p>
+            <p className="text-xs text-slate-500">{getStoredData<LetterheadSettings>('letterhead', INITIAL_LETTERHEAD).headerTitle || getStoredData<CompanyProfile>('company_profile', INITIAL_COMPANY_PROFILE).name} • TAHUN 2026</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">

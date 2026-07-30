@@ -27,11 +27,12 @@ import {
   INITIAL_RAB_ITEMS,
 } from '../lib/seedData';
 
-const LS_PREFIX = 'construx_erp_v1_';
+const LS_PREFIX = 'buildx_erp_v1_';
+const OLD_LS_PREFIX = 'construx_erp_v1_';
 
 export function getStoredData<T>(key: string, defaultData: T): T {
   try {
-    const raw = localStorage.getItem(LS_PREFIX + key);
+    const raw = localStorage.getItem(LS_PREFIX + key) || localStorage.getItem(OLD_LS_PREFIX + key);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(defaultData) && !Array.isArray(parsed)) {

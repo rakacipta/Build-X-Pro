@@ -88,7 +88,7 @@ export const FinanceModule: React.FC<FinanceModuleProps> = ({
         <div className="flex items-center gap-3">
           <CetakPdfButton
             elementId="finance-module"
-            filename="Laporan_Kas_Bank_Construx.pdf"
+            filename="Laporan_Kas_Bank_Build_X_Pro.pdf"
             title="Laporan Arus Kas, Petty Cash & Bank"
             variant="emerald"
           />

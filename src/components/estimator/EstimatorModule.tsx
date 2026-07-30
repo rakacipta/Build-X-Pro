@@ -124,7 +124,7 @@ export const EstimatorModule: React.FC<EstimatorModuleProps> = ({
 
           <CetakPdfButton
             elementId="estimator-module"
-            filename="Laporan_RAB_AHSP_Construx.pdf"
+            filename="Laporan_RAB_AHSP_Build_X_Pro.pdf"
             title="Dokumen Rencana Anggaran Biaya (RAB) & AHSP"
             variant="emerald"
             label="Cetak RAB (PDF)"
