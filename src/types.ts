@@ -52,6 +52,16 @@ export interface CompanyBank {
   branch: string;
 }
 
+export interface DocumentSignatory {
+  id: string;
+  name: string;
+  title: string;
+  roleType: 'Disiapkan' | 'Diverifikasi' | 'Disetujui' | 'Lainnya';
+  division?: string;
+  nipOrNik?: string;
+  isDefault?: boolean;
+}
+
 export interface CompanyProfile {
   name: string;
   shortName: string;

@@ -16,6 +16,7 @@ import {
   AHSPItem,
   RABItem,
   CompanyProfile,
+  DocumentSignatory,
   LetterheadSettings,
   SystemUser,
   SystemSettings,
@@ -824,3 +825,43 @@ export const INITIAL_SYSTEM_SETTINGS: SystemSettings = {
   enableAuditLogging: true,
   themePrimaryColor: '#2563eb',
 };
+
+export const INITIAL_SIGNATORIES: DocumentSignatory[] = [
+  {
+    id: 'sig-001',
+    name: 'Ir. Hendra Wijaya, MM',
+    title: 'Direktur Utama',
+    roleType: 'Disetujui',
+    division: 'Direksi & Manajemen',
+    nipOrNik: 'DIR-2018-001',
+    isDefault: true,
+  },
+  {
+    id: 'sig-002',
+    name: 'Sari Rahmawati, SE, Ak',
+    title: 'Manajer Keuangan & Akuntansi',
+    roleType: 'Diverifikasi',
+    division: 'Keuangan & Finansial',
+    nipOrNik: 'FIN-2020-014',
+    isDefault: true,
+  },
+  {
+    id: 'sig-003',
+    name: 'Jaka Dewantara',
+    title: 'System Administrator ERP',
+    roleType: 'Disiapkan',
+    division: 'Operasional & Sistem ERP',
+    nipOrNik: 'SYS-2021-001',
+    isDefault: true,
+  },
+  {
+    id: 'sig-004',
+    name: 'Deni Kurniawan, ST',
+    title: 'Chief Estimator & Tender Specialist',
+    roleType: 'Disiapkan',
+    division: 'Teknik & Estimasi Proyek',
+    nipOrNik: 'EST-2022-005',
+    isDefault: false,
+  },
+];
+

@@ -27,6 +27,7 @@ import {
   Upload,
   UploadCloud,
   Image as ImageIcon,
+  PenTool,
   X,
   Check,
   Printer,
@@ -34,6 +35,7 @@ import {
 import { PrintHeader } from '../common/PrintHeader';
 import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
+import { SignatoriesSettings } from './SignatoriesSettings';
 import {
   CompanyProfile,
   LetterheadSettings,
@@ -103,7 +105,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   systemSettings,
   onUpdateSystemSettings,
 }) => {
-  const [activeTab, setActiveTab] = useState<'company' | 'letterhead' | 'users' | 'system' | 'audit'>('company');
+  const [activeTab, setActiveTab] = useState<'company' | 'letterhead' | 'signatories' | 'users' | 'system' | 'audit'>('company');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
   // Form Local States
@@ -377,6 +379,17 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
           }`}
         >
           <FileText className="w-4 h-4" /> Kop Surat & Dokumen
+        </button>
+
+        <button
+          onClick={() => setActiveTab('signatories')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition whitespace-nowrap ${
+            activeTab === 'signatories'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <PenTool className="w-4 h-4" /> Penandatangan Dokumen (PDF)
         </button>
 
         <button
@@ -1120,7 +1133,12 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
         </form>
       )}
 
-      {/* TAB 3: USER MANAGEMENT & HAK AKSES */}
+      {/* TAB 3: PENANDATANGAN DOKUMEN (PDF) */}
+      {activeTab === 'signatories' && (
+        <SignatoriesSettings onNotify={triggerNotification} />
+      )}
+
+      {/* TAB 4: USER MANAGEMENT & HAK AKSES */}
       {activeTab === 'users' && (
         <div className="space-y-6">
           <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4">

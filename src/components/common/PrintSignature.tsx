@@ -1,7 +1,7 @@
 import React from 'react';
-import { CompanyProfile } from '../../types';
+import { CompanyProfile, DocumentSignatory } from '../../types';
 import { getStoredData } from '../../services/firestoreService';
-import { INITIAL_COMPANY_PROFILE } from '../../lib/seedData';
+import { INITIAL_COMPANY_PROFILE, INITIAL_SIGNATORIES } from '../../lib/seedData';
 
 interface PrintSignatureProps {
   preparedBy?: string;
@@ -33,12 +33,19 @@ export const PrintSignature: React.FC<PrintSignatureProps> = ({
   companyProfile: companyProfileProp,
 }) => {
   const profile = companyProfileProp || getStoredData<CompanyProfile>('company_profile', INITIAL_COMPANY_PROFILE);
+  const signatories = getStoredData<DocumentSignatory[]>('document_signatories', INITIAL_SIGNATORIES);
+
+  const defaultApproved = signatories.find((s) => s.roleType === 'Disetujui' && s.isDefault) || signatories.find((s) => s.roleType === 'Disetujui');
+  const defaultVerified = signatories.find((s) => s.roleType === 'Diverifikasi' && s.isDefault) || signatories.find((s) => s.roleType === 'Diverifikasi');
+  const defaultPrepared = signatories.find((s) => s.roleType === 'Disiapkan' && s.isDefault) || signatories.find((s) => s.roleType === 'Disiapkan');
 
   const finalCity = city || profile.city || 'Jakarta';
-  const finalDirector = directorName || profile.directorName || 'Ir. Hendra Wijaya, MM';
-  const finalDirectorTitle = directorTitle || profile.directorTitle || 'Direktur Utama';
-  const finalVerifiedBy = verifiedBy || profile.financeManager || 'Sari Rahmawati, SE, Ak';
-  const finalPreparedBy = preparedBy || 'System Administrator ERP';
+  const finalDirector = directorName || defaultApproved?.name || profile.directorName || 'Ir. Hendra Wijaya, MM';
+  const finalDirectorTitle = directorTitle || defaultApproved?.title || profile.directorTitle || 'Direktur Utama';
+  const finalVerifiedBy = verifiedBy || defaultVerified?.name || profile.financeManager || 'Sari Rahmawati, SE, Ak';
+  const finalVerifiedJobTitle = defaultVerified?.title || 'Manajer Keuangan & Akuntansi';
+  const finalPreparedBy = preparedBy || defaultPrepared?.name || 'System Administrator ERP';
+  const finalPreparedJobTitle = defaultPrepared?.title || 'Staff / Operational ERP';
 
   const formattedDate = dateStr || new Date().toLocaleDateString('id-ID', {
     day: 'numeric',
@@ -72,7 +79,7 @@ export const PrintSignature: React.FC<PrintSignatureProps> = ({
             <p className="font-extrabold text-slate-900 underline decoration-slate-400 underline-offset-4 text-xs">
               {finalPreparedBy}
             </p>
-            <p className="text-[10px] font-medium text-slate-500 mt-0.5">Staff / Operational ERP</p>
+            <p className="text-[10px] font-medium text-slate-500 mt-0.5">{finalPreparedJobTitle}</p>
           </div>
         </div>
 
@@ -89,7 +96,7 @@ export const PrintSignature: React.FC<PrintSignatureProps> = ({
               <p className="font-extrabold text-slate-900 underline decoration-slate-400 underline-offset-4 text-xs">
                 {finalVerifiedBy}
               </p>
-              <p className="text-[10px] font-medium text-slate-500 mt-0.5">Manajer Keuangan & Akuntansi</p>
+              <p className="text-[10px] font-medium text-slate-500 mt-0.5">{finalVerifiedJobTitle}</p>
             </div>
           </div>
         )}
