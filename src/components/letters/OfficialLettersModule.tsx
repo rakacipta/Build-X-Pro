@@ -27,8 +27,16 @@ import {
   Upload,
   Image as ImageIcon,
   Check,
+  Loader2,
+  QrCode,
+  ShieldCheck,
+  Bookmark,
+  BookmarkPlus,
+  Save,
+  FolderPlus,
 } from 'lucide-react';
-import { CompanyProfile, OfficialLetter, LetterCategory, LetterheadSettings } from '../../types';
+import { QRCodeSVG } from 'qrcode.react';
+import { CompanyProfile, OfficialLetter, LetterCategory, LetterheadSettings, LetterTemplate } from '../../types';
 import { saveAs } from 'file-saver';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import { generatePdfFromElement, triggerPrintFallback } from '../../utils/pdfGenerator';
@@ -69,6 +77,145 @@ const PRESET_LOGOS = [
   },
 ];
 
+// Default Seed Data for Letter Templates
+export const INITIAL_TEMPLATES: LetterTemplate[] = [
+  {
+    id: 'TPL-SURAT-JALAN',
+    name: 'Surat Jalan Pengiriman Barang & Material',
+    category: 'SURAT_TUGAS',
+    description: 'Format resmi pengiriman material/barang proyek, rincian ekspedisi, driver, dan tanda terima.',
+    defaultTitle: 'Surat Jalan Pengiriman Barang & Material Proyek',
+    defaultSubject: 'Surat Jalan Pengiriman Material Proyek',
+    defaultEnclosure: '1 (satu) Berkas Lembar Kirim',
+    defaultOpeningText: 'Bersama surat ini, kami mengirimkan material/barang proyek dengan rincian armada dan tujuan pengiriman sebagai berikut:',
+    defaultBodyText:
+      '1. Driver / Pengangkut: [Nama Sopir] (No. HP: 0812-xxxx-xxxx)\n' +
+      '2. Nomor Kendaraan / Plat: [B 9123 RCS] (Truk Engkel / Tronton)\n' +
+      '3. Rincian Barang Kiriman:\n' +
+      '   - Material Semen Padang @50kg: 200 Sak\n' +
+      '   - Besi Ulir 12mm x 12m: 150 Batang\n' +
+      '   - Geotextile Woven 200gr: 5 Roll\n' +
+      '4. Lokasi Tujuan: Site Project PT Raka Cipta Seraya - Area Gudang Utama.',
+    defaultClosingText: 'Mohon barang/material tersebut di atas dapat diterima dan diperiksa dalam keadaan baik serta ditandatangani bukti serah terimanya.',
+    defaultSignatoryTitle: 'Manager Logistik & Operasional',
+    isSystemDefault: true,
+    createdAt: '2026-07-31T00:00:00Z',
+  },
+  {
+    id: 'TPL-SPK',
+    name: 'Surat Perintah Kerja (SPK) Subkon / Mitra',
+    category: 'SPK',
+    description: 'Format penerbitan perintah kerja proyek, lingkup pengerjaan, nilai kontrak, dan termin.',
+    defaultTitle: 'Surat Perintah Kerja (SPK) Pelaksanaan Pekerjaan Proyek',
+    defaultSubject: 'Surat Perintah Kerja (SPK)',
+    defaultEnclosure: '1 (satu) Berkas Lampiran Spesifikasi Teknis',
+    defaultOpeningText: 'Dengan hormat,\nSehubungan dengan kesepakatan hasil pembahasan teknis dan komersial, PT Raka Cipta Seraya memberikan Surat Perintah Kerja (SPK) kepada:',
+    defaultBodyText:
+      '1. Lingkup Pekerjaan: Pelaksanaan pengerjaan konstruksi/pemasangan material proyek sesuai spesifikasi.\n' +
+      '2. Nilai Pekerjaan: Sebesar Rp 250.000.000,- (Dua Ratus Lima Puluh Juta Rupiah) belum termasuk PPN.\n' +
+      '3. Waktu Pelaksanaan: 45 (empat puluh lima) hari kalender terhitung sejak penerbitan SPK ini.\n' +
+      '4. Syarat Pembayaran: Pembayaran berbasis termin progress fisik pekerjaan yang disetujui Pengawas Proyek.',
+    defaultClosingText: 'Demikian Surat Perintah Kerja ini dibuat untuk dilaksanakan sebagaimana mestinya dengan penuh rasa tanggung jawab.',
+    defaultSignatoryTitle: 'Direktur Utama',
+    isSystemDefault: true,
+    createdAt: '2026-07-31T00:00:00Z',
+  },
+  {
+    id: 'TPL-SPH',
+    name: 'Surat Penawaran Harga (SPH / Commercial Offer)',
+    category: 'SPH',
+    description: 'Format penawaran harga resmi pengadaan material, barang, atau jasa proyek.',
+    defaultTitle: 'Surat Penawaran Harga (SPH)',
+    defaultSubject: 'Penawaran Harga Pekerjaan & Supplai Material Proyek',
+    defaultEnclosure: '1 (satu) Berkas RAB Penawaran',
+    defaultOpeningText: 'Dengan hormat,\nMerujuk pada permintaan penawaran harga (RFP) dari pihak Bapak/Ibu, bersama surat ini kami mengajukan rincian penawaran harga sebagai berikut:',
+    defaultBodyText:
+      '1. Rincian Pekerjaan: Pengadaan material beton, besi ulir, dan jasa pengerjaan struktur.\n' +
+      '2. Total Harga Penawaran: Rp 850.000.000,- (Delapan Ratus Lima Puluh Juta Rupiah) inc. PPN.\n' +
+      '3. Masa Berlaku Penawaran: Berlaku selama 30 (tiga puluh) hari kalender sejak tanggal penerbitan.\n' +
+      '4. Metode Pembayaran: DP 20% saat pelimpahan PO, pelunasan sesuai progress kirim.',
+    defaultClosingText: 'Besar harapan kami dapat bekerjasama dengan perusahaan Bapak/Ibu. Atas perhatiannya disampaikan terima kasih.',
+    defaultSignatoryTitle: 'Manager Marketing & Tender',
+    isSystemDefault: true,
+    createdAt: '2026-07-31T00:00:00Z',
+  },
+  {
+    id: 'TPL-SKK',
+    name: 'Surat Keterangan Kerja (Employment Certificate)',
+    category: 'SKK',
+    description: 'Format keterangan resmi masa kerja karyawan untuk instansi / perbankan.',
+    defaultTitle: 'Surat Keterangan Kerja (Employment Certificate)',
+    defaultSubject: 'Surat Keterangan Kerja Karyawan',
+    defaultEnclosure: '-',
+    defaultOpeningText: 'Yang bertanda tangan di bawah ini, Management PT Raka Cipta Seraya menerangkan bahwa:',
+    defaultBodyText:
+      'Nama: [Nama Karyawan]\n' +
+      'NIK / NIP: [Nomor Induk Karyawan]\n' +
+      'Jabatan: [Jabatan Terakhir]\n' +
+      'Masa Kerja: [Tanggal Mulai] s.d [Tanggal Selesai]\n' +
+      'Bahwa yang bersangkutan adalah benar pernah bekerja pada perusahaan kami dengan dedikasi dan kinerja yang sangat baik.',
+    defaultClosingText: 'Demikian surat keterangan kerja ini diberikan agar dapat dipergunakan sebagaimana mestinya.',
+    defaultSignatoryTitle: 'Head of Human Resources Department',
+    isSystemDefault: true,
+    createdAt: '2026-07-31T00:00:00Z',
+  },
+  {
+    id: 'TPL-SURAT-TUGAS',
+    name: 'Surat Tugas Inspeksi & Penugasan Lapangan',
+    category: 'SURAT_TUGAS',
+    description: 'Format instruksi kerja lapangan untuk tim teknisi dan pengawas proyek.',
+    defaultTitle: 'Surat Tugas Penugasan Lapangan Proyek',
+    defaultSubject: 'Surat Tugas Supervision & Inspeksi Site',
+    defaultEnclosure: '1 (satu) Berkas Surat Jalan',
+    defaultOpeningText: 'Direksi PT Raka Cipta Seraya memberikan tugas resmi kepada personil di bawah ini:',
+    defaultBodyText:
+      '1. Nama / Jabatan: [Nama Personil] - Site Engineer / Project Manager.\n' +
+      '2. Lokasi Penugasan: Proyek Pembangunan Gedung & Infrastruktur.\n' +
+      '3. Waktu Penugasan: Berlaku mulai tanggal [Tanggal] s.d [Tanggal].\n' +
+      '4. Tugas & Kewajiban: Melaksanakan pengawasan mutu teknis, koordinasi dengan subkontraktor, dan menyusun laporan progress mingguan.',
+    defaultClosingText: 'Demikian Surat Tugas ini dibuat untuk dipergunakan dan dilaksanakan dengan sebaik-baiknya.',
+    defaultSignatoryTitle: 'Manager Operasional',
+    isSystemDefault: true,
+    createdAt: '2026-07-31T00:00:00Z',
+  },
+  {
+    id: 'TPL-UNDANGAN',
+    name: 'Surat Undangan Rapat Evaluasi Proyek',
+    category: 'UNDANGAN',
+    description: 'Format undangan rapat koordinasi mingguan atau bulanan proyek.',
+    defaultTitle: 'Surat Undangan Rapat Evaluasi Proyek',
+    defaultSubject: 'Undangan Rapat Evaluasi & Coordination Meeting',
+    defaultEnclosure: '1 (satu) Lembar Agenda Rapat',
+    defaultOpeningText: 'Dengan hormat,\nDalam rangka koordinasi pelaksanaan pengerjaan proyek dan evaluasi progress bulanan, kami mengundang Bapak/Ibu untuk hadir pada rapat yang akan dilaksanakan pada:',
+    defaultBodyText:
+      'Hari / Tanggal: Senin, 10 Agustus 2026\nWaktu: Pukul 09.00 WIB - Selesai\nTempat: Ruang Rapat Utama PT Raka Cipta Seraya / Site Office Proyek\nAgenda Rapat: Evaluasi Progress Fisik, Review Material, dan Jadwal Kurva-S.',
+    defaultClosingText: 'Mengingat pentingnya agenda rapat ini, kehadiran tepat waktu sangat kami harapkan. Atas perhatiannya kami ucapkan terima kasih.',
+    defaultSignatoryTitle: 'Direktur Utama',
+    isSystemDefault: true,
+    createdAt: '2026-07-31T00:00:00Z',
+  },
+  {
+    id: 'TPL-SP1',
+    name: 'Surat Peringatan Pertama (SP-1) Kedisiplinan',
+    category: 'SP',
+    description: 'Format teguran tertulis kedisiplinan dan evaluasi tata tertib karyawan.',
+    defaultTitle: 'Surat Peringatan Pertama (SP 1)',
+    defaultSubject: 'Surat Peringatan Kedisiplinan Karyawan',
+    defaultEnclosure: '-',
+    defaultOpeningText: 'Surat Peringatan Pertama (SP-1) ini diterbitkan oleh Manajemen PT Raka Cipta Seraya kepada:',
+    defaultBodyText:
+      'Nama: [Nama Karyawan]\n' +
+      'Jabatan: [Jabatan Karyawan]\n' +
+      'Divisi: [Nama Divisi / Proyek]\n' +
+      'Alasan Penerbitan: Berdasarkan evaluasi absensi & kedisiplinan kerja, saudara telah melakukan tindakan keterlambatan tanpa konfirmasi selama 3 hari berturut-turut.\n' +
+      'Ketentuan SP-1: Surat Peringatan ini berlaku selama 6 (enam) bulan.',
+    defaultClosingText: 'Demikian Surat Peringatan ini disampaikan agar menjadi perhatian serius dan bahan perbaikan kedisiplinan saudara.',
+    defaultSignatoryTitle: 'Head of Human Resources Department',
+    isSystemDefault: true,
+    createdAt: '2026-07-31T00:00:00Z',
+  },
+];
+
 // Default Seed Data for Official Letters
 const initialLetters: OfficialLetter[] = [
   {
@@ -97,6 +244,8 @@ const initialLetters: OfficialLetter[] = [
     signatoryTitle: 'Direktur Utama',
     signatoryNik: 'NIK. 19850412 201001 1 002',
     showStamp: true,
+    showQrCode: true,
+    qrCodeValue: 'https://verifikasi.rakaciptaseraya.co.id/verify?id=LTR-001&no=088%2FSPK%2FPT-RCS%2FVIII%2F2026',
     status: 'Diterbitkan',
     createdAt: '2026-07-30T10:00:00Z',
     updatedAt: '2026-07-30T10:00:00Z',
@@ -126,6 +275,8 @@ const initialLetters: OfficialLetter[] = [
     signatoryTitle: 'Manager Marketing & Tender',
     signatoryNik: 'NIK. 19880215 201203 1 005',
     showStamp: true,
+    showQrCode: true,
+    qrCodeValue: 'https://verifikasi.rakaciptaseraya.co.id/verify?id=LTR-002&no=112%2FSPH%2FPT-RCS%2FVIII%2F2026',
     status: 'Diterbitkan',
     createdAt: '2026-07-31T08:30:00Z',
     updatedAt: '2026-07-31T08:30:00Z',
@@ -157,6 +308,8 @@ const initialLetters: OfficialLetter[] = [
     signatoryTitle: 'Head of Human Resources Department',
     signatoryNik: 'NIK. 19910510 201502 2 001',
     showStamp: true,
+    showQrCode: true,
+    qrCodeValue: 'https://verifikasi.rakaciptaseraya.co.id/verify?id=LTR-003&no=045%2FSKK%2FHRD-RCS%2FVIII%2F2026',
     status: 'Diterbitkan',
     createdAt: '2026-07-31T09:00:00Z',
     updatedAt: '2026-07-31T09:00:00Z',
@@ -171,7 +324,31 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
   const [letters, setLetters] = useState<OfficialLetter[]>(initialLetters);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
-  const [activeTab, setActiveTab] = useState<'LIST' | 'FORM' | 'PREVIEW'>('LIST');
+  // Templates State with localStorage persistence
+  const [templates, setTemplates] = useState<LetterTemplate[]>(() => {
+    try {
+      const saved = localStorage.getItem('rcs_official_letter_templates');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return [...INITIAL_TEMPLATES, ...parsed.filter((p: LetterTemplate) => !p.isSystemDefault)];
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load letter templates:', err);
+    }
+    return INITIAL_TEMPLATES;
+  });
+
+  const [activeTab, setActiveTab] = useState<'LIST' | 'FORM' | 'PREVIEW' | 'TEMPLATES'>('LIST');
+  const [templateSearchQuery, setTemplateSearchQuery] = useState('');
+  const [templateCategoryFilter, setTemplateCategoryFilter] = useState<string>('ALL');
+  const [templateToast, setTemplateToast] = useState<string | null>(null);
+
+  // Modal State for Saving Template
+  const [isSaveTemplateModalOpen, setIsSaveTemplateModalOpen] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState('');
+  const [newTemplateDescription, setNewTemplateDescription] = useState('');
 
   const [editingLetter, setEditingLetter] = useState<OfficialLetter | null>(null);
   const [previewLetter, setPreviewLetter] = useState<OfficialLetter | null>(initialLetters[0]);
@@ -179,6 +356,34 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
   // Logo Settings State
   const [isLogoModalOpen, setIsLogoModalOpen] = useState(false);
   const [customLogoInput, setCustomLogoInput] = useState('');
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+
+  // Loading & Transition Feedback States
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [exportingWordId, setExportingWordId] = useState<string | null>(null);
+
+  // Safe date formatter for letter date
+  const formatLetterDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    if (/[a-zA-Z]/.test(dateStr)) return dateStr;
+    try {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+          const d = new Date(year, month, day);
+          return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+      }
+      return dateStr;
+    } catch {
+      return dateStr;
+    }
+  };
 
   const effectiveLogoUrl =
     companyProfile.logoUrl ||
@@ -211,18 +416,6 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
     }
   };
 
-  const handlePrintDirectPdf = async (letter: OfficialLetter) => {
-    setPreviewLetter(letter);
-    setActiveTab('PREVIEW');
-    setTimeout(async () => {
-      await generatePdfFromElement({
-        elementId: 'printable-letter-area',
-        filename: `Surat_${letter.letterNumber.replace(/[/\\?%*:|"<>]/g, '_')}.pdf`,
-        title: `Surat Resmi - ${letter.title}`,
-      });
-    }, 250);
-  };
-
   // Form State
   const [formCategory, setFormCategory] = useState<LetterCategory>('SPK');
   const [formNumber, setFormNumber] = useState('');
@@ -245,6 +438,8 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
   const [formSignatoryTitle, setFormSignatoryTitle] = useState(companyProfile.directorTitle || 'Direktur Utama');
   const [formSignatoryNik, setFormSignatoryNik] = useState('NIK. 19850412 201001 1 002');
   const [formShowStamp, setFormShowStamp] = useState(true);
+  const [formShowQrCode, setFormShowQrCode] = useState(true);
+  const [formQrCodeValue, setFormQrCodeValue] = useState('');
   const [formStatus, setFormStatus] = useState<'Draft' | 'Diterbitkan' | 'Arsip'>('Diterbitkan');
 
   // Letterhead Edit Options
@@ -363,6 +558,8 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
     setFormRecipientTitle('Direktur');
     setFormRecipientCompany('PT Kontraktor Mitra Utama');
     setFormRecipientAddress('Jl. Raya Boulevard No. 12, Jakarta');
+    setFormShowQrCode(true);
+    setFormQrCodeValue('');
     setActiveTab('FORM');
   };
 
@@ -373,34 +570,71 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
     setFormNumber(letter.letterNumber);
     setFormTitle(letter.title);
     setFormSubject(letter.subject);
-    setFormEnclosure(letter.enclosure);
-    setFormDate(letter.letterDate);
-    setFormCity(letter.city);
+    setFormEnclosure(letter.enclosure || '-');
+    setFormDate(letter.letterDate || new Date().toISOString().split('T')[0]);
+    setFormCity(letter.city || companyProfile.city || 'Jakarta');
 
-    setFormRecipientName(letter.recipientName);
-    setFormRecipientTitle(letter.recipientTitle);
-    setFormRecipientCompany(letter.recipientCompany);
-    setFormRecipientAddress(letter.recipientAddress);
+    setFormRecipientName(letter.recipientName || '');
+    setFormRecipientTitle(letter.recipientTitle || '');
+    setFormRecipientCompany(letter.recipientCompany || '');
+    setFormRecipientAddress(letter.recipientAddress || '');
 
-    setFormOpeningText(letter.openingText);
-    setFormBodyText(letter.bodyParagraphs.join('\n\n'));
-    setFormClosingText(letter.closingText);
+    setFormOpeningText(letter.openingText || '');
+    setFormBodyText((letter.bodyParagraphs || []).join('\n'));
+    setFormClosingText(letter.closingText || '');
 
-    setFormSignatoryName(letter.signatoryName);
-    setFormSignatoryTitle(letter.signatoryTitle);
+    setFormSignatoryName(letter.signatoryName || companyProfile.directorName || 'Ir. Raka Cipta Seraya, M.T.');
+    setFormSignatoryTitle(letter.signatoryTitle || companyProfile.directorTitle || 'Direktur Utama');
     setFormSignatoryNik(letter.signatoryNik || '');
-    setFormShowStamp(letter.showStamp);
-    setFormStatus(letter.status);
+    setFormShowStamp(letter.showStamp ?? true);
+    setFormShowQrCode(letter.showQrCode ?? true);
+    setFormQrCodeValue(
+      letter.qrCodeValue ||
+        `https://verifikasi.rakaciptaseraya.co.id/verify?id=${letter.id}&no=${encodeURIComponent(letter.letterNumber)}`
+    );
+    setFormStatus(letter.status || 'Diterbitkan');
 
     setActiveTab('FORM');
   };
 
-  // Save Letter
+  // Preview Letter with Loading Transition
+  const handlePreviewLetter = (letter: OfficialLetter) => {
+    setIsPreviewLoading(true);
+    setPreviewLetter(letter);
+    setActiveTab('PREVIEW');
+    setTimeout(() => {
+      setIsPreviewLoading(false);
+    }, 300);
+  };
+
+  // Direct Print PDF / Dialog with Loading Transition
+  const handlePrintDirectPdf = (letter: OfficialLetter) => {
+    setIsPreviewLoading(true);
+    setIsPrinting(true);
+    setPreviewLetter(letter);
+    setActiveTab('PREVIEW');
+    setTimeout(() => {
+      setIsPreviewLoading(false);
+      triggerPrintFallback(`Surat Resmi - ${letter.title}`, document.getElementById('printable-letter-area'));
+      setTimeout(() => setIsPrinting(false), 800);
+    }, 400);
+  };
+
+  // Print Dialog Trigger in Preview Toolbar
+  const handlePrintDialog = () => {
+    if (!previewLetter) return;
+    setIsPrinting(true);
+    setTimeout(() => {
+      triggerPrintFallback(`Surat Resmi - ${previewLetter.title}`, document.getElementById('printable-letter-area'));
+      setTimeout(() => setIsPrinting(false), 800);
+    }, 200);
+  };
+
+  // Save Letter & Live Preview Sync with Loading Transition
   const handleSaveLetter = () => {
-    if (!formNumber.trim() || !formTitle.trim()) {
-      alert('Mohon lengkapi Nomor Surat dan Judul Surat terlebih dahulu!');
-      return;
-    }
+    setIsSaving(true);
+    const finalNumber = formNumber.trim() || `001/SURAT/PT-RCS/${new Date().getFullYear()}`;
+    const finalTitle = formTitle.trim() || 'Surat Resmi Perusahaan';
 
     const paragraphs = formBodyText
       .split('\n')
@@ -409,37 +643,47 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
 
     const updatedLetter: OfficialLetter = {
       id: editingLetter ? editingLetter.id : `LTR-${Date.now()}`,
-      letterNumber: formNumber,
+      letterNumber: finalNumber,
       category: formCategory,
-      title: formTitle,
-      subject: formSubject,
-      enclosure: formEnclosure,
-      letterDate: formDate,
-      city: formCity,
-      recipientName: formRecipientName,
-      recipientTitle: formRecipientTitle,
-      recipientCompany: formRecipientCompany,
-      recipientAddress: formRecipientAddress,
-      openingText: formOpeningText,
-      bodyParagraphs: paragraphs,
-      closingText: formClosingText,
-      signatoryName: formSignatoryName,
-      signatoryTitle: formSignatoryTitle,
-      signatoryNik: formSignatoryNik,
+      title: finalTitle,
+      subject: formSubject || finalTitle,
+      enclosure: formEnclosure || '-',
+      letterDate: formDate || new Date().toISOString().split('T')[0],
+      city: formCity || companyProfile.city || 'Jakarta',
+      recipientName: formRecipientName || 'Penerima Surat',
+      recipientTitle: formRecipientTitle || '',
+      recipientCompany: formRecipientCompany || '',
+      recipientAddress: formRecipientAddress || '',
+      openingText: formOpeningText || 'Dengan hormat,',
+      bodyParagraphs: paragraphs.length > 0 ? paragraphs : ['Isi surat resmi.'],
+      closingText: formClosingText || 'Demikian surat ini dibuat untuk dipergunakan sebagaimana mestinya.',
+      signatoryName: formSignatoryName || companyProfile.directorName || 'Direktur Utama',
+      signatoryTitle: formSignatoryTitle || companyProfile.directorTitle || 'Direktur Utama',
+      signatoryNik: formSignatoryNik || '',
       showStamp: formShowStamp,
+      showQrCode: formShowQrCode,
+      qrCodeValue:
+        formQrCodeValue.trim() ||
+        `https://verifikasi.rakaciptaseraya.co.id/verify?id=${editingLetter ? editingLetter.id : `LTR-${Date.now()}`}&no=${encodeURIComponent(finalNumber)}`,
       status: formStatus,
       createdAt: editingLetter ? editingLetter.createdAt : new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     if (editingLetter) {
-      setLetters(letters.map((l) => (l.id === editingLetter.id ? updatedLetter : l)));
+      setLetters((prev) => prev.map((l) => (l.id === editingLetter.id ? updatedLetter : l)));
     } else {
-      setLetters([updatedLetter, ...letters]);
+      setLetters((prev) => [updatedLetter, ...prev]);
     }
 
     setPreviewLetter(updatedLetter);
-    setActiveTab('PREVIEW');
+
+    setTimeout(() => {
+      setIsSaving(false);
+      setActiveTab('PREVIEW');
+      setShowSaveSuccess(true);
+      setTimeout(() => setShowSaveSuccess(false), 4000);
+    }, 350);
   };
 
   // Delete Letter
@@ -479,6 +723,7 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
 
   // Export File Word (.docx) using 'docx' package
   const handleExportWordDocx = async (letterToExport: OfficialLetter) => {
+    setExportingWordId(letterToExport.id);
     try {
       const children: (Paragraph | Table)[] = [];
 
@@ -486,56 +731,56 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
       if (includeKop) {
         children.push(
           new Paragraph({
-            alignment: AlignmentType.CENTER,
+            alignment: AlignmentType.RIGHT,
             children: [
               new TextRun({
                 text: companyProfile.name.toUpperCase(),
                 bold: true,
                 size: 28, // 14pt
-                font: 'Times New Roman',
+                font: 'Roboto',
                 color: '002B49',
               }),
             ],
           }),
           new Paragraph({
-            alignment: AlignmentType.CENTER,
+            alignment: AlignmentType.RIGHT,
             children: [
               new TextRun({
                 text: companyProfile.tagline || 'GENERAL CONTRACTOR, TRADING & REAL ESTATE DEVELOPER',
                 bold: true,
                 size: 18, // 9pt
-                font: 'Times New Roman',
+                font: 'Roboto',
                 color: '475569',
               }),
             ],
           }),
           new Paragraph({
-            alignment: AlignmentType.CENTER,
+            alignment: AlignmentType.RIGHT,
             children: [
               new TextRun({
                 text: `${companyProfile.address}, ${companyProfile.city}, ${companyProfile.province} ${companyProfile.postalCode}`,
                 size: 18,
-                font: 'Times New Roman',
+                font: 'Roboto',
               }),
             ],
           }),
           new Paragraph({
-            alignment: AlignmentType.CENTER,
+            alignment: AlignmentType.RIGHT,
             children: [
               new TextRun({
                 text: `Telp: ${companyProfile.phone} | Email: ${companyProfile.email} | Web: ${companyProfile.website}`,
                 size: 18,
-                font: 'Times New Roman',
+                font: 'Roboto',
               }),
             ],
           }),
           new Paragraph({
-            alignment: AlignmentType.CENTER,
+            alignment: AlignmentType.RIGHT,
             children: [
               new TextRun({
                 text: `NPWP: ${companyProfile.npwp} | NIB: ${companyProfile.nib}`,
                 size: 18,
-                font: 'Times New Roman',
+                font: 'Roboto',
               }),
             ],
           }),
@@ -568,7 +813,7 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
           children: [
             new TextRun({
               text: `${letterToExport.city}, ${dateStr}`,
-              font: 'Times New Roman',
+              font: 'Roboto',
               size: 22, // 11pt
             }),
           ],
@@ -580,20 +825,20 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
       children.push(
         new Paragraph({
           children: [
-            new TextRun({ text: 'Nomor      : ', bold: true, font: 'Times New Roman', size: 22 }),
-            new TextRun({ text: letterToExport.letterNumber, font: 'Times New Roman', size: 22 }),
+            new TextRun({ text: 'Nomor      : ', bold: true, font: 'Roboto', size: 22 }),
+            new TextRun({ text: letterToExport.letterNumber, font: 'Roboto', size: 22 }),
           ],
         }),
         new Paragraph({
           children: [
-            new TextRun({ text: 'Lampiran  : ', bold: true, font: 'Times New Roman', size: 22 }),
-            new TextRun({ text: letterToExport.enclosure || '-', font: 'Times New Roman', size: 22 }),
+            new TextRun({ text: 'Lampiran  : ', bold: true, font: 'Roboto', size: 22 }),
+            new TextRun({ text: letterToExport.enclosure || '-', font: 'Roboto', size: 22 }),
           ],
         }),
         new Paragraph({
           children: [
-            new TextRun({ text: 'Perihal    : ', bold: true, font: 'Times New Roman', size: 22 }),
-            new TextRun({ text: letterToExport.subject, bold: true, font: 'Times New Roman', size: 22 }),
+            new TextRun({ text: 'Perihal    : ', bold: true, font: 'Roboto', size: 22 }),
+            new TextRun({ text: letterToExport.subject, bold: true, font: 'Roboto', size: 22 }),
           ],
         }),
         new Paragraph({ children: [] })
@@ -603,10 +848,10 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
       children.push(
         new Paragraph({
           children: [
-            new TextRun({ text: 'Kepada Yth,\n', font: 'Times New Roman', size: 22 }),
-            new TextRun({ text: `${letterToExport.recipientName}\n`, bold: true, font: 'Times New Roman', size: 22 }),
-            new TextRun({ text: `${letterToExport.recipientTitle} - ${letterToExport.recipientCompany}\n`, font: 'Times New Roman', size: 22 }),
-            new TextRun({ text: `${letterToExport.recipientAddress}`, font: 'Times New Roman', size: 22 }),
+            new TextRun({ text: 'Kepada Yth,\n', font: 'Roboto', size: 22 }),
+            new TextRun({ text: `${letterToExport.recipientName}\n`, bold: true, font: 'Roboto', size: 22 }),
+            new TextRun({ text: `${letterToExport.recipientTitle} - ${letterToExport.recipientCompany}\n`, font: 'Roboto', size: 22 }),
+            new TextRun({ text: `${letterToExport.recipientAddress}`, font: 'Roboto', size: 22 }),
           ],
         }),
         new Paragraph({ children: [] })
@@ -623,7 +868,7 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
                 bold: true,
                 underline: {},
                 size: 24,
-                font: 'Times New Roman',
+                font: 'Roboto',
               }),
             ],
           }),
@@ -634,7 +879,7 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
                 text: `NO: ${letterToExport.letterNumber}`,
                 bold: true,
                 size: 20,
-                font: 'Times New Roman',
+                font: 'Roboto',
               }),
             ],
           }),
@@ -649,7 +894,7 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
           children: [
             new TextRun({
               text: letterToExport.openingText,
-              font: 'Times New Roman',
+              font: 'Roboto',
               size: 22,
             }),
           ],
@@ -665,7 +910,7 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
             children: [
               new TextRun({
                 text: p,
-                font: 'Times New Roman',
+                font: 'Roboto',
                 size: 22,
               }),
             ],
@@ -681,7 +926,7 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
           children: [
             new TextRun({
               text: letterToExport.closingText,
-              font: 'Times New Roman',
+              font: 'Roboto',
               size: 22,
             }),
           ],
@@ -695,10 +940,10 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
         new Paragraph({
           alignment: AlignmentType.RIGHT,
           children: [
-            new TextRun({ text: `${companyProfile.name}\n`, bold: true, font: 'Times New Roman', size: 22 }),
-            new TextRun({ text: `${letterToExport.signatoryTitle},\n\n\n\n\n`, font: 'Times New Roman', size: 22 }),
-            new TextRun({ text: letterToExport.signatoryName, bold: true, underline: {}, font: 'Times New Roman', size: 22 }),
-            new TextRun({ text: `\n${letterToExport.signatoryNik || ''}`, font: 'Times New Roman', size: 18, color: '64748B' }),
+            new TextRun({ text: `${companyProfile.name}\n`, bold: true, font: 'Roboto', size: 22 }),
+            new TextRun({ text: `${letterToExport.signatoryTitle},\n\n\n\n\n`, font: 'Roboto', size: 22 }),
+            new TextRun({ text: letterToExport.signatoryName, bold: true, underline: {}, font: 'Roboto', size: 22 }),
+            new TextRun({ text: `\n${letterToExport.signatoryNik || ''}`, font: 'Roboto', size: 18, color: '64748B' }),
           ],
         })
       );
@@ -727,6 +972,8 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
     } catch (err) {
       console.error('Error exporting DOCX:', err);
       alert('Gagal mengeksport dokumen Word. Silakan coba kembali.');
+    } finally {
+      setExportingWordId(null);
     }
   };
 
@@ -784,6 +1031,22 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Success Notification Banner */}
+      {showSaveSuccess && (
+        <div className="bg-emerald-600 text-white p-3.5 px-5 rounded-2xl shadow-lg flex items-center justify-between animate-in fade-in slide-in-from-top-2 no-print">
+          <div className="flex items-center gap-2.5 font-bold text-xs">
+            <CheckCircle2 className="w-5 h-5 text-emerald-200 shrink-0" />
+            <span>Perubahan surat berhasil disimpan! Dokumen A4 telah diperbarui secara live.</span>
+          </div>
+          <button
+            onClick={() => setShowSaveSuccess(false)}
+            className="text-white/80 hover:text-white text-xs font-bold px-2 py-1 rounded-lg hover:bg-emerald-700 transition"
+          >
+            Tutup
+          </button>
+        </div>
+      )}
 
       {/* Navigation Tabs */}
       <div className="flex items-center justify-between border-b border-slate-200 no-print">
@@ -964,28 +1227,42 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
                             <button
                               title="Cetak & Download PDF"
                               onClick={() => handlePrintDirectPdf(letter)}
-                              className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-extrabold rounded-lg text-[11px] flex items-center gap-1 border border-emerald-200 transition shadow-xs"
+                              disabled={isPrinting || isPreviewLoading}
+                              className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-extrabold rounded-lg text-[11px] flex items-center gap-1 border border-emerald-200 transition shadow-xs disabled:opacity-60 disabled:cursor-wait"
                             >
-                              <Printer className="w-3.5 h-3.5 text-emerald-600" /> Cetak PDF
+                              {isPrinting && previewLetter?.id === letter.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                              ) : (
+                                <Printer className="w-3.5 h-3.5 text-emerald-600" />
+                              )}
+                              <span>Cetak PDF</span>
                             </button>
 
                             <button
                               title="Lihat Preview Surat"
-                              onClick={() => {
-                                setPreviewLetter(letter);
-                                setActiveTab('PREVIEW');
-                              }}
-                              className="p-1.5 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-600 rounded-lg transition"
+                              onClick={() => handlePreviewLetter(letter)}
+                              disabled={isPreviewLoading}
+                              className="p-1.5 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-600 rounded-lg transition disabled:opacity-60 disabled:cursor-wait"
                             >
-                              <Eye className="w-4 h-4" />
+                              {isPreviewLoading && previewLetter?.id === letter.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                              ) : (
+                                <Eye className="w-4 h-4" />
+                              )}
                             </button>
 
                             <button
                               title="Download File Word (.docx)"
                               onClick={() => handleExportWordDocx(letter)}
-                              className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-lg text-[11px] flex items-center gap-1 border border-blue-200 transition"
+                              disabled={exportingWordId === letter.id}
+                              className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-lg text-[11px] flex items-center gap-1 border border-blue-200 transition disabled:opacity-60 disabled:cursor-wait"
                             >
-                              <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600" /> .DOCX
+                              {exportingWordId === letter.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                              ) : (
+                                <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600" />
+                              )}
+                              <span>.DOCX</span>
                             </button>
 
                             <button
@@ -1045,9 +1322,20 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
               </button>
               <button
                 onClick={handleSaveLetter}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-md shadow-blue-900/20 transition flex items-center gap-1.5"
+                disabled={isSaving}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-md shadow-blue-900/20 transition flex items-center gap-1.5 disabled:opacity-70 disabled:cursor-wait"
               >
-                <CheckCircle2 className="w-4 h-4" /> Simpan & Preview Surat
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Menyimpan...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Simpan & Preview Surat</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -1357,18 +1645,101 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="showStampCheck"
-                  checked={formShowStamp}
-                  onChange={(e) => setFormShowStamp(e.target.checked)}
-                  className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4"
-                />
-                <label htmlFor="showStampCheck" className="text-xs font-bold text-slate-700 cursor-pointer">
-                  Tampilkan Badge Stempel Legalisasi PT
-                </label>
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="showStampCheck"
+                    checked={formShowStamp}
+                    onChange={(e) => setFormShowStamp(e.target.checked)}
+                    className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4"
+                  />
+                  <label htmlFor="showStampCheck" className="text-xs font-bold text-slate-700 cursor-pointer">
+                    Tampilkan Badge Stempel Legalisasi PT
+                  </label>
+                </div>
+
+                {/* QR Code Verification Section */}
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-3 mt-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="showQrCodeCheck"
+                        checked={formShowQrCode}
+                        onChange={(e) => setFormShowQrCode(e.target.checked)}
+                        className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+                      />
+                      <label htmlFor="showQrCodeCheck" className="text-xs font-bold text-slate-800 cursor-pointer flex items-center gap-1.5">
+                        <QrCode className="w-4 h-4 text-blue-600" />
+                        Tampilkan QR Code Verifikasi Keabsahan Dokumen
+                      </label>
+                    </div>
+                  </div>
+
+                  {formShowQrCode && (
+                    <div className="space-y-2 pt-2 border-t border-slate-200">
+                      <label className="block text-[11px] font-bold text-slate-700">
+                        Isi Teks / URL Pindaian QR Code
+                      </label>
+                      <div className="flex gap-3 items-center">
+                        <input
+                          type="text"
+                          value={formQrCodeValue}
+                          onChange={(e) => setFormQrCodeValue(e.target.value)}
+                          placeholder={`https://verifikasi.rakaciptaseraya.co.id/verify?id=${editingLetter?.id || 'NEW'}`}
+                          className="w-full p-2 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-800"
+                        />
+                        <div className="bg-white p-1.5 border border-slate-200 rounded-lg shrink-0 shadow-xs flex items-center justify-center">
+                          <QRCodeSVG
+                            value={
+                              formQrCodeValue.trim() ||
+                              `https://verifikasi.rakaciptaseraya.co.id/verify?id=${editingLetter?.id || 'NEW'}&no=${encodeURIComponent(formNumber || '001')}`
+                            }
+                            size={44}
+                            level="M"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-500 italic">
+                        Link otomatis verifikasi keabsahan dokumen PT Raka Cipta Seraya.
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
+            </div>
+          </div>
+
+          {/* Bottom Form Action Buttons */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-6 border-t border-slate-200 mt-6">
+            <button
+              type="button"
+              onClick={() => setActiveTab('LIST')}
+              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition"
+            >
+              Batal / Kembali ke Daftar
+            </button>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSaveLetter}
+                disabled={isSaving}
+                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl text-xs shadow-md shadow-blue-900/20 transition flex items-center gap-2 disabled:opacity-70 disabled:cursor-wait"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Menyimpan & Menyiapkan Preview...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Simpan & Preview Surat</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -1376,7 +1747,7 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
 
       {/* TAB 3: LIVE A4 PREVIEW & PRINT/PDF/WORD */}
       {activeTab === 'PREVIEW' && previewLetter && (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-in fade-in duration-300">
           {/* Action Toolbar */}
           <div className="bg-slate-900 text-white p-4 rounded-2xl shadow-lg flex flex-wrap items-center justify-between gap-4 no-print">
             <div className="flex items-center gap-3">
@@ -1408,18 +1779,40 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
               />
 
               <button
-                onClick={() => triggerPrintFallback(previewLetter.title, document.getElementById('printable-letter-area'))}
-                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs flex items-center gap-1.5 transition"
+                onClick={handlePrintDialog}
+                disabled={isPrinting}
+                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs flex items-center gap-1.5 transition disabled:opacity-60 disabled:cursor-wait"
                 title="Buka Dialog Cetak Browser"
               >
-                <Printer className="w-4 h-4" /> Dialog Cetak
+                {isPrinting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                    <span>Menyiapkan Cetak...</span>
+                  </>
+                ) : (
+                  <>
+                    <Printer className="w-4 h-4" />
+                    <span>Dialog Cetak</span>
+                  </>
+                )}
               </button>
 
               <button
                 onClick={() => handleExportWordDocx(previewLetter)}
-                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs shadow-md flex items-center gap-2 transition"
+                disabled={exportingWordId === previewLetter.id}
+                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs shadow-md flex items-center gap-2 transition disabled:opacity-60 disabled:cursor-wait"
               >
-                <FileSpreadsheet className="w-4 h-4 text-white" /> Download Word (.docx)
+                {exportingWordId === previewLetter.id ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    <span>Memproses Word...</span>
+                  </>
+                ) : (
+                  <>
+                    <FileSpreadsheet className="w-4 h-4 text-white" />
+                    <span>Download Word (.docx)</span>
+                  </>
+                )}
               </button>
 
               <button
@@ -1432,10 +1825,20 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
           </div>
 
           {/* Paper Canvas (A4 Simulated Page) */}
-          <div className="flex justify-center bg-slate-100 p-2 sm:p-8 rounded-2xl border border-slate-200">
+          <div className="flex justify-center bg-slate-100 p-2 sm:p-8 rounded-2xl border border-slate-200 relative min-h-[400px]">
+            {isPreviewLoading && (
+              <div className="absolute inset-0 bg-white/80 backdrop-blur-xs z-30 flex flex-col items-center justify-center rounded-2xl animate-in fade-in duration-200 no-print">
+                <div className="p-4 bg-white rounded-2xl shadow-xl border border-slate-200/80 flex flex-col items-center gap-3">
+                  <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                  <span className="text-xs font-extrabold text-slate-800 tracking-wide">
+                    Mempersiapkan Pratinjau Dokumen A4...
+                  </span>
+                </div>
+              </div>
+            )}
             <div
               id="printable-letter-area"
-              className="bg-white text-slate-900 w-full max-w-[210mm] min-h-[297mm] p-8 sm:p-14 shadow-2xl rounded-sm font-serif leading-relaxed text-sm relative"
+              className="bg-white text-slate-900 w-full max-w-[210mm] min-h-[297mm] p-8 sm:p-14 shadow-2xl rounded-sm font-['Roboto',sans-serif] leading-relaxed text-sm relative"
             >
               {/* 1. KOP SURAT RESMI */}
               {includeKop && (
@@ -1455,7 +1858,7 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
                       </div>
                     )}
 
-                    <div className="flex-1 text-center font-sans">
+                    <div className="flex-1 text-right font-sans">
                       <h1 className="text-xl sm:text-2xl font-black text-slate-900 uppercase tracking-tight">
                         {companyProfile.name}
                       </h1>
@@ -1478,7 +1881,7 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
 
               {/* 2. DATE & CITY */}
               <div className="text-right font-sans text-xs font-semibold mb-6">
-                {previewLetter.city}, {new Date(previewLetter.letterDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                {previewLetter.city}, {formatLetterDate(previewLetter.letterDate)}
               </div>
 
               {/* 3. LETTER DETAILS TABLE */}
@@ -1540,9 +1943,40 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
                 {previewLetter.closingText}
               </div>
 
-              {/* 9. SIGNATURE BLOCK */}
-              <div className="flex justify-end font-sans text-xs">
-                <div className="w-72 text-center space-y-2">
+              {/* 9. SIGNATURE BLOCK & DIGITAL QR CODE VERIFICATION */}
+              <div className="flex items-end justify-between font-sans text-xs mt-10">
+                {/* Left: Digital Verification QR Code Card */}
+                {previewLetter.showQrCode !== false ? (
+                  <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-300 rounded-xl max-w-[280px] shadow-xs">
+                    <div className="bg-white p-1.5 border border-slate-200 rounded-lg shrink-0 shadow-xs flex items-center justify-center">
+                      <QRCodeSVG
+                        value={
+                          previewLetter.qrCodeValue ||
+                          `https://verifikasi.rakaciptaseraya.co.id/verify?id=${previewLetter.id}&no=${encodeURIComponent(previewLetter.letterNumber)}`
+                        }
+                        size={64}
+                        level="M"
+                      />
+                    </div>
+                    <div className="text-[10px] text-slate-700 leading-snug">
+                      <p className="font-black text-slate-900 uppercase tracking-tight flex items-center gap-1 text-[11px]">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        VERIFIKASI DIGITAL
+                      </p>
+                      <p className="font-mono text-[9px] text-slate-600 mt-0.5">
+                        ID: <span className="font-bold">{previewLetter.id}</span>
+                      </p>
+                      <p className="text-[8.5px] text-slate-500 mt-0.5 leading-tight">
+                        Pindai QR Code untuk verifikasi otentisitas dokumen resmi ini.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div />
+                )}
+
+                {/* Right: Signature Block */}
+                <div className="w-64 text-center space-y-2">
                   <p className="font-bold text-slate-900">{companyProfile.name}</p>
                   <p className="text-slate-700 font-semibold">{previewLetter.signatoryTitle}</p>
 
@@ -1571,7 +2005,10 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
 
               {/* 10. FOOTER WATERMARK */}
               <div className="mt-16 pt-4 border-t border-slate-200 flex justify-between items-center text-[10px] text-slate-400 font-sans">
-                <span>Dokumen Resmi PT {companyProfile.name}</span>
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
+                  Dokumen Resmi PT {companyProfile.name} — Terverifikasi Digital via QR Code
+                </span>
                 <span className="font-mono">ID: {previewLetter.id} | Diterbitkan via BuildX ERP</span>
               </div>
             </div>

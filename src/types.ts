@@ -79,10 +79,28 @@ export interface OfficialLetter {
   signatoryTitle: string;
   signatoryNik?: string;
   showStamp: boolean;
+  showQrCode?: boolean;
+  qrCodeValue?: string;
   // Status
   status: 'Draft' | 'Diterbitkan' | 'Arsip';
   createdAt: string;
   updatedAt: string;
+}
+
+export interface LetterTemplate {
+  id: string;
+  name: string;
+  category: LetterCategory;
+  description?: string;
+  defaultTitle: string;
+  defaultSubject: string;
+  defaultEnclosure?: string;
+  defaultOpeningText: string;
+  defaultBodyText: string;
+  defaultClosingText: string;
+  defaultSignatoryTitle?: string;
+  isSystemDefault?: boolean;
+  createdAt: string;
 }
 
 // --- SYSTEM & SETTINGS ---
