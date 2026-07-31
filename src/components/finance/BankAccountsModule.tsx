@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Landmark,
   Plus,
@@ -15,6 +15,11 @@ import {
   Download,
   Info,
   Printer,
+  Wallet,
+  CheckSquare,
+  Square,
+  SlidersHorizontal,
+  PieChart,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
 import { PrintSignature } from '../common/PrintSignature';
@@ -134,6 +139,53 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
     return baseBalance + totalIn - totalOut;
   };
 
+  // State for selecting which registered banks are included in the combined balance calculation
+  const [selectedBanksForTotal, setSelectedBanksForTotal] = useState<string[]>(() =>
+    companyProfile.banks.map((b) => b.id)
+  );
+  const [showTotalConfig, setShowTotalConfig] = useState<boolean>(false);
+
+  // Sync selected bank IDs if companyProfile.banks changes
+  useEffect(() => {
+    const validIds = companyProfile.banks.map((b) => b.id);
+    setSelectedBanksForTotal((prev) => {
+      const filteredPrev = prev.filter((id) => validIds.includes(id));
+      const newIds = validIds.filter((id) => !prev.includes(id));
+      return [...filteredPrev, ...newIds];
+    });
+  }, [companyProfile.banks]);
+
+  // Combined Balance calculations
+  const selectedBanksList = companyProfile.banks.filter((b) =>
+    selectedBanksForTotal.includes(b.id)
+  );
+
+  const totalCombinedBalance = selectedBanksList.reduce(
+    (sum, bank) => sum + getBankBalance(bank.bankName),
+    0
+  );
+
+  const grandTotalAllBanks = companyProfile.banks.reduce(
+    (sum, bank) => sum + getBankBalance(bank.bankName),
+    0
+  );
+
+  const handleToggleBankSelection = (id: string) => {
+    if (selectedBanksForTotal.includes(id)) {
+      if (selectedBanksForTotal.length === 1) {
+        showToast('Minimal 1 rekening harus dipilih untuk perhitungan saldo gabungan.');
+        return;
+      }
+      setSelectedBanksForTotal(selectedBanksForTotal.filter((item) => item !== id));
+    } else {
+      setSelectedBanksForTotal([...selectedBanksForTotal, id]);
+    }
+  };
+
+  const handleSelectAllBanks = () => {
+    setSelectedBanksForTotal(companyProfile.banks.map((b) => b.id));
+  };
+
   const isSuperAdmin = currentRole === 'Super Admin' || currentRole === 'Direktur Utama' || currentRole === 'Finance';
 
   return (
@@ -186,12 +238,23 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
       </div>
 
       {/* Quick Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="bg-gradient-to-br from-emerald-900 via-slate-900 to-emerald-950 p-5 rounded-2xl border border-emerald-700/50 shadow-md text-white flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-bold uppercase text-emerald-300 tracking-wider">Saldo Gabungan Perbankan</span>
+            <p className="text-xl font-black text-emerald-400 mt-1 font-mono">{formatRupiah(totalCombinedBalance)}</p>
+            <span className="text-[10px] text-slate-300 font-semibold">{selectedBanksForTotal.length} dari {companyProfile.banks.length} Rekening Terpilih</span>
+          </div>
+          <div className="p-3 bg-emerald-500/20 text-emerald-300 rounded-xl border border-emerald-500/30">
+            <Wallet className="w-6 h-6" />
+          </div>
+        </div>
+
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
           <div>
             <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Total Rekening Resmi</span>
             <p className="text-2xl font-black text-slate-900 mt-1">{companyProfile.banks.length} Rekening</p>
-            <span className="text-[10px] text-blue-600 font-semibold">Semua terverifikasi legalitas PT</span>
+            <span className="text-[10px] text-blue-600 font-semibold">Terverifikasi Legalitas PT</span>
           </div>
           <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
             <Landmark className="w-6 h-6" />
@@ -201,7 +264,7 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
           <div>
             <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Perusahaan Pemilik</span>
-            <p className="text-base font-extrabold text-slate-900 mt-1 truncate max-w-[200px]">{companyProfile.name}</p>
+            <p className="text-base font-extrabold text-slate-900 mt-1 truncate max-w-[180px]">{companyProfile.name}</p>
             <span className="text-[10px] text-slate-500 font-mono">NPWP: {companyProfile.npwp}</span>
           </div>
           <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
@@ -219,6 +282,136 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
           </div>
           <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
             <ShieldCheck className="w-6 h-6" />
+          </div>
+        </div>
+      </div>
+
+      {/* Saldo Gabungan Detail & Interactive Breakdown Panel */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-emerald-100 text-emerald-800 rounded-2xl border border-emerald-200">
+              <Wallet className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-extrabold text-slate-900 text-base uppercase tracking-tight">
+                  Saldo Gabungan Rekening Perbankan Perusahaan
+                </h3>
+                <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase">
+                  Consolidated Cash
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Total akumulasi saldo kas siap pakai dari seluruh rekening resmi terdaftar PT {companyProfile.name}.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => setShowTotalConfig(!showTotalConfig)}
+              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs flex items-center gap-2 transition"
+            >
+              <SlidersHorizontal className="w-4 h-4 text-emerald-600" />
+              {showTotalConfig ? 'Sembunyikan Opsi Rekening' : 'Pilih Rekening Gabungan'}
+            </button>
+            <button
+              onClick={handleSelectAllBanks}
+              className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-xl text-xs border border-emerald-200 flex items-center gap-1.5 transition"
+            >
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Pilih Semua
+            </button>
+          </div>
+        </div>
+
+        {/* Total Display Banner */}
+        <div className="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 p-6 rounded-2xl border border-emerald-800/40 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="relative z-10 space-y-1">
+            <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-widest block">
+              TOTAL SALDO KAS GABUNGAN ({selectedBanksList.length} REKENING TERPILIH)
+            </span>
+            <div className="text-3xl sm:text-4xl font-black font-mono tracking-tight text-white flex items-center gap-2">
+              {formatRupiah(totalCombinedBalance)}
+            </div>
+            <p className="text-xs text-slate-300 font-medium">
+              Grand total seluruh {companyProfile.banks.length} rekening registered: <strong className="text-emerald-300 font-mono">{formatRupiah(grandTotalAllBanks)}</strong>
+            </p>
+          </div>
+
+          {/* Bank Toggles */}
+          <div className="relative z-10 w-full md:w-auto">
+            <div className="flex flex-wrap items-center gap-2">
+              {companyProfile.banks.map((bank) => {
+                const isSelected = selectedBanksForTotal.includes(bank.id);
+                const bankBal = getBankBalance(bank.bankName);
+                return (
+                  <button
+                    key={bank.id}
+                    onClick={() => handleToggleBankSelection(bank.id)}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border ${
+                      isSelected
+                        ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/50 shadow-xs'
+                        : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10'
+                    }`}
+                  >
+                    {isSelected ? (
+                      <CheckSquare className="w-4 h-4 text-emerald-400" />
+                    ) : (
+                      <Square className="w-4 h-4 text-slate-500" />
+                    )}
+                    <span>{bank.bankName}</span>
+                    <span className="font-mono text-[11px] text-emerald-300">({formatRupiah(bankBal)})</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Breakdown by Bank Account */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+            <span className="flex items-center gap-1.5 uppercase tracking-wide">
+              <PieChart className="w-4 h-4 text-emerald-600" /> Distribusi Kontribusi Saldo
+            </span>
+            <span className="text-slate-500 font-normal">
+              Persentase proporsi terhadap total gabungan Rp {formatRupiah(totalCombinedBalance)}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {selectedBanksList.map((bank) => {
+              const bal = getBankBalance(bank.bankName);
+              const percentage = totalCombinedBalance > 0 ? ((bal / totalCombinedBalance) * 100).toFixed(1) : '0';
+
+              return (
+                <div key={bank.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 flex flex-col justify-between hover:bg-slate-100/80 transition">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-extrabold text-slate-900 text-xs">{bank.bankName}</span>
+                      <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200">
+                        {percentage}%
+                      </span>
+                    </div>
+                    <div className="text-base font-black text-slate-900 font-mono">{formatRupiah(bal)}</div>
+                  </div>
+
+                  <div className="mt-3 space-y-1">
+                    <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, Math.max(0, Number(percentage)))}%` }}
+                      ></div>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono pt-1">
+                      <span className="truncate max-w-[120px]">{bank.accountNumber}</span>
+                      <span className="truncate">{bank.branch || 'KCU Utama'}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -18,6 +18,7 @@ import {
   ChevronRight,
   Settings,
   ShieldCheck,
+  FileText,
 } from 'lucide-react';
 import { ModuleType } from '../types';
 
@@ -88,8 +89,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ],
     },
     {
-      label: 'Pelaporan',
-      items: [{ id: 'reports', label: 'Laporan Executive', icon: BarChart3 }],
+      label: 'Pelaporan & Persuratan',
+      items: [
+        { id: 'reports', label: 'Laporan Executive', icon: BarChart3 },
+        { id: 'official_letters', label: 'Surat & Dokumen Resmi', icon: FileText },
+      ],
     },
     {
       label: 'Administrasi Sistem',

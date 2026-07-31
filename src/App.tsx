@@ -17,6 +17,7 @@ import { AccountingModule } from './components/accounting/AccountingModule';
 import { ApprovalsModule } from './components/approvals/ApprovalsModule';
 import { ReportsModule } from './components/reports/ReportsModule';
 import { SettingsModule } from './components/settings/SettingsModule';
+import { OfficialLettersModule } from './components/letters/OfficialLettersModule';
 
 import {
   ModuleType,
@@ -30,6 +31,8 @@ import {
   CrmLead,
   Equipment,
   Employee,
+  AttendanceRecord,
+  OvertimeRecord,
   PayrollSlip,
   FinanceTransaction,
   ChartOfAccount,
@@ -53,6 +56,8 @@ import {
   INITIAL_LEADS,
   INITIAL_EQUIPMENT,
   INITIAL_EMPLOYEES,
+  INITIAL_ATTENDANCE,
+  INITIAL_OVERTIME,
   INITIAL_PAYROLL,
   INITIAL_FINANCE,
   INITIAL_COA,
@@ -108,6 +113,12 @@ export default function App() {
   const [employees, setEmployees] = useState<Employee[]>(() =>
     getStoredData('employees', INITIAL_EMPLOYEES)
   );
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(() =>
+    getStoredData('attendance', INITIAL_ATTENDANCE)
+  );
+  const [overtimeRecords, setOvertimeRecords] = useState<OvertimeRecord[]>(() =>
+    getStoredData('overtime', INITIAL_OVERTIME)
+  );
   const [payrollSlips, setPayrollSlips] = useState<PayrollSlip[]>(() =>
     getStoredData('payroll', INITIAL_PAYROLL)
   );
@@ -156,6 +167,8 @@ export default function App() {
     const unsubLeads = subscribeToCollection('crm_leads', INITIAL_LEADS, setCrmLeads);
     const unsubEquipment = subscribeToCollection('equipment', INITIAL_EQUIPMENT, setEquipment);
     const unsubEmployees = subscribeToCollection('employees', INITIAL_EMPLOYEES, setEmployees);
+    const unsubAttendance = subscribeToCollection('attendance', INITIAL_ATTENDANCE, setAttendanceRecords);
+    const unsubOvertime = subscribeToCollection('overtime', INITIAL_OVERTIME, setOvertimeRecords);
     const unsubPayroll = subscribeToCollection('payroll', INITIAL_PAYROLL, setPayrollSlips);
     const unsubFinance = subscribeToCollection(
       'finance_transactions',
@@ -179,6 +192,8 @@ export default function App() {
       unsubLeads();
       unsubEquipment();
       unsubEmployees();
+      unsubAttendance();
+      unsubOvertime();
       unsubPayroll();
       unsubFinance();
       unsubCoa();
@@ -266,12 +281,78 @@ export default function App() {
   };
 
   const handleSaveEmployee = async (e: Employee) => {
-    const updated = await saveDocument('employees', e);
-    setEmployees(updated);
+    const updatedEmployees = await saveDocument('employees', e);
+    setEmployees(updatedEmployees);
+
+    // Auto-sync payroll slip for this employee
+    const currentPeriod = 'Juli 2026';
+    const overtimePay = Math.round((e.overtimeHours || 0) * (e.basicSalary / 173));
+    const bpjsDeduction = Math.round(e.basicSalary * 0.04);
+    const taxPph21 = Math.round((e.basicSalary + e.allowance) * 0.05);
+    const netSalary = e.basicSalary + e.allowance + overtimePay - bpjsDeduction - taxPph21;
+
+    const existingSlip = payrollSlips.find(
+      (s) => s.employeeId === e.id || s.employeeName === e.name
+    );
+
+    const updatedSlip: PayrollSlip = {
+      id: existingSlip ? existingSlip.id : 'pay-' + Date.now(),
+      employeeId: e.id,
+      employeeName: e.name,
+      period: existingSlip ? existingSlip.period : currentPeriod,
+      basicSalary: e.basicSalary,
+      allowance: e.allowance,
+      overtimePay: overtimePay,
+      bpjsDeduction: bpjsDeduction,
+      taxPph21: taxPph21,
+      netSalary: netSalary,
+      status: existingSlip ? existingSlip.status : 'Approved',
+    };
+
+    const updatedPayroll = await saveDocument('payroll', updatedSlip);
+    setPayrollSlips(updatedPayroll);
   };
+
   const handleDeleteEmployee = async (id: string) => {
-    const updated = await deleteDocument<Employee>('employees', id);
-    setEmployees(updated);
+    const updatedEmployees = await deleteDocument<Employee>('employees', id);
+    setEmployees(updatedEmployees);
+
+    // Remove associated payroll slip if exists
+    const targetSlip = payrollSlips.find((s) => s.employeeId === id);
+    if (targetSlip) {
+      const updatedPayroll = await deleteDocument<PayrollSlip>('payroll', targetSlip.id);
+      setPayrollSlips(updatedPayroll);
+    }
+  };
+
+  const handleSavePayroll = async (p: PayrollSlip) => {
+    const updatedPayroll = await saveDocument('payroll', p);
+    setPayrollSlips(updatedPayroll);
+  };
+
+  const handleDeletePayroll = async (id: string) => {
+    const updatedPayroll = await deleteDocument<PayrollSlip>('payroll', id);
+    setPayrollSlips(updatedPayroll);
+  };
+
+  const handleSaveAttendance = async (a: AttendanceRecord) => {
+    const updated = await saveDocument('attendance', a);
+    setAttendanceRecords(updated);
+  };
+
+  const handleDeleteAttendance = async (id: string) => {
+    const updated = await deleteDocument<AttendanceRecord>('attendance', id);
+    setAttendanceRecords(updated);
+  };
+
+  const handleSaveOvertime = async (o: OvertimeRecord) => {
+    const updated = await saveDocument('overtime', o);
+    setOvertimeRecords(updated);
+  };
+
+  const handleDeleteOvertime = async (id: string) => {
+    const updated = await deleteDocument<OvertimeRecord>('overtime', id);
+    setOvertimeRecords(updated);
   };
 
   const handleSaveFinance = async (f: FinanceTransaction) => {
@@ -388,6 +469,7 @@ export default function App() {
               employees={employees}
               approvals={approvals}
               materials={materials}
+              purchaseOrders={purchases}
               onNavigate={setActiveModule}
             />
           )}
@@ -468,14 +550,23 @@ export default function App() {
             <HrPayrollModule
               employees={employees}
               payrollSlips={payrollSlips}
+              attendanceRecords={attendanceRecords}
+              overtimeRecords={overtimeRecords}
               onSaveEmployee={handleSaveEmployee}
               onDeleteEmployee={handleDeleteEmployee}
+              onSavePayroll={handleSavePayroll}
+              onDeletePayroll={handleDeletePayroll}
+              onSaveAttendance={handleSaveAttendance}
+              onDeleteAttendance={handleDeleteAttendance}
+              onSaveOvertime={handleSaveOvertime}
+              onDeleteOvertime={handleDeleteOvertime}
             />
           )}
 
           {activeModule === 'finance' && (
             <FinanceModule
               transactions={financeTransactions}
+              projects={projects}
               onSaveTransaction={handleSaveFinance}
               onDeleteTransaction={handleDeleteFinance}
             />
@@ -511,6 +602,14 @@ export default function App() {
               financeTransactions={financeTransactions}
               employees={employees}
               materials={materials}
+            />
+          )}
+
+          {activeModule === 'official_letters' && (
+            <OfficialLettersModule
+              companyProfile={companyProfile}
+              onUpdateCompanyProfile={handleUpdateCompanyProfile}
+              letterhead={letterhead}
             />
           )}
 

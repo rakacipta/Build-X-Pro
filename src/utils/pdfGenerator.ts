@@ -45,6 +45,43 @@ function convertOklchColors(cssText: string): string {
 }
 
 /**
+ * Ensures all <img> elements inside a parent element are pre-loaded
+ * and converts raw SVG / UTF-8 SVG Data URIs to base64 Data URIs
+ * so html2canvas can render them reliably without failing or corrupting.
+ */
+export async function prepareImagesForCanvas(container: HTMLElement): Promise<void> {
+  const images = Array.from(container.querySelectorAll('img'));
+
+  const promises = images.map((img) => {
+    return new Promise<void>((resolve) => {
+      // 1. Convert raw/utf8 SVG Data URIs to Base64
+      if (img.src && img.src.includes('data:image/svg+xml') && !img.src.includes('base64')) {
+        try {
+          const parts = img.src.split(',');
+          if (parts.length > 1) {
+            const rawSvg = decodeURIComponent(parts.slice(1).join(','));
+            const base64Svg = btoa(unescape(encodeURIComponent(rawSvg)));
+            img.src = `data:image/svg+xml;base64,${base64Svg}`;
+          }
+        } catch (e) {
+          console.warn('[PDF Export] Failed to encode SVG image to base64:', e);
+        }
+      }
+
+      // 2. Wait for image to be fully loaded
+      if (img.complete && img.naturalWidth !== 0) {
+        resolve();
+      } else {
+        img.onload = () => resolve();
+        img.onerror = () => resolve();
+      }
+    });
+  });
+
+  await Promise.all(promises);
+}
+
+/**
  * Generates and downloads a clean A4 PDF file from a DOM element ID.
  * Falls back to opening a clean popup print window if canvas generation is restricted.
  */
@@ -65,6 +102,9 @@ export async function generatePdfFromElement({
   const originalStyle = element.getAttribute('style') || '';
   
   try {
+    // Ensure all images (logos, signatures, etc.) are converted to base64 and loaded
+    await prepareImagesForCanvas(element);
+
     // Scroll to top of element to capture full height
     window.scrollTo(0, 0);
 

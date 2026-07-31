@@ -25,7 +25,9 @@ import {
   Employee,
   ApprovalRequest,
   Material,
+  PurchaseOrder,
 } from '../../types';
+import { ProjectedCashFlowChart } from './ProjectedCashFlowChart';
 import { formatRupiah, formatCompactNumber } from '../../utils/formatters';
 import {
   BarChart,
@@ -49,6 +51,7 @@ interface DashboardModuleProps {
   employees: Employee[];
   approvals: ApprovalRequest[];
   materials: Material[];
+  purchaseOrders?: PurchaseOrder[];
   onNavigate: (mod: any) => void;
 }
 
@@ -59,6 +62,7 @@ export const DashboardModule: React.FC<DashboardModuleProps> = ({
   employees,
   approvals,
   materials,
+  purchaseOrders = [],
   onNavigate,
 }) => {
   // Calculated KPIs
@@ -323,6 +327,15 @@ export const DashboardModule: React.FC<DashboardModuleProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Projected Cash Flow Visualization Component (Recharts) */}
+      <ProjectedCashFlowChart
+        projects={projects}
+        purchaseOrders={purchaseOrders}
+        financeTransactions={financeTransactions}
+        approvals={approvals}
+        onNavigate={onNavigate}
+      />
 
       {/* Bottom Row: Pending Approvals & Quick Status */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

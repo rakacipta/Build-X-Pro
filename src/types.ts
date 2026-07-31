@@ -41,7 +41,49 @@ export type ModuleType =
   | 'approvals'
   | 'reports'
   | 'settings'
+  | 'official_letters'
   | 'master_data';
+
+// --- SURAT & DOKUMEN RESMI ---
+export type LetterCategory =
+  | 'SPK'
+  | 'SPH'
+  | 'MOU'
+  | 'SKK'
+  | 'SURAT_TUGAS'
+  | 'SP'
+  | 'UNDANGAN'
+  | 'PERMOHONAN'
+  | 'CUSTOM';
+
+export interface OfficialLetter {
+  id: string;
+  letterNumber: string;
+  category: LetterCategory;
+  title: string;
+  subject: string; // Hal
+  enclosure: string; // Lampiran
+  letterDate: string;
+  city: string;
+  // Recipient
+  recipientName: string;
+  recipientTitle: string;
+  recipientCompany: string;
+  recipientAddress: string;
+  // Content
+  openingText: string;
+  bodyParagraphs: string[];
+  closingText: string;
+  // Signatory
+  signatoryName: string;
+  signatoryTitle: string;
+  signatoryNik?: string;
+  showStamp: boolean;
+  // Status
+  status: 'Draft' | 'Diterbitkan' | 'Arsip';
+  createdAt: string;
+  updatedAt: string;
+}
 
 // --- SYSTEM & SETTINGS ---
 export interface CompanyBank {
@@ -346,6 +388,32 @@ export interface Employee {
   phone: string;
   attendanceDays: number;
   overtimeHours: number;
+}
+
+export interface AttendanceRecord {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  date: string;
+  checkIn: string;
+  checkOut?: string;
+  status: 'Hadir' | 'Izin' | 'Sakit' | 'Alpha' | 'Cuti';
+  location: string;
+  notes?: string;
+}
+
+export interface OvertimeRecord {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  hours: number;
+  reason: string;
+  projectOrTask: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
+  approvedBy?: string;
 }
 
 export interface PayrollSlip {
