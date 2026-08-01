@@ -104,7 +104,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   return (
-    <aside className="w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col h-[calc(100vh-61px)] overflow-y-auto no-scrollbar shrink-0 select-none">
+    <aside className="sticky top-0 w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col h-full overflow-y-auto no-scrollbar shrink-0 select-none z-20">
       <div className="p-4 border-b border-slate-800/80 mb-2">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-black text-white text-sm tracking-tight shadow-md shadow-blue-900/30">

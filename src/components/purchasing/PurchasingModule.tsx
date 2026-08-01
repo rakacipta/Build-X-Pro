@@ -12,11 +12,13 @@ import {
   Edit2,
   Building,
   Printer,
+  BellRing,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
 import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
-import { PurchaseOrder, CompanyProfile, LetterheadSettings } from '../../types';
+import { SignaturePicker } from '../common/SignaturePicker';
+import { PurchaseOrder, CompanyProfile, LetterheadSettings, AppNotification } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
 import { getStoredData } from '../../services/firestoreService';
 import { INITIAL_COMPANY_PROFILE, INITIAL_LETTERHEAD } from '../../lib/seedData';
@@ -25,12 +27,16 @@ interface PurchasingModuleProps {
   purchases: PurchaseOrder[];
   onSavePurchase: (po: PurchaseOrder) => void;
   onDeletePurchase: (id: string) => void;
+  onSendReminder?: (reqNo: string, title: string, amount: number) => void;
+  onTriggerNotification?: (notif: Partial<AppNotification>) => void;
 }
 
 export const PurchasingModule: React.FC<PurchasingModuleProps> = ({
   purchases,
   onSavePurchase,
   onDeletePurchase,
+  onSendReminder,
+  onTriggerNotification,
 }) => {
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -69,7 +75,24 @@ export const PurchasingModule: React.FC<PurchasingModuleProps> = ({
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingPo && editingPo.vendorName) {
-      onSavePurchase(editingPo as PurchaseOrder);
+      const saved = editingPo as PurchaseOrder;
+      onSavePurchase(saved);
+      
+      // Auto-trigger approval alert if PO is pending
+      if (saved.status === 'Pending Approval' && onTriggerNotification) {
+        onTriggerNotification({
+          type: 'PO_APPROVAL',
+          title: `Pengajuan ${saved.poNumber} Menunggu Approval Direksi`,
+          message: `Pengajuan Purchase Order ke Vendor ${saved.vendorName} senilai ${formatRupiah(saved.totalAmount)} membutuhkan persetujuan Direktur.`,
+          priority: 'urgent',
+          targetRoles: ['Direktur Utama', 'Direktur', 'Super Admin'],
+          linkModule: 'approvals',
+          relatedId: saved.poNumber,
+          amount: saved.totalAmount,
+          senderName: saved.requestedBy || 'Tim Purchasing',
+        });
+      }
+
       setIsModalOpen(false);
       setEditingPo(null);
     }
@@ -174,7 +197,18 @@ export const PurchasingModule: React.FC<PurchasingModuleProps> = ({
                 </span>
               </div>
 
-              <div className="space-x-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {po.status === 'Pending Approval' && onSendReminder && (
+                  <button
+                    type="button"
+                    onClick={() => onSendReminder(po.poNumber, `PO ${po.vendorName}`, po.totalAmount)}
+                    className="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-bold px-3 py-1.5 rounded-xl text-[11px] inline-flex items-center gap-1.5 transition"
+                    title="Kirim Notifikasi Reminder ke Direksi"
+                  >
+                    <BellRing className="w-3.5 h-3.5 text-amber-700 animate-bounce" />
+                    <span>Ingatkan Direksi</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setSelectedPoForPrint(po)}
@@ -249,6 +283,40 @@ export const PurchasingModule: React.FC<PurchasingModuleProps> = ({
                     className="w-full border border-slate-300 rounded-xl p-2.5 font-bold"
                   />
                 </div>
+              </div>
+
+              {/* Digital Signature & Approver Section */}
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                <h4 className="font-bold text-slate-900 text-xs uppercase text-blue-700">
+                  Otorisasi & Tanda Tangan Digital PO (PDF)
+                </h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Disetujui Oleh (Nama)</label>
+                    <input
+                      type="text"
+                      placeholder="Ir. Hendra Wijaya, MM"
+                      value={editingPo.approvedBy || ''}
+                      onChange={(e) => setEditingPo({ ...editingPo, approvedBy: e.target.value })}
+                      className="w-full border border-slate-300 rounded-xl p-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Jabatan Otorisator</label>
+                    <input
+                      type="text"
+                      placeholder="Direktur Utama"
+                      value={editingPo.signatoryTitle || ''}
+                      onChange={(e) => setEditingPo({ ...editingPo, signatoryTitle: e.target.value })}
+                      className="w-full border border-slate-300 rounded-xl p-2"
+                    />
+                  </div>
+                </div>
+                <SignaturePicker
+                  label="Upload / Gambar Tanda Tangan Digital PO"
+                  value={editingPo.signatureUrl}
+                  onChange={(url) => setEditingPo({ ...editingPo, signatureUrl: url })}
+                />
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
@@ -494,6 +562,9 @@ export const PurchasingModule: React.FC<PurchasingModuleProps> = ({
                 preparedTitle="Staff Bagian Pengadaan"
                 verifiedBy={selectedPoForPrint.vendorName || 'Perwakilan Vendor'}
                 verifiedTitle="Konfirmasi Supplier / Vendor"
+                directorName={selectedPoForPrint.approvedBy || 'Ir. Hendra Wijaya, MM'}
+                directorTitle={selectedPoForPrint.signatoryTitle || 'Direktur Utama'}
+                signatureUrl={selectedPoForPrint.signatureUrl}
                 note="Dokumen Purchase Order Sah & Disetujui Secara Digital oleh Direksi"
               />
             </div>

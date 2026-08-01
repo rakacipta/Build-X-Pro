@@ -22,6 +22,7 @@ import {
   LetterheadSettings,
   SystemUser,
   SystemSettings,
+  AppNotification,
 } from '../types';
 
 export const INITIAL_PROJECTS: Project[] = [
@@ -1061,4 +1062,64 @@ export const INITIAL_SIGNATORIES: DocumentSignatory[] = [
     isDefault: false,
   },
 ];
+
+export const INITIAL_NOTIFICATIONS: AppNotification[] = [
+  {
+    id: 'notif-001',
+    type: 'PO_APPROVAL',
+    title: 'Pengajuan PO-2026-003 Menunggu Approval Direksi',
+    message: 'Pengajuan Purchase Order Pembelian Beton Readymix K-350 sebesar Rp 1.250.000.000 oleh Purchasing membutuhkan persetujuan Direktur.',
+    timestamp: 'Baru saja',
+    isRead: false,
+    priority: 'urgent',
+    targetRoles: ['Direktur Utama', 'Direktur', 'Super Admin'],
+    linkModule: 'approvals',
+    relatedId: 'PO-2026-003',
+    amount: 1250000000,
+    senderName: 'Ahmad Fauzi (Purchasing)',
+  },
+  {
+    id: 'notif-002',
+    type: 'OVER_BUDGET',
+    title: 'Peringatan Anggaran: Proyek Jembatan KM 42 (84% Realisasi)',
+    message: 'Realisasi biaya Proyek Jembatan Beton Precast & Akses Tol (PRJ-2026-002) mendekati batas RAB total Rp 23.500.000.000.',
+    timestamp: '15 menit lalu',
+    isRead: false,
+    priority: 'high',
+    targetRoles: ['Direktur Utama', 'Direktur', 'Project Manager', 'Finance', 'Super Admin'],
+    linkModule: 'project',
+    relatedId: 'prj-002',
+    amount: 19800000000,
+    senderName: 'Sistem Monitoring Anggaran',
+  },
+  {
+    id: 'notif-003',
+    type: 'VARIATION_ORDER',
+    title: 'Pengajuan VO-002: Pekerjaan Tambahan Pondasi Borepile',
+    message: 'Site Manager mengajukan Variation Order senilai Rp 350.000.000 untuk Proyek Wisma Utama.',
+    timestamp: '1 jam lalu',
+    isRead: false,
+    priority: 'high',
+    targetRoles: ['Direktur Utama', 'Direktur', 'Project Manager', 'Super Admin'],
+    linkModule: 'project',
+    relatedId: 'prj-001',
+    amount: 3500000000,
+    senderName: 'Hendra Setiawan (Site Manager)',
+  },
+  {
+    id: 'notif-004',
+    type: 'CASHFLOW',
+    title: 'Pencairan Termyn Proyek Green Harmoni Rp 3.500.000.000',
+    message: 'Pembayaran termyn 1 dari PT Citra Graha Nusantara telah masuk ke Bank BCA Rekening Utama.',
+    timestamp: '3 jam lalu',
+    isRead: true,
+    priority: 'medium',
+    targetRoles: ['Direktur Utama', 'Finance', 'Accounting', 'Super Admin'],
+    linkModule: 'finance',
+    relatedId: 'TRX-2026-001',
+    amount: 3500000000,
+    senderName: 'Sari Rahmawati (Finance)',
+  },
+];
+
 

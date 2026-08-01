@@ -44,6 +44,7 @@ import {
   LetterheadSettings,
   SystemUser,
   SystemSettings,
+  AppNotification,
 } from './types';
 
 import {
@@ -69,7 +70,9 @@ import {
   INITIAL_LETTERHEAD,
   INITIAL_SYSTEM_USERS,
   INITIAL_SYSTEM_SETTINGS,
+  INITIAL_NOTIFICATIONS,
 } from './lib/seedData';
+import { formatRupiah } from './utils/formatters';
 
 import {
   subscribeToCollection,
@@ -141,6 +144,16 @@ export default function App() {
     getStoredData('rab_items', INITIAL_RAB_ITEMS)
   );
 
+  // Notifications & Alert State
+  const [notifications, setNotifications] = useState<AppNotification[]>(() =>
+    getStoredData('notifications', INITIAL_NOTIFICATIONS)
+  );
+  const [toastMessage, setToastMessage] = useState<{
+    title: string;
+    message: string;
+    type: 'info' | 'alert' | 'success';
+  } | null>(null);
+
   // Settings States
   const [companyProfile, setCompanyProfile] = useState<CompanyProfile>(() =>
     getStoredData('company_profile', INITIAL_COMPANY_PROFILE)
@@ -180,8 +193,8 @@ export default function App() {
     const unsubApprovals = subscribeToCollection('approvals', INITIAL_APPROVALS, setApprovals);
     const unsubAhsp = subscribeToCollection('ahsp', INITIAL_AHSP, setAhspList);
     const unsubRab = subscribeToCollection('rab_items', INITIAL_RAB_ITEMS, setRabItems);
-
     const unsubUsers = subscribeToCollection('system_users', INITIAL_SYSTEM_USERS, setSystemUsers);
+    const unsubNotifs = subscribeToCollection('notifications', INITIAL_NOTIFICATIONS, setNotifications);
 
     return () => {
       unsubProjects();
@@ -202,10 +215,79 @@ export default function App() {
       unsubAhsp();
       unsubRab();
       unsubUsers();
+      unsubNotifs();
     };
   }, []);
 
   const pendingApprovalsCount = approvals.filter((a) => a.status === 'Pending').length;
+
+  // Notification Action Handlers
+  const handleMarkNotificationRead = async (id: string) => {
+    const existing = notifications.find((n) => n.id === id);
+    if (existing) {
+      const updated = await saveDocument('notifications', { ...existing, isRead: true });
+      setNotifications(updated);
+    }
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    const updatedList = notifications.map((n) => ({ ...n, isRead: true }));
+    setStoredData('notifications', updatedList);
+    setNotifications(updatedList);
+    for (const n of updatedList) {
+      await saveDocument('notifications', n);
+    }
+  };
+
+  const handleTriggerNotification = async (notifData: Partial<AppNotification>) => {
+    const newNotif: AppNotification = {
+      id: 'notif-' + Date.now(),
+      type: notifData.type || 'SYSTEM',
+      title: notifData.title || 'Notifikasi Sistem',
+      message: notifData.message || '',
+      timestamp: 'Baru saja',
+      isRead: false,
+      priority: notifData.priority || 'high',
+      targetRoles: notifData.targetRoles || ['Direktur Utama', 'Direktur', 'Super Admin'],
+      linkModule: notifData.linkModule,
+      relatedId: notifData.relatedId,
+      amount: notifData.amount,
+      senderName: notifData.senderName || currentRole,
+    };
+
+    const updated = await saveDocument('notifications', newNotif);
+    setNotifications(updated);
+
+    setToastMessage({
+      title: newNotif.title,
+      message: newNotif.message,
+      type: newNotif.type === 'OVER_BUDGET' ? 'alert' : 'info',
+    });
+    setTimeout(() => setToastMessage(null), 5000);
+  };
+
+  const handleSendReminder = async (reqNo: string, title: string, amount: number) => {
+    await handleTriggerNotification({
+      type: 'REMINDER',
+      title: `⚡ INGATAN PUSH ALERT: Approval ${reqNo}`,
+      message: `Peringatan dari ${currentRole}: Pengajuan ${title} senilai ${formatRupiah(
+        amount
+      )} membutuhkan tindakan persetujuan direksi segera.`,
+      priority: 'urgent',
+      targetRoles: ['Direktur Utama', 'Direktur', 'Super Admin'],
+      linkModule: 'approvals',
+      relatedId: reqNo,
+      amount: amount,
+      senderName: currentRole,
+    });
+
+    setToastMessage({
+      title: 'Notifikasi Reminder Terkirim!',
+      message: `Peringatan & alert persetujuan untuk ${reqNo} telah didorong ke Direksi secara real-time.`,
+      type: 'success',
+    });
+    setTimeout(() => setToastMessage(null), 4000);
+  };
 
   // Persistent Handlers for Save and Delete
   const handleSaveProject = async (p: Project) => {
@@ -438,7 +520,26 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col">
+    <div className="h-screen w-screen bg-slate-50 text-slate-800 font-sans flex flex-col overflow-hidden relative">
+      {/* Toast Alert Banner */}
+      {toastMessage && (
+        <div className="fixed bottom-5 right-5 z-50 max-w-sm w-full bg-slate-900 text-white p-4 rounded-2xl shadow-2xl border border-amber-500/40 flex items-start gap-3 animate-slide-up">
+          <div className="p-2 bg-amber-500/20 text-amber-400 rounded-xl mt-0.5">
+            <span className="text-lg">⚡</span>
+          </div>
+          <div className="flex-1 text-xs">
+            <h4 className="font-bold text-amber-400 text-sm mb-0.5">{toastMessage.title}</h4>
+            <p className="text-slate-300 leading-relaxed">{toastMessage.message}</p>
+          </div>
+          <button
+            onClick={() => setToastMessage(null)}
+            className="text-slate-400 hover:text-white font-bold text-sm px-1.5"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Global Header */}
       <Header
         currentRole={currentRole}
@@ -449,6 +550,10 @@ export default function App() {
         onSearchChange={setSearchQuery}
         companyName={companyProfile.name}
         companyLogoUrl={companyProfile.logoUrl}
+        notifications={notifications}
+        onMarkNotificationRead={handleMarkNotificationRead}
+        onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
+        onNavigateModule={(mod) => setActiveModule(mod as ModuleType)}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -509,8 +614,12 @@ export default function App() {
           {activeModule === 'project' && (
             <ProjectModule
               projects={projects}
+              rabItems={rabItems}
+              financeTransactions={financeTransactions}
+              purchases={purchases}
               onSaveProject={handleSaveProject}
               onDeleteProject={handleDeleteProject}
+              onTriggerNotification={handleTriggerNotification}
             />
           )}
 
@@ -535,6 +644,8 @@ export default function App() {
               purchases={purchases}
               onSavePurchase={handleSavePurchase}
               onDeletePurchase={handleDeletePurchase}
+              onSendReminder={handleSendReminder}
+              onTriggerNotification={handleTriggerNotification}
             />
           )}
 
@@ -591,6 +702,7 @@ export default function App() {
               currentRole={currentRole}
               onApprove={handleApprove}
               onReject={handleReject}
+              onSendReminder={handleSendReminder}
             />
           )}
 

@@ -17,28 +17,40 @@ import {
   Clock,
   Building2,
   Printer,
+  Scale,
+  PieChart,
+  BarChart3,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
 import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
-import { Project, VariationOrder, DailyReport } from '../../types';
+import { BudgetVsActualWidget } from './BudgetVsActualWidget';
+import { Project, RABItem, FinanceTransaction, PurchaseOrder, VariationOrder, DailyReport, AppNotification } from '../../types';
 import { formatRupiah, formatCompactNumber } from '../../utils/formatters';
 
 interface ProjectModuleProps {
   projects: Project[];
+  rabItems?: RABItem[];
+  financeTransactions?: FinanceTransaction[];
+  purchases?: PurchaseOrder[];
   onSaveProject: (project: Project) => void;
   onDeleteProject: (id: string) => void;
+  onTriggerNotification?: (notif: Partial<AppNotification>) => void;
 }
 
 export const ProjectModule: React.FC<ProjectModuleProps> = ({
   projects,
+  rabItems = [],
+  financeTransactions = [],
+  purchases = [],
   onSaveProject,
   onDeleteProject,
+  onTriggerNotification,
 }) => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
     projects[0]?.id || ''
   );
-  const [activeTab, setActiveTab] = useState<'overview' | 'vo' | 'reports'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'budget-vs-actual' | 'vo' | 'reports'>('overview');
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Partial<Project> | null>(null);
@@ -109,6 +121,23 @@ export const ProjectModule: React.FC<ProjectModuleProps> = ({
       retentionPct: 5,
     });
     setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (projectToEdit: Project) => {
+    setEditingProject({ ...projectToEdit });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (id: string, name: string) => {
+    if (confirm(`Apakah Anda yakin ingin menghapus proyek "${name}"? Data proyek yang dihapus tidak dapat dikembalikan.`)) {
+      onDeleteProject(id);
+      const remaining = projects.filter((p) => p.id !== id);
+      if (remaining.length > 0) {
+        setSelectedProjectId(remaining[0].id);
+      } else {
+        setSelectedProjectId('');
+      }
+    }
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -185,15 +214,39 @@ export const ProjectModule: React.FC<ProjectModuleProps> = ({
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[10px] font-mono font-bold text-slate-500">{p.code}</span>
-                    <span
-                      className={`text-[9px] font-extrabold px-2 py-0.5 rounded ${
-                        p.status === 'In Progress'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-slate-100 text-slate-700'
-                      }`}
-                    >
-                      {p.status}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenEdit(p);
+                        }}
+                        className="p-1 hover:bg-slate-200/80 text-slate-600 hover:text-amber-700 rounded transition"
+                        title="Edit Proyek"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(p.id, p.name);
+                        }}
+                        className="p-1 hover:bg-rose-100 text-slate-400 hover:text-rose-600 rounded transition"
+                        title="Hapus Proyek"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                      <span
+                        className={`text-[9px] font-extrabold px-2 py-0.5 rounded ${
+                          p.status === 'In Progress'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-slate-100 text-slate-700'
+                        }`}
+                      >
+                        {p.status}
+                      </span>
+                    </div>
                   </div>
 
                   <h3 className="font-bold text-xs text-slate-900 line-clamp-2">{p.name}</h3>
@@ -222,7 +275,7 @@ export const ProjectModule: React.FC<ProjectModuleProps> = ({
           <div className="lg:col-span-2 space-y-6">
             {/* Project Header Banner */}
             <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-md border border-slate-800 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
                 <div>
                   <span className="text-xs text-amber-400 font-mono font-bold">
                     {selectedProject.code} • {selectedProject.category}
@@ -237,11 +290,31 @@ export const ProjectModule: React.FC<ProjectModuleProps> = ({
                   </p>
                 </div>
 
-                <div className="text-right">
-                  <span className="text-[10px] text-slate-400 block uppercase">Nilai Kontrak</span>
-                  <span className="text-xl font-black text-amber-400">
-                    {formatRupiah(selectedProject.contractValue)}
-                  </span>
+                <div className="flex flex-col sm:items-end gap-2">
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 block uppercase">Nilai Kontrak</span>
+                    <span className="text-xl font-black text-amber-400">
+                      {formatRupiah(selectedProject.contractValue)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEdit(selectedProject)}
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-slate-700 transition shadow-sm"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                      <span>Edit Proyek</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(selectedProject.id, selectedProject.name)}
+                      className="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-600 text-rose-300 hover:text-white rounded-xl text-xs font-bold flex items-center gap-1.5 border border-rose-500/30 transition shadow-sm"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Hapus</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -269,7 +342,7 @@ export const ProjectModule: React.FC<ProjectModuleProps> = ({
             </div>
 
             {/* Subtabs Navigation */}
-            <div className="flex items-center gap-2 border-b border-slate-200 pb-2 text-xs font-bold">
+            <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2 text-xs font-bold">
               <button
                 onClick={() => setActiveTab('overview')}
                 className={`px-4 py-2 rounded-xl transition ${
@@ -279,6 +352,17 @@ export const ProjectModule: React.FC<ProjectModuleProps> = ({
                 }`}
               >
                 Ringkasan Progress & WBS
+              </button>
+              <button
+                onClick={() => setActiveTab('budget-vs-actual')}
+                className={`px-4 py-2 rounded-xl transition flex items-center gap-1.5 ${
+                  activeTab === 'budget-vs-actual'
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-sm'
+                    : 'bg-white text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <Scale className="w-3.5 h-3.5 text-blue-900" />
+                <span>Budget vs Actual (Kinerja RAB)</span>
               </button>
               <button
                 onClick={() => setActiveTab('vo')}
@@ -303,10 +387,52 @@ export const ProjectModule: React.FC<ProjectModuleProps> = ({
             </div>
 
             {/* Subtab Content */}
+            {activeTab === 'budget-vs-actual' && (
+              <BudgetVsActualWidget
+                project={selectedProject}
+                rabItems={rabItems}
+                financeTransactions={financeTransactions}
+                purchases={purchases}
+                onSyncActualCost={(newActual) => {
+                  onSaveProject({
+                    ...selectedProject,
+                    actualCost: newActual,
+                  });
+                }}
+              />
+            )}
+
             {activeTab === 'overview' && (
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-4">
-                <h3 className="font-bold text-sm text-slate-900">Rincian WBS & Milestones Proyek</h3>
-                <div className="space-y-3 text-xs">
+              <div className="space-y-6">
+                {/* Budget vs Actual Preview Banner */}
+                <div className="p-4 bg-gradient-to-r from-blue-900 to-slate-900 rounded-2xl border border-blue-800 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-blue-600/30 text-blue-300 rounded-xl border border-blue-500/30">
+                      <Scale className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-amber-400 font-mono font-bold uppercase">
+                        Real-time Finance & RAB Sync
+                      </span>
+                      <h4 className="font-bold text-sm text-white">
+                        Dashboard Budget vs Actual (Profitability Monitor)
+                      </h4>
+                      <p className="text-xs text-slate-300 mt-0.5">
+                        Target RAB: <strong>{formatRupiah(selectedProject.rabTotal)}</strong> • Realisasi Ledger: <strong className="text-emerald-300">{formatRupiah(selectedProject.actualCost)}</strong>
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('budget-vs-actual')}
+                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs shrink-0 transition"
+                  >
+                    Buka Dashboard Budget vs Actual →
+                  </button>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-4">
+                  <h3 className="font-bold text-sm text-slate-900">Rincian WBS & Milestones Proyek</h3>
+                  <div className="space-y-3 text-xs">
                   <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
                     <div>
                       <span className="font-bold text-slate-900">1. Pekerjaan Mobilisasi & Persiapan</span>
@@ -348,6 +474,7 @@ export const ProjectModule: React.FC<ProjectModuleProps> = ({
                   </div>
                 </div>
               </div>
+            </div>
             )}
 
             {activeTab === 'vo' && (
@@ -545,20 +672,81 @@ export const ProjectModule: React.FC<ProjectModuleProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-slate-600 font-semibold hover:bg-slate-100 rounded-xl"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl shadow"
-                >
-                  Simpan Proyek
-                </button>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Project Manager (PM)</label>
+                  <input
+                    type="text"
+                    value={editingProject.projectManager || ''}
+                    onChange={(e) => setEditingProject({ ...editingProject, projectManager: e.target.value })}
+                    className="w-full border border-slate-300 rounded-xl p-2.5"
+                    placeholder="Ir. Budi Santoso, MT"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Site Manager (SM)</label>
+                  <input
+                    type="text"
+                    value={editingProject.siteManager || ''}
+                    onChange={(e) => setEditingProject({ ...editingProject, siteManager: e.target.value })}
+                    className="w-full border border-slate-300 rounded-xl p-2.5"
+                    placeholder="Hendra Setiawan, ST"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Tanggal Mulai</label>
+                  <input
+                    type="date"
+                    value={editingProject.startDate || ''}
+                    onChange={(e) => setEditingProject({ ...editingProject, startDate: e.target.value })}
+                    className="w-full border border-slate-300 rounded-xl p-2.5"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Tanggal Selesai (Target)</label>
+                  <input
+                    type="date"
+                    value={editingProject.endDate || ''}
+                    onChange={(e) => setEditingProject({ ...editingProject, endDate: e.target.value })}
+                    className="w-full border border-slate-300 rounded-xl p-2.5"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+                <div>
+                  {projects.some((p) => p.id === editingProject.id) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsModalOpen(false);
+                        handleDelete(editingProject.id!, editingProject.name || 'Proyek');
+                      }}
+                      className="px-3 py-2 text-rose-600 hover:bg-rose-50 font-bold rounded-xl flex items-center gap-1.5 transition"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>Hapus Proyek</span>
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2 text-slate-600 font-semibold hover:bg-slate-100 rounded-xl"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl shadow"
+                  >
+                    Simpan Proyek
+                  </button>
+                </div>
               </div>
             </form>
           </div>

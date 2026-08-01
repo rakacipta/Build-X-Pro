@@ -10,6 +10,7 @@ import {
   AlertCircle,
   MessageSquare,
   Printer,
+  BellRing,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
 import { PrintSignature } from '../common/PrintSignature';
@@ -22,6 +23,7 @@ interface ApprovalsModuleProps {
   currentRole: UserRole;
   onApprove: (id: string, notes: string) => void;
   onReject: (id: string, notes: string) => void;
+  onSendReminder?: (reqNo: string, title: string, amount: number) => void;
 }
 
 export const ApprovalsModule: React.FC<ApprovalsModuleProps> = ({
@@ -29,6 +31,7 @@ export const ApprovalsModule: React.FC<ApprovalsModuleProps> = ({
   currentRole,
   onApprove,
   onReject,
+  onSendReminder,
 }) => {
   const [activeFilter, setActiveFilter] = useState<'Pending' | 'Approved' | 'Rejected' | 'All'>('Pending');
   const [selectedApp, setSelectedApp] = useState<ApprovalRequest | null>(null);
@@ -132,13 +135,23 @@ export const ApprovalsModule: React.FC<ApprovalsModuleProps> = ({
             </div>
 
             {app.status === 'Pending' ? (
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-2">
+              <div className="pt-2 border-t border-slate-100 space-y-2">
                 <button
                   onClick={() => setSelectedApp(app)}
                   className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow"
                 >
                   Review & Tanggapi →
                 </button>
+                {onSendReminder && (
+                  <button
+                    type="button"
+                    onClick={() => onSendReminder(app.reqNo, app.title, app.amount)}
+                    className="w-full bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold py-1.5 rounded-xl text-[11px] flex items-center justify-center gap-1.5 transition"
+                  >
+                    <BellRing className="w-3.5 h-3.5 text-amber-600 animate-bounce" />
+                    <span>Ingatkan Direksi (Push Alert)</span>
+                  </button>
+                )}
               </div>
             ) : (
               <div className="text-[11px] text-slate-500 pt-2 border-t border-slate-100">

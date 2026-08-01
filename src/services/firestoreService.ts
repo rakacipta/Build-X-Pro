@@ -25,6 +25,7 @@ import {
   INITIAL_APPROVALS,
   INITIAL_AHSP,
   INITIAL_RAB_ITEMS,
+  INITIAL_NOTIFICATIONS,
 } from '../lib/seedData';
 
 const LS_PREFIX = 'buildx_erp_v1_';
@@ -164,6 +165,7 @@ export async function seedAllCollections(): Promise<void> {
     ['approvals', INITIAL_APPROVALS],
     ['ahsp', INITIAL_AHSP],
     ['rab_items', INITIAL_RAB_ITEMS],
+    ['notifications', INITIAL_NOTIFICATIONS],
   ];
 
   for (const [colName, data] of seeds) {

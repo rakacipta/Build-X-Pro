@@ -25,6 +25,7 @@ import { formatRupiah } from '../../utils/formatters';
 import { PrintHeader } from '../common/PrintHeader';
 import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
+import { SignaturePicker } from '../common/SignaturePicker';
 import { getStoredData } from '../../services/firestoreService';
 import { INITIAL_COMPANY_PROFILE, INITIAL_LETTERHEAD } from '../../lib/seedData';
 
@@ -522,6 +523,40 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
                 </div>
               </div>
 
+              {/* Digital Signature & Otorisasi Section */}
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
+                <h4 className="font-bold text-slate-900 text-xs uppercase text-blue-700">
+                  Pengesahan & Tanda Tangan Digital (Export PDF)
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="font-semibold block mb-1">Nama Penandatangan (Direksi / Otorisator)</label>
+                    <input
+                      type="text"
+                      placeholder="Ir. Hendra Wijaya, MM"
+                      value={editingQuotation.approvedBy || ''}
+                      onChange={(e) => setEditingQuotation({ ...editingQuotation, approvedBy: e.target.value })}
+                      className="w-full p-2 bg-white border border-slate-300 rounded-lg font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold block mb-1">Jabatan Penandatangan</label>
+                    <input
+                      type="text"
+                      placeholder="Direktur Utama"
+                      value={editingQuotation.signatoryTitle || ''}
+                      onChange={(e) => setEditingQuotation({ ...editingQuotation, signatoryTitle: e.target.value })}
+                      className="w-full p-2 bg-white border border-slate-300 rounded-lg font-semibold"
+                    />
+                  </div>
+                </div>
+                <SignaturePicker
+                  label="Upload / Gambar Tanda Tangan Digital Direksi"
+                  value={editingQuotation.signatureUrl}
+                  onChange={(url) => setEditingQuotation({ ...editingQuotation, signatureUrl: url })}
+                />
+              </div>
+
               {/* Row 3: Items Table Editor */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -826,7 +861,10 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
               <PrintSignature
                 preparedBy={selectedQuotationForPrint.preparedBy || 'Deni Kurniawan, ST'}
                 preparedTitle="Disiapkan Oleh (Estimator / Marketing)"
-                verifiedBy={selectedQuotationForPrint.approvedBy || companyProfile.directorName}
+                directorName={selectedQuotationForPrint.approvedBy || companyProfile.directorName}
+                directorTitle={selectedQuotationForPrint.signatoryTitle || companyProfile.directorTitle || 'Direktur Utama'}
+                signatureUrl={selectedQuotationForPrint.signatureUrl}
+                verifiedBy={companyProfile.financeManager}
                 verifiedTitle="Disetujui Oleh Direksi"
                 note={`Surat Penawaran Harga Sah & Resmi Diterbitkan Oleh ${companyProfile.name}`}
               />

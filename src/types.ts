@@ -275,6 +275,8 @@ export interface Quotation {
   notes: string;
   preparedBy?: string;
   approvedBy?: string;
+  signatureUrl?: string;
+  signatoryTitle?: string;
 }
 
 // --- ESTIMATOR & AHSP ---
@@ -344,6 +346,9 @@ export interface PurchaseOrder {
     subtotal: number;
   }[];
   requestedBy: string;
+  approvedBy?: string;
+  signatureUrl?: string;
+  signatoryTitle?: string;
 }
 
 // --- TRADING & SALES ---
@@ -483,7 +488,32 @@ export interface JournalEntry {
   credit: number;
 }
 
-// --- APPROVAL WORKFLOW ---
+// --- APPROVAL WORKFLOW & NOTIFICATIONS ---
+export type NotificationType =
+  | 'PO_APPROVAL'
+  | 'OVER_BUDGET'
+  | 'VARIATION_ORDER'
+  | 'REMINDER'
+  | 'CASHFLOW'
+  | 'SYSTEM';
+
+export type NotificationPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export interface AppNotification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  timestamp: string;
+  isRead: boolean;
+  priority: NotificationPriority;
+  targetRoles: UserRole[];
+  linkModule?: ModuleType;
+  relatedId?: string;
+  amount?: number;
+  senderName?: string;
+}
+
 export interface ApprovalRequest {
   id: string;
   reqNo: string;

@@ -6,10 +6,12 @@ import { INITIAL_COMPANY_PROFILE, INITIAL_SIGNATORIES } from '../../lib/seedData
 interface PrintSignatureProps {
   preparedBy?: string;
   preparedTitle?: string;
+  preparedSignatureUrl?: string;
   verifiedBy?: string;
   verifiedTitle?: string;
   directorName?: string;
   directorTitle?: string;
+  signatureUrl?: string;
   city?: string;
   dateStr?: string;
   showStamp?: boolean;
@@ -21,10 +23,12 @@ interface PrintSignatureProps {
 export const PrintSignature: React.FC<PrintSignatureProps> = ({
   preparedBy,
   preparedTitle = 'Disiapkan & Dibuat Oleh',
+  preparedSignatureUrl,
   verifiedBy,
   verifiedTitle = 'Ditinjau & Diverifikasi',
   directorName,
   directorTitle,
+  signatureUrl,
   city,
   dateStr,
   showStamp = true,
@@ -72,9 +76,19 @@ export const PrintSignature: React.FC<PrintSignatureProps> = ({
           <p className="font-bold text-slate-700 uppercase tracking-wider text-[11px]">
             {preparedTitle}
           </p>
-          <div className="text-slate-400 text-[10px] italic py-2">
-            [ Tanda Tangan & E-Sign ]
-          </div>
+          {preparedSignatureUrl ? (
+            <div className="my-auto py-1 h-16 flex items-center justify-center">
+              <img
+                src={preparedSignatureUrl}
+                alt="Tanda Tangan Pembuat"
+                className="max-h-14 max-w-[140px] object-contain"
+              />
+            </div>
+          ) : (
+            <div className="text-slate-400 text-[10px] italic py-2">
+              [ Tanda Tangan & E-Sign ]
+            </div>
+          )}
           <div>
             <p className="font-extrabold text-slate-900 underline decoration-slate-400 underline-offset-4 text-xs">
               {finalPreparedBy}
@@ -113,11 +127,21 @@ export const PrintSignature: React.FC<PrintSignatureProps> = ({
           <p className="font-extrabold text-blue-900 uppercase tracking-wider text-[11px]">
             Disetujui Oleh,
           </p>
-          <div className="my-auto py-1">
-            <span className="inline-block px-2.5 py-0.5 bg-emerald-100/80 text-emerald-800 text-[9px] font-extrabold font-mono rounded-full border border-emerald-300">
-              ✓ TERVERIFIKASI DIREKTUR
-            </span>
-          </div>
+          {signatureUrl ? (
+            <div className="my-auto py-1 h-16 flex items-center justify-center z-10">
+              <img
+                src={signatureUrl}
+                alt="Tanda Tangan Digital Direksi"
+                className="max-h-14 max-w-[140px] object-contain"
+              />
+            </div>
+          ) : (
+            <div className="my-auto py-1">
+              <span className="inline-block px-2.5 py-0.5 bg-emerald-100/80 text-emerald-800 text-[9px] font-extrabold font-mono rounded-full border border-emerald-300">
+                ✓ TERVERIFIKASI DIREKTUR
+              </span>
+            </div>
+          )}
           <div>
             <p className="font-black text-slate-900 underline decoration-blue-600 underline-offset-4 text-xs">
               {finalDirector}

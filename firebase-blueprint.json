@@ -1,203 +1,70 @@
 {
   "entities": {
-    "Project": {
-      "title": "Project",
-      "description": "Master data proyek konstruksi",
+    "projects": {
+      "title": "Projects",
+      "description": "Proyek Konstruksi & Manajerial",
       "type": "object",
       "properties": {
+        "id": { "type": "string" },
         "code": { "type": "string" },
-        "name": { "type": "string" },
-        "client": { "type": "string" },
-        "contractValue": { "type": "number" },
-        "rabTotal": { "type": "number" },
-        "actualCost": { "type": "number" },
-        "progressPct": { "type": "number" },
-        "status": { "type": "string", "enum": ["Planning", "In Progress", "On Hold", "Completed"] },
-        "startDate": { "type": "string" },
-        "endDate": { "type": "string" },
-        "projectManager": { "type": "string" },
-        "location": { "type": "string" }
-      },
-      "required": ["code", "name", "client", "contractValue", "status"]
+        "name": { "type": "string" }
+      }
     },
-    "Tender": {
-      "title": "Tender",
-      "description": "Data tender dan lelang proyek",
+    "tenders": {
+      "title": "Tenders",
+      "description": "Tender & Estimasi",
       "type": "object",
       "properties": {
-        "tenderNo": { "type": "string" },
-        "title": { "type": "string" },
-        "agency": { "type": "string" },
-        "budgetEstimate": { "type": "number" },
-        "submissionDate": { "type": "string" },
-        "status": { "type": "string", "enum": ["Draft", "Submitted", "Winner", "Loser"] },
-        "notes": { "type": "string" }
-      },
-      "required": ["tenderNo", "title", "status"]
+        "id": { "type": "string" }
+      }
     },
-    "Material": {
-      "title": "Material & Inventory",
-      "description": "Master stok bahan bangunan dan barang trading",
+    "finance_transactions": {
+      "title": "Finance Transactions",
+      "description": "Transaksi Kas & Bank",
       "type": "object",
       "properties": {
-        "sku": { "type": "string" },
-        "name": { "type": "string" },
-        "category": { "type": "string" },
-        "unit": { "type": "string" },
-        "stockQty": { "type": "number" },
-        "minStock": { "type": "number" },
-        "buyPrice": { "type": "number" },
-        "sellPrice": { "type": "number" },
-        "warehouse": { "type": "string" }
-      },
-      "required": ["sku", "name", "unit", "stockQty"]
+        "id": { "type": "string" }
+      }
     },
-    "PurchaseOrder": {
-      "title": "Purchase Order",
-      "description": "Dokumen pembelian material / jasa",
+    "purchases": {
+      "title": "Purchases",
+      "description": "Purchase Orders & Pengadaan",
       "type": "object",
       "properties": {
-        "poNumber": { "type": "string" },
-        "vendorName": { "type": "string" },
-        "date": { "type": "string" },
-        "totalAmount": { "type": "number" },
-        "status": { "type": "string", "enum": ["Draft", "Pending Approval", "Approved", "Received", "Rejected"] },
-        "items": { "type": "array" }
-      },
-      "required": ["poNumber", "vendorName", "totalAmount", "status"]
+        "id": { "type": "string" }
+      }
     },
-    "FinanceTransaction": {
-      "title": "Transaksi Keuangan",
-      "description": "Pencatatan Kas & Bank In/Out",
+    "materials": {
+      "title": "Materials",
+      "description": "Inventory & Stok Material",
       "type": "object",
       "properties": {
-        "trxNo": { "type": "string" },
-        "type": { "type": "string", "enum": ["Cash In", "Cash Out", "Transfer"] },
-        "account": { "type": "string" },
-        "amount": { "type": "number" },
-        "category": { "type": "string" },
-        "description": { "type": "string" },
-        "date": { "type": "string" },
-        "projectId": { "type": "string" }
-      },
-      "required": ["trxNo", "type", "account", "amount", "date"]
+        "id": { "type": "string" }
+      }
     },
-    "JournalEntry": {
-      "title": "Jurnal Akuntansi",
-      "description": "Jurnal Umum Akuntansi",
+    "equipment": {
+      "title": "Equipment",
+      "description": "Manajemen Alat Berat",
       "type": "object",
       "properties": {
-        "journalNo": { "type": "string" },
-        "date": { "type": "string" },
-        "refNo": { "type": "string" },
-        "accountCode": { "type": "string" },
-        "accountName": { "type": "string" },
-        "debit": { "type": "number" },
-        "credit": { "type": "number" },
-        "notes": { "type": "string" }
-      },
-      "required": ["journalNo", "date", "accountCode", "debit", "credit"]
+        "id": { "type": "string" }
+      }
     },
-    "Employee": {
-      "title": "Karyawan & Payroll",
-      "description": "Master karyawan dan data penggajian",
+    "employees": {
+      "title": "Employees",
+      "description": "SDM & HRD",
       "type": "object",
       "properties": {
-        "nik": { "type": "string" },
-        "name": { "type": "string" },
-        "role": { "type": "string" },
-        "division": { "type": "string" },
-        "basicSalary": { "type": "number" },
-        "allowance": { "type": "number" },
-        "status": { "type": "string", "enum": ["Permanent", "Contract", "Daily"] }
-      },
-      "required": ["nik", "name", "role", "basicSalary"]
+        "id": { "type": "string" }
+      }
     },
-    "Equipment": {
-      "title": "Alat Berat & Vehicle",
-      "description": "Master alat berat dan kendaraan proyek",
+    "rab_items": {
+      "title": "RAB Items",
+      "description": "Rencana Anggaran Biaya Detail",
       "type": "object",
       "properties": {
-        "code": { "type": "string" },
-        "name": { "type": "string" },
-        "type": { "type": "string" },
-        "operator": { "type": "string" },
-        "status": { "type": "string", "enum": ["Ready", "In Use", "Maintenance", "Breakdown"] },
-        "operatingHours": { "type": "number" },
-        "fuelCost": { "type": "number" }
-      },
-      "required": ["code", "name", "status"]
-    },
-    "Approval": {
-      "title": "Approval System",
-      "description": "Alur persetujuan pengajuan",
-      "type": "object",
-      "properties": {
-        "reqNo": { "type": "string" },
-        "type": { "type": "string" },
-        "title": { "type": "string" },
-        "requestedBy": { "type": "string" },
-        "amount": { "type": "number" },
-        "status": { "type": "string", "enum": ["Pending", "Approved", "Rejected"] },
-        "date": { "type": "string" }
-      },
-      "required": ["reqNo", "type", "title", "status"]
-    },
-    "SystemUser": {
-      "title": "Pengguna ERP & Hak Akses",
-      "description": "Master data user pengguna ERP dan role jabatan",
-      "type": "object",
-      "properties": {
-        "name": { "type": "string" },
-        "email": { "type": "string" },
-        "role": { "type": "string" },
-        "department": { "type": "string" },
-        "phone": { "type": "string" },
-        "status": { "type": "string", "enum": ["Active", "Inactive"] }
-      },
-      "required": ["name", "email", "role", "department", "status"]
-    }
-  },
-  "firestore": {
-    "/projects/{projectId}": {
-      "schema": "Project",
-      "description": "Koleksi proyek konstruksi"
-    },
-    "/tenders/{tenderId}": {
-      "schema": "Tender",
-      "description": "Koleksi tender lelang"
-    },
-    "/materials/{materialId}": {
-      "schema": "Material",
-      "description": "Koleksi material & persediaan barang"
-    },
-    "/purchases/{purchaseId}": {
-      "schema": "PurchaseOrder",
-      "description": "Koleksi order pembelian"
-    },
-    "/finance_transactions/{trxId}": {
-      "schema": "FinanceTransaction",
-      "description": "Koleksi transaksi kas & bank"
-    },
-    "/journals/{journalId}": {
-      "schema": "JournalEntry",
-      "description": "Koleksi jurnal umum akuntansi"
-    },
-    "/employees/{employeeId}": {
-      "schema": "Employee",
-      "description": "Koleksi karyawan & HR"
-    },
-    "/equipment/{equipmentId}": {
-      "schema": "Equipment",
-      "description": "Koleksi alat berat & mesin"
-    },
-    "/approvals/{approvalId}": {
-      "schema": "Approval",
-      "description": "Koleksi workflow persetujuan"
-    },
-    "/system_users/{userId}": {
-      "schema": "SystemUser",
-      "description": "Koleksi akun pengguna ERP"
+        "id": { "type": "string" }
+      }
     }
   }
 }
