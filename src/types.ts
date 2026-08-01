@@ -47,6 +47,7 @@ export type ModuleType =
 // --- SURAT & DOKUMEN RESMI ---
 export type LetterCategory =
   | 'SPK'
+  | 'SUBKON_SPK'
   | 'SPH'
   | 'MOU'
   | 'SKK'
@@ -527,3 +528,55 @@ export interface ApprovalRequest {
   approver?: string;
   notes?: string;
 }
+
+// --- SUBKON & SPK BORONGAN ---
+export interface SubkonContract {
+  id: string;
+  spkNumber: string; // e.g. SPK-BOR-2026-001
+  subkonName: string; // e.g. PT Subkon Mandiri / Mandor Supardi
+  subkonContact?: string;
+  projectId: string;
+  projectName: string;
+  workScope: string;
+  contractValue: number; // Nilai Kontrak Borongan (Rp)
+  startDate: string;
+  endDate: string;
+  retentionPct: number; // Default 5%
+  dpPct?: number; // Persentase Uang Muka DP (jika ada)
+  dpAmount?: number;
+  maintenancePeriodDays: number; // Masa Pemeliharaan (misal 90 hari)
+  status: 'Draft' | 'Aktif' | 'Masa Pemeliharaan' | 'Selesai';
+  notes?: string;
+  createdAt: string;
+}
+
+export interface SubkonOpname {
+  id: string;
+  subkonContractId: string;
+  opnameNumber: string; // e.g. OPN-001/SPK-001
+  opnameDate: string;
+  period: string; // e.g. Periode Minggu II - Agustus 2026
+  progressPct: number; // Progress akumulasi fisik % (e.g. 40%)
+  previousProgressPct: number; // Progress opname sebelumnya % (e.g. 20%)
+  currentProgressPct: number; // Progress periode ini % (e.g. 20%)
+  grossAmount: number; // Nilai progress periode ini (Rp)
+  retentionDeduction: number; // Potongan retensi (misal 5% dari grossAmount)
+  dpDeduction: number; // Potongan pengembalian DP (jika ada)
+  netAmount: number; // Jumlah bersih dibayarkan (grossAmount - retentionDeduction - dpDeduction)
+  notes?: string;
+  supervisorName: string;
+  status: 'Draft' | 'Approved' | 'Paid';
+  createdAt: string;
+}
+
+export interface SubkonRetentionRelease {
+  id: string;
+  subkonContractId: string;
+  releaseNumber: string;
+  releaseDate: string;
+  totalRetentionAmount: number;
+  releasedAmount: number;
+  status: 'Pending' | 'Approved' | 'Paid';
+  notes?: string;
+}
+

@@ -31,11 +31,22 @@ import {
   X,
   Check,
   Printer,
+  Smartphone,
+  MessageSquare,
+  Send,
+  ExternalLink,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
 import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import { SignatoriesSettings } from './SignatoriesSettings';
+import {
+  DEFAULT_EXTERNAL_NOTIF_CONFIG,
+  openWhatsappNotification,
+  openEmailNotification,
+  generatePoWhatsappMessage,
+  generatePoEmailPayload,
+} from '../../services/externalNotificationService';
 import {
   CompanyProfile,
   LetterheadSettings,
@@ -1418,6 +1429,152 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                     </div>
                   </div>
                 </label>
+              </div>
+            </div>
+          </div>
+
+          {/* CARD CONFIG NOTIFIKASI EKSTERNAL WHATSAPP & EMAIL DIREKSI */}
+          <div className="bg-white rounded-xl border border-emerald-200 p-6 shadow-sm space-y-5 text-xs">
+            <div className="flex items-center justify-between border-b border-emerald-100 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 border border-emerald-200 text-emerald-700 flex items-center justify-center font-bold shadow-sm">
+                  <MessageSquare className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-sm uppercase tracking-wide flex items-center gap-2">
+                    Integrasi Notifikasi Eksternal (WhatsApp & Email Direksi)
+                    <span className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold border border-emerald-200">
+                      Aktif
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Mengirimkan ringkasan pesan peringatan langsung ke nomor WhatsApp atau email Direksi saat ada pengajuan PO bernilai besar yang membutuhkan persetujuan cepat.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                  <Smartphone className="w-4 h-4 text-emerald-600" /> Nomor WhatsApp Direksi / Direktur Utama
+                </label>
+                <input
+                  type="text"
+                  defaultValue="6281234567890"
+                  placeholder="Format: 62812xxxxxx (tanpa tanda + atau spasi)"
+                  className="w-full border border-slate-200 rounded-lg p-2.5 font-mono font-bold text-slate-900 bg-emerald-50/30 focus:bg-white transition"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Format internasional diawali 62. Contoh: 6281234567890
+                </p>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                  <Mail className="w-4 h-4 text-blue-600" /> Alamat Email Resmi Direksi
+                </label>
+                <input
+                  type="email"
+                  defaultValue="direksi@grahamulti.co.id"
+                  placeholder="direksi@perusahaan.co.id"
+                  className="w-full border border-slate-200 rounded-lg p-2.5 font-bold text-slate-900 bg-blue-50/30 focus:bg-white transition"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Email tujuan penagihan persetujuan PO bernilai besar.
+                </p>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">Nama Direktur Utama (Penerima Approval)</label>
+                <input
+                  type="text"
+                  defaultValue="Ir. Hendra Wijaya, MM"
+                  className="w-full border border-slate-200 rounded-lg p-2.5 font-semibold text-slate-800"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">Ambang Batas PO Bernilai Besar (Rp)</label>
+                <input
+                  type="number"
+                  defaultValue={50000000}
+                  className="w-full border border-slate-200 rounded-lg p-2.5 font-mono font-bold text-amber-700 bg-amber-50/40"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">
+                  PO di atas Rp 50.000.000 akan secara otomatis memberikan opsi Notifikasi Eksternal WhatsApp.
+                </p>
+              </div>
+            </div>
+
+            {/* Test buttons and live message preview */}
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-800 text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-500" /> Simulasi & Uji Coba Pengiriman Pesan Peringatan
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const msg = generatePoWhatsappMessage(
+                        {
+                          poNumber: 'PO/2026/08/009',
+                          vendorName: 'PT Semen Tiga Roda Utama',
+                          totalAmount: 185000000,
+                          requestedBy: 'Tim Purchasing Proyek',
+                          itemsCount: 5,
+                          notes: 'Mendesak untuk cor pelat lantai 3 Gedung Tower B',
+                        },
+                        DEFAULT_EXTERNAL_NOTIF_CONFIG
+                      );
+                      openWhatsappNotification(DEFAULT_EXTERNAL_NOTIF_CONFIG.directorWhatsapp, msg);
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 shadow-sm transition"
+                  >
+                    <Smartphone className="w-3.5 h-3.5" /> Test Kirim WA
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const emailData = generatePoEmailPayload(
+                        {
+                          poNumber: 'PO/2026/08/009',
+                          vendorName: 'PT Semen Tiga Roda Utama',
+                          totalAmount: 185000000,
+                          requestedBy: 'Tim Purchasing Proyek',
+                          itemsCount: 5,
+                          notes: 'Mendesak untuk cor pelat lantai 3 Gedung Tower B',
+                        },
+                        DEFAULT_EXTERNAL_NOTIF_CONFIG
+                      );
+                      openEmailNotification(
+                        DEFAULT_EXTERNAL_NOTIF_CONFIG.directorEmail,
+                        emailData.subject,
+                        emailData.body
+                      );
+                    }}
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 shadow-sm transition"
+                  >
+                    <Mail className="w-3.5 h-3.5" /> Test Kirim Email
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-3 bg-white rounded-lg border border-slate-200 text-[11px] font-mono text-slate-700 whitespace-pre-line leading-relaxed">
+                {generatePoWhatsappMessage(
+                  {
+                    poNumber: 'PO/2026/08/009',
+                    vendorName: 'PT Semen Tiga Roda Utama',
+                    totalAmount: 185000000,
+                    requestedBy: 'Tim Purchasing Proyek',
+                    date: new Date().toISOString().slice(0, 10),
+                    itemsCount: 5,
+                    notes: 'Mendesak untuk kebutuhan pengecoran struktur pelat lantai 3.',
+                  },
+                  DEFAULT_EXTERNAL_NOTIF_CONFIG
+                )}
               </div>
             </div>
           </div>

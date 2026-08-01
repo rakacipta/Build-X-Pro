@@ -45,6 +45,8 @@ import {
   SystemUser,
   SystemSettings,
   AppNotification,
+  SubkonContract,
+  SubkonOpname,
 } from './types';
 
 import {
@@ -71,6 +73,8 @@ import {
   INITIAL_SYSTEM_USERS,
   INITIAL_SYSTEM_SETTINGS,
   INITIAL_NOTIFICATIONS,
+  INITIAL_SUBKON_CONTRACTS,
+  INITIAL_SUBKON_OPNAMES,
 } from './lib/seedData';
 import { formatRupiah } from './utils/formatters';
 
@@ -144,6 +148,14 @@ export default function App() {
     getStoredData('rab_items', INITIAL_RAB_ITEMS)
   );
 
+  // Subkon & SPK Borongan States
+  const [subkonContracts, setSubkonContracts] = useState<SubkonContract[]>(() =>
+    getStoredData('subkon_contracts', INITIAL_SUBKON_CONTRACTS)
+  );
+  const [subkonOpnames, setSubkonOpnames] = useState<SubkonOpname[]>(() =>
+    getStoredData('subkon_opnames', INITIAL_SUBKON_OPNAMES)
+  );
+
   // Notifications & Alert State
   const [notifications, setNotifications] = useState<AppNotification[]>(() =>
     getStoredData('notifications', INITIAL_NOTIFICATIONS)
@@ -195,6 +207,8 @@ export default function App() {
     const unsubRab = subscribeToCollection('rab_items', INITIAL_RAB_ITEMS, setRabItems);
     const unsubUsers = subscribeToCollection('system_users', INITIAL_SYSTEM_USERS, setSystemUsers);
     const unsubNotifs = subscribeToCollection('notifications', INITIAL_NOTIFICATIONS, setNotifications);
+    const unsubSubkon = subscribeToCollection('subkon_contracts', INITIAL_SUBKON_CONTRACTS, setSubkonContracts);
+    const unsubOpnames = subscribeToCollection('subkon_opnames', INITIAL_SUBKON_OPNAMES, setSubkonOpnames);
 
     return () => {
       unsubProjects();
@@ -216,6 +230,8 @@ export default function App() {
       unsubRab();
       unsubUsers();
       unsubNotifs();
+      unsubSubkon();
+      unsubOpnames();
     };
   }, []);
 
@@ -287,6 +303,27 @@ export default function App() {
       type: 'success',
     });
     setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  // Subkon CRUD Handlers
+  const handleSaveSubkonContract = async (contract: SubkonContract) => {
+    const updated = await saveDocument('subkon_contracts', contract);
+    setSubkonContracts(updated);
+  };
+
+  const handleDeleteSubkonContract = async (id: string) => {
+    const updated = await deleteDocument('subkon_contracts', id);
+    setSubkonContracts(updated);
+  };
+
+  const handleSaveSubkonOpname = async (opname: SubkonOpname) => {
+    const updated = await saveDocument('subkon_opnames', opname);
+    setSubkonOpnames(updated);
+  };
+
+  const handleDeleteSubkonOpname = async (id: string) => {
+    const updated = await deleteDocument('subkon_opnames', id);
+    setSubkonOpnames(updated);
   };
 
   // Persistent Handlers for Save and Delete
@@ -722,6 +759,14 @@ export default function App() {
               companyProfile={companyProfile}
               onUpdateCompanyProfile={handleUpdateCompanyProfile}
               letterhead={letterhead}
+              projects={projects}
+              subkonContracts={subkonContracts}
+              subkonOpnames={subkonOpnames}
+              onSaveSubkonContract={handleSaveSubkonContract}
+              onDeleteSubkonContract={handleDeleteSubkonContract}
+              onSaveSubkonOpname={handleSaveSubkonOpname}
+              onDeleteSubkonOpname={handleDeleteSubkonOpname}
+              onTriggerNotification={handleTriggerNotification}
             />
           )}
 

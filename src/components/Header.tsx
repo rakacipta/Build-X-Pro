@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Building2,
   Bell,
@@ -16,9 +16,15 @@ import {
   AlertOctagon,
   TrendingDown,
   ExternalLink,
+  MessageSquare,
 } from 'lucide-react';
 import { UserRole, AppNotification, ModuleType } from '../types';
 import { formatRupiah } from '../utils/formatters';
+import {
+  openWhatsappNotification,
+  generatePoWhatsappMessage,
+  DEFAULT_EXTERNAL_NOTIF_CONFIG,
+} from '../services/externalNotificationService';
 
 interface HeaderProps {
   currentRole: UserRole;
@@ -72,6 +78,25 @@ export const Header: React.FC<HeaderProps> = ({
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [notifFilter, setNotifFilter] = useState<'All' | 'PO' | 'Budget' | 'Unread'>('All');
+
+  const notifRef = useRef<HTMLDivElement | null>(null);
+  const roleRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setShowNotifDropdown(false);
+      }
+      if (roleRef.current && !roleRef.current.contains(event.target as Node)) {
+        setShowRoleDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const currentTime = new Date().toLocaleTimeString('id-ID', {
     hour: '2-digit',
@@ -149,7 +174,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Interactive Notification Bell Center */}
-          <div className="relative">
+          <div className="relative" ref={notifRef}>
             <button
               onClick={() => setShowNotifDropdown(!showNotifDropdown)}
               className={`relative p-2 rounded-lg transition ${
@@ -289,21 +314,47 @@ export const Header: React.FC<HeaderProps> = ({
                           )}
 
                           <div className="flex items-center justify-between pt-1 gap-2">
-                            {n.linkModule && onNavigateModule ? (
-                              <button
-                                onClick={() => {
-                                  onNavigateModule(n.linkModule!);
-                                  if (onMarkNotificationRead) onMarkNotificationRead(n.id);
-                                  setShowNotifDropdown(false);
-                                }}
-                                className="text-[10px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded transition"
-                              >
-                                <span>Lihat & Proses</span>
-                                <ArrowRight className="w-3 h-3" />
-                              </button>
-                            ) : (
-                              <span />
-                            )}
+                            <div className="flex items-center gap-1.5">
+                              {n.linkModule && onNavigateModule && (
+                                <button
+                                  onClick={() => {
+                                    onNavigateModule(n.linkModule!);
+                                    if (onMarkNotificationRead) onMarkNotificationRead(n.id);
+                                    setShowNotifDropdown(false);
+                                  }}
+                                  className="text-[10px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded transition"
+                                >
+                                  <span>Lihat & Proses</span>
+                                  <ArrowRight className="w-3 h-3" />
+                                </button>
+                              )}
+
+                              {n.type === 'PO_APPROVAL' && (
+                                <button
+                                  onClick={() => {
+                                    const msg = generatePoWhatsappMessage(
+                                      {
+                                        poNumber: n.relatedId || 'PO-2026-ALERT',
+                                        vendorName: n.title,
+                                        totalAmount: n.amount || 50000000,
+                                        requestedBy: n.senderName || 'Tim Purchasing',
+                                        notes: n.message,
+                                      },
+                                      DEFAULT_EXTERNAL_NOTIF_CONFIG
+                                    );
+                                    openWhatsappNotification(
+                                      DEFAULT_EXTERNAL_NOTIF_CONFIG.directorWhatsapp,
+                                      msg
+                                    );
+                                  }}
+                                  className="text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded transition flex items-center gap-1"
+                                  title="Kirim Pesan Ringkasan Peringatan langsung ke WhatsApp Direksi"
+                                >
+                                  <MessageSquare className="w-3 h-3 text-emerald-600" />
+                                  <span>WA Direksi</span>
+                                </button>
+                              )}
+                            </div>
 
                             {!n.isRead && onMarkNotificationRead && (
                               <button
@@ -338,7 +389,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Role Switcher Dropdown */}
-          <div className="relative">
+          <div className="relative" ref={roleRef}>
             <button
               onClick={() => setShowRoleDropdown(!showRoleDropdown)}
               className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-medium px-3 py-1.5 rounded-lg text-slate-700 transition"

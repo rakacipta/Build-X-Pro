@@ -36,10 +36,21 @@ import {
   FolderPlus,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { CompanyProfile, OfficialLetter, LetterCategory, LetterheadSettings, LetterTemplate } from '../../types';
+import {
+  CompanyProfile,
+  OfficialLetter,
+  LetterCategory,
+  LetterheadSettings,
+  LetterTemplate,
+  SubkonContract,
+  SubkonOpname,
+  Project,
+  AppNotification,
+} from '../../types';
 import { saveAs } from 'file-saver';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import { generatePdfFromElement, triggerPrintFallback } from '../../utils/pdfGenerator';
+import { SubkonSpkSubmodule } from './SubkonSpkSubmodule';
 import {
   Document,
   Packer,
@@ -57,6 +68,14 @@ interface OfficialLettersModuleProps {
   companyProfile: CompanyProfile;
   onUpdateCompanyProfile?: (profile: CompanyProfile) => void;
   letterhead?: LetterheadSettings;
+  projects?: Project[];
+  subkonContracts?: SubkonContract[];
+  subkonOpnames?: SubkonOpname[];
+  onSaveSubkonContract?: (contract: SubkonContract) => void;
+  onDeleteSubkonContract?: (id: string) => void;
+  onSaveSubkonOpname?: (opname: SubkonOpname) => void;
+  onDeleteSubkonOpname?: (id: string) => void;
+  onTriggerNotification?: (notif: Partial<AppNotification>) => void;
 }
 
 const PRESET_LOGOS = [
@@ -320,6 +339,14 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
   companyProfile,
   onUpdateCompanyProfile,
   letterhead,
+  projects = [],
+  subkonContracts = [],
+  subkonOpnames = [],
+  onSaveSubkonContract = () => {},
+  onDeleteSubkonContract = () => {},
+  onSaveSubkonOpname = () => {},
+  onDeleteSubkonOpname = () => {},
+  onTriggerNotification,
 }) => {
   const [letters, setLetters] = useState<OfficialLetter[]>(initialLetters);
   const [searchQuery, setSearchQuery] = useState('');
@@ -340,7 +367,7 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
     return INITIAL_TEMPLATES;
   });
 
-  const [activeTab, setActiveTab] = useState<'LIST' | 'FORM' | 'PREVIEW' | 'TEMPLATES'>('LIST');
+  const [activeTab, setActiveTab] = useState<'LIST' | 'SUBKON' | 'FORM' | 'PREVIEW' | 'TEMPLATES'>('LIST');
   const [templateSearchQuery, setTemplateSearchQuery] = useState('');
   const [templateCategoryFilter, setTemplateCategoryFilter] = useState<string>('ALL');
   const [templateToast, setTemplateToast] = useState<string | null>(null);
@@ -1062,6 +1089,17 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
             <Layers className="w-4 h-4" /> Daftar Arsip Surat
           </button>
 
+          <button
+            onClick={() => setActiveTab('SUBKON')}
+            className={`pb-3 px-4 font-bold text-xs flex items-center gap-2 border-b-2 transition ${
+              activeTab === 'SUBKON'
+                ? 'border-amber-600 text-amber-700 font-extrabold'
+                : 'border-transparent text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4 text-amber-500" /> Subkon & SPK Borongan ({subkonContracts.length})
+          </button>
+
           {previewLetter && (
             <button
               onClick={() => setActiveTab('PREVIEW')}
@@ -1084,6 +1122,22 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
           )}
         </div>
       </div>
+
+      {/* TAB SUBKON & SPK BORONGAN */}
+      {activeTab === 'SUBKON' && (
+        <SubkonSpkSubmodule
+          companyProfile={companyProfile}
+          letterhead={letterhead}
+          projects={projects}
+          subkonContracts={subkonContracts}
+          subkonOpnames={subkonOpnames}
+          onSaveSubkonContract={onSaveSubkonContract}
+          onDeleteSubkonContract={onDeleteSubkonContract}
+          onSaveSubkonOpname={onSaveSubkonOpname}
+          onDeleteSubkonOpname={onDeleteSubkonOpname}
+          onTriggerNotification={onTriggerNotification}
+        />
+      )}
 
       {/* TAB 1: LIST ARSIP SURAT */}
       {activeTab === 'LIST' && (
@@ -2011,6 +2065,71 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
                 </span>
                 <span className="font-mono">ID: {previewLetter.id} | Diterbitkan via BuildX ERP</span>
               </div>
+            </div>
+          </div>
+
+          {/* Bottom Action Bar for Easy Access Printing */}
+          <div className="bg-slate-900 text-white p-4 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-4 border border-slate-800 no-print">
+            <div className="flex items-center gap-3">
+              <Printer className="w-5 h-5 text-emerald-400" />
+              <div>
+                <p className="font-bold text-sm text-white">Siap Cetak Dokumen Resmi {previewLetter.category}</p>
+                <p className="text-xs text-slate-400">Nomor: {previewLetter.letterNumber}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <CetakPdfButton
+                elementId="printable-letter-area"
+                filename={`Surat_${previewLetter.letterNumber.replace(/[/\\?%*:|"<>]/g, '_')}.pdf`}
+                title={`Surat Resmi - ${previewLetter.title}`}
+                label="Cetak / Download PDF"
+                variant="emerald"
+              />
+
+              <button
+                onClick={handlePrintDialog}
+                disabled={isPrinting}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-md transition disabled:opacity-60 disabled:cursor-wait"
+                title="Cetak langsung melalui dialog printer browser"
+              >
+                {isPrinting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-amber-300" />
+                    <span>Menyiapkan Cetak...</span>
+                  </>
+                ) : (
+                  <>
+                    <Printer className="w-4 h-4" />
+                    <span>Cetak Browser</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => handleExportWordDocx(previewLetter)}
+                disabled={exportingWordId === previewLetter.id}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-xs border border-slate-700 shadow-md flex items-center gap-2 transition disabled:opacity-60 disabled:cursor-wait"
+              >
+                {exportingWordId === previewLetter.id ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    <span>Memproses Word...</span>
+                  </>
+                ) : (
+                  <>
+                    <FileSpreadsheet className="w-4 h-4 text-white" />
+                    <span>Word (.docx)</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => setActiveTab('LIST')}
+                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs flex items-center gap-1.5 transition ml-2"
+              >
+                Kembali
+              </button>
             </div>
           </div>
         </div>

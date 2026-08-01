@@ -11,10 +11,14 @@ import {
   MessageSquare,
   Printer,
   BellRing,
+  Smartphone,
+  ExternalLink,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
 import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
+import { ExternalNotificationModal } from '../common/ExternalNotificationModal';
+import { PoAlertPayload } from '../../services/externalNotificationService';
 import { ApprovalRequest, UserRole } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
 
@@ -36,6 +40,22 @@ export const ApprovalsModule: React.FC<ApprovalsModuleProps> = ({
   const [activeFilter, setActiveFilter] = useState<'Pending' | 'Approved' | 'Rejected' | 'All'>('Pending');
   const [selectedApp, setSelectedApp] = useState<ApprovalRequest | null>(null);
   const [notes, setNotes] = useState('');
+
+  // External Notification State
+  const [selectedPoForNotif, setSelectedPoForNotif] = useState<PoAlertPayload | null>(null);
+  const [isNotifModalOpen, setIsNotifModalOpen] = useState(false);
+
+  const handleOpenNotifModal = (app: ApprovalRequest) => {
+    setSelectedPoForNotif({
+      poNumber: app.reqNo,
+      vendorName: app.title.replace(/^Pengajuan PO|^PO /i, '').trim() || 'Vendor Pengadaan',
+      totalAmount: app.amount,
+      requestedBy: app.requestedBy,
+      date: app.requestDate,
+      notes: app.notes,
+    });
+    setIsNotifModalOpen(true);
+  };
 
   const filtered = approvals.filter(
     (a) => activeFilter === 'All' || a.status === activeFilter
@@ -142,16 +162,28 @@ export const ApprovalsModule: React.FC<ApprovalsModuleProps> = ({
                 >
                   Review & Tanggapi →
                 </button>
-                {onSendReminder && (
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => onSendReminder(app.reqNo, app.title, app.amount)}
-                    className="w-full bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold py-1.5 rounded-xl text-[11px] flex items-center justify-center gap-1.5 transition"
+                    onClick={() => handleOpenNotifModal(app)}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1.5 px-2 rounded-xl text-[11px] flex items-center justify-center gap-1 transition shadow-sm"
+                    title="Kirim pesan ringkasan persetujuan ke WhatsApp / Email Direksi"
                   >
-                    <BellRing className="w-3.5 h-3.5 text-amber-600 animate-bounce" />
-                    <span>Ingatkan Direksi (Push Alert)</span>
+                    <MessageSquare className="w-3.5 h-3.5 text-emerald-200" />
+                    <span>WA / Email</span>
                   </button>
-                )}
+                  {onSendReminder ? (
+                    <button
+                      type="button"
+                      onClick={() => onSendReminder(app.reqNo, app.title, app.amount)}
+                      className="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold py-1.5 px-2 rounded-xl text-[11px] flex items-center justify-center gap-1 transition"
+                      title="Kirim push alert di aplikasi"
+                    >
+                      <BellRing className="w-3.5 h-3.5 text-amber-600 animate-bounce" />
+                      <span>Push Alert</span>
+                    </button>
+                  ) : null}
+                </div>
               </div>
             ) : (
               <div className="text-[11px] text-slate-500 pt-2 border-t border-slate-100">
@@ -166,8 +198,13 @@ export const ApprovalsModule: React.FC<ApprovalsModuleProps> = ({
 
       {/* Review & Approve Modal */}
       {selectedApp && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 text-xs space-y-4">
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedApp(null);
+          }}
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 cursor-pointer"
+        >
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 text-xs space-y-4 cursor-default">
             <h3 className="font-bold text-lg text-slate-900">Review Pengajuan Approval</h3>
             <div className="bg-slate-50 p-4 rounded-xl space-y-2 border">
               <p>Nomor Pengajuan: <strong className="font-mono text-amber-600">{selectedApp.reqNo}</strong></p>
@@ -221,6 +258,13 @@ export const ApprovalsModule: React.FC<ApprovalsModuleProps> = ({
           </div>
         </div>
       )}
+
+      {/* External WhatsApp / Email Notification Modal */}
+      <ExternalNotificationModal
+        isOpen={isNotifModalOpen}
+        onClose={() => setIsNotifModalOpen(false)}
+        poPayload={selectedPoForNotif}
+      />
     </div>
   );
 };

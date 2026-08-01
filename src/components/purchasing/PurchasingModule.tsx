@@ -13,11 +13,16 @@ import {
   Building,
   Printer,
   BellRing,
+  MessageSquare,
+  Smartphone,
+  Mail,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
 import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import { SignaturePicker } from '../common/SignaturePicker';
+import { ExternalNotificationModal } from '../common/ExternalNotificationModal';
+import { PoAlertPayload } from '../../services/externalNotificationService';
 import { PurchaseOrder, CompanyProfile, LetterheadSettings, AppNotification } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
 import { getStoredData } from '../../services/firestoreService';
@@ -42,6 +47,22 @@ export const PurchasingModule: React.FC<PurchasingModuleProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPo, setEditingPo] = useState<Partial<PurchaseOrder> | null>(null);
   const [selectedPoForPrint, setSelectedPoForPrint] = useState<PurchaseOrder | null>(null);
+
+  // External WhatsApp / Email Notification State
+  const [selectedPoForNotif, setSelectedPoForNotif] = useState<PoAlertPayload | null>(null);
+  const [isNotifModalOpen, setIsNotifModalOpen] = useState(false);
+
+  const handleOpenNotifModal = (po: PurchaseOrder) => {
+    setSelectedPoForNotif({
+      poNumber: po.poNumber,
+      vendorName: po.vendorName,
+      totalAmount: po.totalAmount,
+      requestedBy: po.requestedBy || 'Tim Purchasing',
+      date: po.date,
+      itemsCount: po.items ? po.items.length : 1,
+    });
+    setIsNotifModalOpen(true);
+  };
 
   const filteredPurchases = purchases.filter(
     (po) =>
@@ -198,12 +219,21 @@ export const PurchasingModule: React.FC<PurchasingModuleProps> = ({
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleOpenNotifModal(po)}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-xl text-[11px] inline-flex items-center gap-1.5 shadow-sm transition active:scale-95"
+                  title="Kirim Pesan Ringkasan Peringatan ke WhatsApp / Email Direksi"
+                >
+                  <MessageSquare className="w-3.5 h-3.5 text-emerald-200" />
+                  <span>Notif WA / Email</span>
+                </button>
                 {po.status === 'Pending Approval' && onSendReminder && (
                   <button
                     type="button"
                     onClick={() => onSendReminder(po.poNumber, `PO ${po.vendorName}`, po.totalAmount)}
                     className="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-bold px-3 py-1.5 rounded-xl text-[11px] inline-flex items-center gap-1.5 transition"
-                    title="Kirim Notifikasi Reminder ke Direksi"
+                    title="Kirim Notifikasi Push Alert di Aplikasi"
                   >
                     <BellRing className="w-3.5 h-3.5 text-amber-700 animate-bounce" />
                     <span>Ingatkan Direksi</span>
@@ -230,8 +260,13 @@ export const PurchasingModule: React.FC<PurchasingModuleProps> = ({
 
       {/* Modal Add PO */}
       {isModalOpen && editingPo && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsModalOpen(false);
+          }}
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 cursor-pointer"
+        >
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 cursor-default">
             <h3 className="font-bold text-lg text-slate-900 mb-4">Buat Purchase Order Baru</h3>
             <form onSubmit={handleSave} className="space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3">
@@ -572,6 +607,13 @@ export const PurchasingModule: React.FC<PurchasingModuleProps> = ({
         </div>
       </div>
       )}
+
+      {/* External WhatsApp / Email Notification Modal */}
+      <ExternalNotificationModal
+        isOpen={isNotifModalOpen}
+        onClose={() => setIsNotifModalOpen(false)}
+        poPayload={selectedPoForNotif}
+      />
     </div>
   );
 };
