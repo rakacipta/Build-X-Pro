@@ -17,7 +17,6 @@ import {
   Printer,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
-import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import { Tender, Quotation } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
@@ -296,8 +295,6 @@ export const TenderModule: React.FC<TenderModuleProps> = ({
           );
         })}
       </div>
-
-      <PrintSignature note="Dokumen Portofolio & Rekapitulasi Pendaftaran Tender Proyek" />
 
       {/* Modal Add / Edit Tender */}
       {isModalOpen && editingTender && (

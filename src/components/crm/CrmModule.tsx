@@ -16,7 +16,6 @@ import {
 import { CrmLead, Quotation } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
 import { PrintHeader } from '../common/PrintHeader';
-import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import { QuotationManager } from '../quotation/QuotationManager';
 
@@ -345,8 +344,6 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
           </div>
         </div>
       )}
-
-      <PrintSignature note="Laporan Pipeline Penjualan, CRM Prospek & Kontak Klien Perusahaan" />
 
       {/* Modal Add / Edit Lead */}
       {isModalOpen && editingLead && (

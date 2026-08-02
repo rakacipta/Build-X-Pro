@@ -57,6 +57,27 @@ export function setStoredData<T>(key: string, data: T): void {
   }
 }
 
+const SEED_MAP: Record<string, any[]> = {
+  projects: INITIAL_PROJECTS,
+  tenders: INITIAL_TENDERS,
+  materials: INITIAL_MATERIALS,
+  purchases: INITIAL_PURCHASES,
+  sales: INITIAL_SALES,
+  crm_leads: INITIAL_LEADS,
+  equipment: INITIAL_EQUIPMENT,
+  employees: INITIAL_EMPLOYEES,
+  payroll: INITIAL_PAYROLL,
+  finance_transactions: INITIAL_FINANCE,
+  coa: INITIAL_COA,
+  journals: INITIAL_JOURNALS,
+  approvals: INITIAL_APPROVALS,
+  ahsp: INITIAL_AHSP,
+  rab_items: INITIAL_RAB_ITEMS,
+  notifications: INITIAL_NOTIFICATIONS,
+  subkon_contracts: INITIAL_SUBKON_CONTRACTS,
+  subkon_opnames: INITIAL_SUBKON_OPNAMES,
+};
+
 // Generic subscribe function with LocalStorage persistence & Firestore sync
 export function subscribeToCollection<T extends { id: string }>(
   collectionName: string,
@@ -65,6 +86,7 @@ export function subscribeToCollection<T extends { id: string }>(
 ): () => void {
   // Always trigger with local cached data first
   const currentLocal = getStoredData<T[]>(collectionName, initialSeed);
+  setStoredData(collectionName, currentLocal);
   onUpdate(currentLocal);
 
   const colRef = collection(db, collectionName);
@@ -135,7 +157,8 @@ export async function deleteDocument<T extends { id: string }>(
   collectionName: string,
   id: string
 ): Promise<T[]> {
-  const currentList = getStoredData<T[]>(collectionName, []);
+  const defaultData = (SEED_MAP[collectionName] as T[]) || [];
+  const currentList = getStoredData<T[]>(collectionName, defaultData);
   const updatedList = currentList.filter((x) => x.id !== id);
 
   setStoredData(collectionName, updatedList);

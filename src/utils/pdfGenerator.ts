@@ -9,38 +9,44 @@ export interface PdfExportOptions {
 }
 
 /**
- * Converts CSS strings containing modern 'oklch(...)' color functions
- * into standard hex or rgba format using a canvas 2D context.
+ * Converts CSS strings containing modern 'oklch(...)', 'oklab(...)', 'color(...)', 'lab(...)', 'hwb(...)'
+ * into standard rgb(...) or rgba(...) format using canvas getImageData.
  * This prevents html2canvas from throwing unsupported color function errors.
  */
 function convertOklchColors(cssText: string): string {
-  if (!cssText || !cssText.includes('oklch')) return cssText;
+  if (!cssText) return cssText;
+
+  const colorRegex = /(?:oklch|oklab|color|lab|hwb)\([^)]+\)/gi;
+
+  if (!colorRegex.test(cssText)) return cssText;
 
   const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
+  canvas.width = 1;
+  canvas.height = 1;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-  return cssText.replace(/oklch\([^)]+\)/gi, (match) => {
-    if (ctx) {
-      try {
-        ctx.fillStyle = '#000000';
-        ctx.fillStyle = match;
-        const res1 = ctx.fillStyle;
-        if (res1 && res1 !== '#000000') {
-          return res1;
-        }
-        // Test if the match was true black e.g. oklch(0 0 0)
-        ctx.fillStyle = '#ffffff';
-        ctx.fillStyle = match;
-        const res2 = ctx.fillStyle;
-        if (res2 !== '#ffffff') {
-          return res2;
-        }
-        return '#000000';
-      } catch {
-        // Fallback below
+  return cssText.replace(colorRegex, (match) => {
+    if (!ctx) return '#64748b';
+    try {
+      ctx.clearRect(0, 0, 1, 1);
+      ctx.fillStyle = '#000000';
+      ctx.fillStyle = match;
+      ctx.fillRect(0, 0, 1, 1);
+      const data = ctx.getImageData(0, 0, 1, 1).data;
+      const r = data[0];
+      const g = data[1];
+      const b = data[2];
+      const a = data[3];
+
+      if (a === 255) {
+        return `rgb(${r}, ${g}, ${b})`;
+      } else {
+        const alpha = +(a / 255).toFixed(3);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
       }
+    } catch {
+      return '#64748b';
     }
-    return '#64748b';
   });
 }
 
@@ -129,7 +135,7 @@ export async function generatePdfFromElement({
         // 1. Process all <style> elements in clonedDoc
         const styleElements = clonedDoc.querySelectorAll('style');
         styleElements.forEach((styleEl) => {
-          if (styleEl.textContent && styleEl.textContent.includes('oklch')) {
+          if (styleEl.textContent && /oklch|oklab|color\(|lab\(|hwb\(/i.test(styleEl.textContent)) {
             styleEl.textContent = convertOklchColors(styleEl.textContent);
           }
         });
@@ -137,7 +143,7 @@ export async function generatePdfFromElement({
         // 2. Process all inline style attributes in clonedDoc
         const styledElements = clonedDoc.querySelectorAll('[style]');
         styledElements.forEach((node) => {
-          if (node instanceof HTMLElement && node.style && node.style.cssText.includes('oklch')) {
+          if (node instanceof HTMLElement && node.style && node.style.cssText && /oklch|oklab|color\(|lab\(|hwb\(/i.test(node.style.cssText)) {
             node.style.cssText = convertOklchColors(node.style.cssText);
           }
         });
@@ -151,7 +157,7 @@ export async function generatePdfFromElement({
               if (rules) {
                 for (let i = 0; i < rules.length; i++) {
                   const ruleText = rules[i].cssText;
-                  if (ruleText && ruleText.includes('oklch')) {
+                  if (ruleText && /oklch|oklab|color\(|lab\(|hwb\(/i.test(ruleText)) {
                     extraCss += convertOklchColors(ruleText) + '\n';
                   }
                 }
@@ -170,6 +176,27 @@ export async function generatePdfFromElement({
         } catch (err) {
           console.warn('[PDF Export] Error processing styleSheets in onclone:', err);
         }
+
+        // 4. Traverse all elements in clonedDoc to convert any computed colors containing oklch
+        const allElements = clonedDoc.querySelectorAll('*');
+        allElements.forEach((el) => {
+          if (el instanceof HTMLElement) {
+            try {
+              const computed = window.getComputedStyle(el);
+              if (computed.backgroundColor && /oklch|oklab|color\(|lab\(|hwb\(/i.test(computed.backgroundColor)) {
+                el.style.backgroundColor = convertOklchColors(computed.backgroundColor);
+              }
+              if (computed.color && /oklch|oklab|color\(|lab\(|hwb\(/i.test(computed.color)) {
+                el.style.color = convertOklchColors(computed.color);
+              }
+              if (computed.borderColor && /oklch|oklab|color\(|lab\(|hwb\(/i.test(computed.borderColor)) {
+                el.style.borderColor = convertOklchColors(computed.borderColor);
+              }
+            } catch {
+              // Ignore computed style errors
+            }
+          }
+        });
       },
     });
 

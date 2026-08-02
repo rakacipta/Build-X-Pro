@@ -14,7 +14,6 @@ import {
   Printer,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
-import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import { Equipment } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
@@ -172,8 +171,6 @@ export const EquipmentModule: React.FC<EquipmentModuleProps> = ({
           );
         })}
       </div>
-
-      <PrintSignature note="Laporan Status Alat Berat, Maintenance & Hour Meter (HM) Proyek" />
 
       {/* Modal Add Equipment */}
       {isModalOpen && editingEq && (

@@ -1,6 +1,6 @@
 {
   "name": "ERP Konstruksi & Trading",
   "description": "Sistem ERP berbasis web terintegrasi untuk perusahaan konstruksi dan trading material dengan manajemen proyek, RAB/BOQ, inventory, purchasing, finance, accounting, payroll, dan real-time dashboard.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["camera"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

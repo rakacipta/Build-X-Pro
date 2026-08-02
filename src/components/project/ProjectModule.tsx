@@ -22,7 +22,6 @@ import {
   BarChart3,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
-import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import { BudgetVsActualWidget } from './BudgetVsActualWidget';
 import { Project, RABItem, FinanceTransaction, PurchaseOrder, VariationOrder, DailyReport, AppNotification } from '../../types';
@@ -54,6 +53,7 @@ export const ProjectModule: React.FC<ProjectModuleProps> = ({
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Partial<Project> | null>(null);
+  const [deletingProject, setDeletingProject] = useState<{ id: string; name: string } | null>(null);
 
   // Mock variation orders & daily reports
   const [voList, setVoList] = useState<VariationOrder[]>([
@@ -129,23 +129,72 @@ export const ProjectModule: React.FC<ProjectModuleProps> = ({
   };
 
   const handleDelete = (id: string, name: string) => {
-    if (confirm(`Apakah Anda yakin ingin menghapus proyek "${name}"? Data proyek yang dihapus tidak dapat dikembalikan.`)) {
-      onDeleteProject(id);
-      const remaining = projects.filter((p) => p.id !== id);
+    setDeletingProject({ id, name });
+  };
+
+  const confirmDeleteProject = () => {
+    if (deletingProject) {
+      const idToDelete = deletingProject.id;
+      const nameToDelete = deletingProject.name;
+
+      onDeleteProject(idToDelete);
+
+      const remaining = projects.filter((p) => p.id !== idToDelete);
       if (remaining.length > 0) {
         setSelectedProjectId(remaining[0].id);
       } else {
         setSelectedProjectId('');
       }
+
+      if (onTriggerNotification) {
+        onTriggerNotification({
+          type: 'SYSTEM',
+          title: 'Proyek Dihapus',
+          message: `Proyek "${nameToDelete}" telah berhasil dihapus dari sistem.`,
+          priority: 'high',
+        });
+      }
+
+      setDeletingProject(null);
     }
   };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingProject && editingProject.name) {
-      onSaveProject(editingProject as Project);
+      const isExisting = projects.some((p) => p.id === editingProject.id);
+      const projectToSave: Project = {
+        id: editingProject.id || 'prj-' + Date.now(),
+        code: editingProject.code || `PRJ-${new Date().getFullYear()}-001`,
+        name: editingProject.name.trim(),
+        client: editingProject.client || '-',
+        contractValue: Number(editingProject.contractValue) || 0,
+        rabTotal: Number(editingProject.rabTotal) || 0,
+        actualCost: Number(editingProject.actualCost) || 0,
+        progressPct: Number(editingProject.progressPct) || 0,
+        status: editingProject.status || 'Planning',
+        startDate: editingProject.startDate || new Date().toISOString().split('T')[0],
+        endDate: editingProject.endDate || '2027-12-31',
+        projectManager: editingProject.projectManager || '-',
+        siteManager: editingProject.siteManager || '-',
+        location: editingProject.location || '-',
+        category: editingProject.category || 'Gedung',
+        retentionPct: Number(editingProject.retentionPct) || 5,
+      };
+
+      onSaveProject(projectToSave);
+      setSelectedProjectId(projectToSave.id);
       setIsModalOpen(false);
       setEditingProject(null);
+
+      if (onTriggerNotification) {
+        onTriggerNotification({
+          type: 'SYSTEM',
+          title: isExisting ? 'Proyek Diperbarui' : 'Proyek Baru Ditambahkan',
+          message: `Data proyek "${projectToSave.name}" (${projectToSave.code}) telah berhasil disimpan ke database.`,
+          priority: 'medium',
+        });
+      }
     }
   };
 
@@ -536,15 +585,16 @@ export const ProjectModule: React.FC<ProjectModuleProps> = ({
           </div>
         )}
 
-        <PrintSignature note="Laporan Progress Fisik, Nilai Kontrak & Status Realisasi Proyek" />
       </div>
 
       {/* Modal Add / Edit Project */}
       {isModalOpen && editingProject && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
             <h3 className="font-bold text-lg text-slate-900 mb-4">
-              {editingProject.id ? 'Edit Data Proyek' : 'Tambah Proyek Baru'}
+              {projects.some((p) => p.id === editingProject.id)
+                ? 'Edit Data Proyek'
+                : 'Tambah Proyek Baru'}
             </h3>
             <form onSubmit={handleSave} className="space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3">
@@ -571,6 +621,7 @@ export const ProjectModule: React.FC<ProjectModuleProps> = ({
                     <option value="Infrastruktur">Infrastruktur</option>
                     <option value="Jalan & Jembatan">Jalan & Jembatan</option>
                     <option value="Perumahan">Perumahan</option>
+                    <option value="Lainnya">Lainnya</option>
                   </select>
                 </div>
               </div>
@@ -642,9 +693,42 @@ export const ProjectModule: React.FC<ProjectModuleProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Realisasi Biaya / Actual (Rp)</label>
+                  <input
+                    type="number"
+                    value={editingProject.actualCost || 0}
+                    onChange={(e) =>
+                      setEditingProject({
+                        ...editingProject,
+                        actualCost: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full border border-slate-300 rounded-xl p-2.5 font-bold text-emerald-700"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Retensi (%)</label>
+                  <input
+                    type="number"
+                    value={editingProject.retentionPct || 5}
+                    onChange={(e) =>
+                      setEditingProject({
+                        ...editingProject,
+                        retentionPct: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full border border-slate-300 rounded-xl p-2.5 font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
                   <label className="block font-semibold text-slate-700 mb-1">Progress Fisik (%)</label>
                   <input
                     type="number"
+                    min="0"
+                    max="100"
                     value={editingProject.progressPct || 0}
                     onChange={(e) =>
                       setEditingProject({
@@ -652,7 +736,7 @@ export const ProjectModule: React.FC<ProjectModuleProps> = ({
                         progressPct: parseFloat(e.target.value) || 0,
                       })
                     }
-                    className="w-full border border-slate-300 rounded-xl p-2.5 font-bold"
+                    className="w-full border border-slate-300 rounded-xl p-2.5 font-bold text-amber-700"
                   />
                 </div>
                 <div>
@@ -749,6 +833,44 @@ export const ProjectModule: React.FC<ProjectModuleProps> = ({
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Modal Confirmation Delete */}
+      {deletingProject && (
+        <div className="fixed inset-0 bg-slate-950/65 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-5">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center font-bold shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-base text-slate-900">Konfirmasi Hapus Proyek</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Tindakan ini tidak dapat dibatalkan</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+              Apakah Anda yakin ingin menghapus proyek <strong className="text-slate-900 font-bold">"{deletingProject.name}"</strong>? Seluruh data overview dan kualifikasi proyek ini akan dihapus dari sistem ERP.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletingProject(null)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteProject}
+                className="px-4 py-2 text-xs bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl shadow-md shadow-rose-600/20 transition flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Hapus Proyek</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

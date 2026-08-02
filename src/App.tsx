@@ -18,6 +18,7 @@ import { ApprovalsModule } from './components/approvals/ApprovalsModule';
 import { ReportsModule } from './components/reports/ReportsModule';
 import { SettingsModule } from './components/settings/SettingsModule';
 import { OfficialLettersModule } from './components/letters/OfficialLettersModule';
+import { LoginPage } from './components/auth/LoginPage';
 
 import {
   ModuleType,
@@ -88,6 +89,7 @@ import {
 import { testConnection } from './lib/firebase';
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState<SystemUser | null>(null);
   const [currentRole, setCurrentRole] = useState<UserRole>('Super Admin');
   const [activeModule, setActiveModule] = useState<ModuleType>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
@@ -556,6 +558,36 @@ export default function App() {
     }
   };
 
+  // Auth & Login Handlers
+  const handleLoginSuccess = (user: SystemUser) => {
+    setCurrentUser(user);
+    setCurrentRole(user.role);
+    try {
+      localStorage.setItem('gmk_erp_logged_user', JSON.stringify(user));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    try {
+      localStorage.removeItem('gmk_erp_logged_user');
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  if (!currentUser) {
+    return (
+      <LoginPage
+        systemUsers={systemUsers}
+        companyProfile={companyProfile}
+        onLoginSuccess={handleLoginSuccess}
+      />
+    );
+  }
+
   return (
     <div className="h-screen w-screen bg-slate-50 text-slate-800 font-sans flex flex-col overflow-hidden relative">
       {/* Toast Alert Banner */}
@@ -591,6 +623,8 @@ export default function App() {
         onMarkNotificationRead={handleMarkNotificationRead}
         onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
         onNavigateModule={(mod) => setActiveModule(mod as ModuleType)}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -773,6 +807,7 @@ export default function App() {
           {activeModule === 'settings' && (
             <SettingsModule
               currentRole={currentRole}
+              currentUser={currentUser}
               companyProfile={companyProfile}
               onUpdateCompanyProfile={handleUpdateCompanyProfile}
               letterhead={letterhead}

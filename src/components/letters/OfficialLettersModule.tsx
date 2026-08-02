@@ -34,6 +34,10 @@ import {
   BookmarkPlus,
   Save,
   FolderPlus,
+  Camera,
+  Scan,
+  Paperclip,
+  Maximize2,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
@@ -46,7 +50,9 @@ import {
   SubkonOpname,
   Project,
   AppNotification,
+  ScannedAttachment,
 } from '../../types';
+import { DocumentScannerModal } from './DocumentScannerModal';
 import { saveAs } from 'file-saver';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import { generatePdfFromElement, triggerPrintFallback } from '../../utils/pdfGenerator';
@@ -266,6 +272,16 @@ const initialLetters: OfficialLetter[] = [
     showQrCode: true,
     qrCodeValue: 'https://verifikasi.rakaciptaseraya.co.id/verify?id=LTR-001&no=088%2FSPK%2FPT-RCS%2FVIII%2F2026',
     status: 'Diterbitkan',
+    scannedAttachments: [
+      {
+        id: 'SCAN-001',
+        title: 'Lampiran Fisik Kontrak & Spesifikasi Teknis Besi',
+        scannedAt: '2026-08-01T14:30:00Z',
+        dataUrl: 'https://images.unsplash.com/photo-1568992687947-868a62a9f521?w=800&auto=format&fit=crop&q=80',
+        pageNumber: 1,
+        filterUsed: 'magic',
+      },
+    ],
     createdAt: '2026-07-30T10:00:00Z',
     updatedAt: '2026-07-30T10:00:00Z',
   },
@@ -379,6 +395,60 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
 
   const [editingLetter, setEditingLetter] = useState<OfficialLetter | null>(null);
   const [previewLetter, setPreviewLetter] = useState<OfficialLetter | null>(initialLetters[0]);
+
+  // Camera Document Scanner Modal & Lightbox State
+  const [isScannerModalOpen, setIsScannerModalOpen] = useState(false);
+  const [scannerTargetLetterId, setScannerTargetLetterId] = useState<string | null>(null);
+  const [lightboxAttachment, setLightboxAttachment] = useState<ScannedAttachment | null>(null);
+  const [formScannedAttachments, setFormScannedAttachments] = useState<ScannedAttachment[]>([]);
+
+  // Camera Scan Handlers
+  const handleSaveScannedDocs = (newScans: ScannedAttachment[]) => {
+    const targetId = scannerTargetLetterId || previewLetter?.id;
+    if (targetId) {
+      setLetters((prev) =>
+        prev.map((l) => {
+          if (l.id === targetId) {
+            const existing = l.scannedAttachments || [];
+            const updated = { ...l, scannedAttachments: [...existing, ...newScans] };
+            if (previewLetter?.id === l.id) {
+              setPreviewLetter(updated);
+            }
+            return updated;
+          }
+          return l;
+        })
+      );
+    }
+
+    setFormScannedAttachments((prev) => [...prev, ...newScans]);
+    if (onTriggerNotification) {
+      onTriggerNotification(
+        'Scan Dokumen Fisik Disimpan',
+        `Berhasil memindai ${newScans.length} halaman dokumen fisik via kamera.`,
+        'success'
+      );
+    }
+  };
+
+  const handleDeleteScannedAttachment = (letterId: string, attachId: string) => {
+    if (confirm('Apakah Anda yakin ingin menghapus lampiran hasil scan ini?')) {
+      setLetters((prev) =>
+        prev.map((l) => {
+          if (l.id === letterId) {
+            const filtered = (l.scannedAttachments || []).filter((a) => a.id !== attachId);
+            const updated = { ...l, scannedAttachments: filtered };
+            if (previewLetter?.id === l.id) {
+              setPreviewLetter(updated);
+            }
+            return updated;
+          }
+          return l;
+        })
+      );
+      setFormScannedAttachments((prev) => prev.filter((a) => a.id !== attachId));
+    }
+  };
 
   // Logo Settings State
   const [isLogoModalOpen, setIsLogoModalOpen] = useState(false);
@@ -587,6 +657,7 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
     setFormRecipientAddress('Jl. Raya Boulevard No. 12, Jakarta');
     setFormShowQrCode(true);
     setFormQrCodeValue('');
+    setFormScannedAttachments([]);
     setActiveTab('FORM');
   };
 
@@ -620,6 +691,7 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
         `https://verifikasi.rakaciptaseraya.co.id/verify?id=${letter.id}&no=${encodeURIComponent(letter.letterNumber)}`
     );
     setFormStatus(letter.status || 'Diterbitkan');
+    setFormScannedAttachments(letter.scannedAttachments || []);
 
     setActiveTab('FORM');
   };
@@ -693,6 +765,7 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
         formQrCodeValue.trim() ||
         `https://verifikasi.rakaciptaseraya.co.id/verify?id=${editingLetter ? editingLetter.id : `LTR-${Date.now()}`}&no=${encodeURIComponent(finalNumber)}`,
       status: formStatus,
+      scannedAttachments: formScannedAttachments,
       createdAt: editingLetter ? editingLetter.createdAt : new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -1032,6 +1105,18 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
 
         <div className="flex items-center gap-2.5">
           <button
+            onClick={() => {
+              setScannerTargetLetterId(previewLetter?.id || null);
+              setIsScannerModalOpen(true);
+            }}
+            className="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-emerald-900/20"
+            title="Pindai fisik kontrak atau nota menggunakan kamera HP / webcam"
+          >
+            <Camera className="w-4 h-4 text-emerald-200" />
+            <span>Scan Kamera</span>
+          </button>
+
+          <button
             onClick={() => setIsLogoModalOpen(true)}
             className="px-3.5 py-2.5 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-slate-200"
             title="Pengaturan / Ganti Logo Kop Surat"
@@ -1245,9 +1330,17 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
                         </td>
 
                         <td className="p-4 max-w-xs">
-                          <span className="text-[10px] font-black uppercase bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-200">
-                            {letter.category}
-                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[10px] font-black uppercase bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-200">
+                              {letter.category}
+                            </span>
+                            {letter.scannedAttachments && letter.scannedAttachments.length > 0 && (
+                              <span className="text-[10px] font-bold bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                                <Camera className="w-3 h-3 text-emerald-600" />
+                                {letter.scannedAttachments.length} Lampiran Scan
+                              </span>
+                            )}
+                          </div>
                           <p className="font-bold text-slate-900 mt-1 line-clamp-1">{letter.title}</p>
                           <p className="text-[11px] text-slate-500 line-clamp-1">Hal: {letter.subject}</p>
                         </td>
@@ -1303,6 +1396,18 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
                               ) : (
                                 <Eye className="w-4 h-4" />
                               )}
+                            </button>
+
+                            <button
+                              title="Pindai Fisik Kontrak/Nota via Kamera"
+                              onClick={() => {
+                                setScannerTargetLetterId(letter.id);
+                                setPreviewLetter(letter);
+                                setIsScannerModalOpen(true);
+                              }}
+                              className="p-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-lg transition"
+                            >
+                              <Camera className="w-4 h-4" />
                             </button>
 
                             <button
@@ -1761,6 +1866,69 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
                     </div>
                   )}
                 </div>
+
+                {/* Section 5: Physical Scanned Attachments */}
+                <div className="space-y-3 pt-2">
+                  <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider text-emerald-700 border-b pb-1 pt-1 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Camera className="w-4 h-4 text-emerald-600" />
+                      5. Lampiran Fisik Kamera ({formScannedAttachments.length})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setScannerTargetLetterId(editingLetter?.id || 'NEW');
+                        setIsScannerModalOpen(true);
+                      }}
+                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition flex items-center gap-1 shadow-xs"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      + Scan Kamera
+                    </button>
+                  </h3>
+
+                  {formScannedAttachments.length === 0 ? (
+                    <div className="p-4 bg-emerald-50/50 border border-dashed border-emerald-200 rounded-xl text-center space-y-1">
+                      <Scan className="w-6 h-6 text-emerald-500 mx-auto" />
+                      <p className="text-xs font-bold text-slate-700">Belum Ada Lampiran Scan Fisik</p>
+                      <p className="text-[11px] text-slate-500">
+                        Pindai fisik nota, SPK bertanda tangan, atau dokumen pendukung menggunakan akses kamera.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {formScannedAttachments.map((attach, idx) => (
+                        <div key={attach.id} className="group relative bg-slate-100 rounded-xl overflow-hidden border border-slate-200 aspect-3/4">
+                          <img src={attach.dataUrl} alt={attach.title} className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition p-2 flex flex-col justify-between text-white">
+                            <div className="flex justify-between items-center">
+                              <button
+                                type="button"
+                                onClick={() => setLightboxAttachment(attach)}
+                                className="p-1 bg-slate-800/80 hover:bg-slate-800 text-white rounded-md"
+                                title="Lihat Ukuran Penuh"
+                              >
+                                <Maximize2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setFormScannedAttachments((prev) => prev.filter((a) => a.id !== attach.id))}
+                                className="p-1 bg-red-600 hover:bg-red-700 text-white rounded-md"
+                                title="Hapus Lampiran"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold line-clamp-1">{attach.title}</p>
+                              <p className="text-[9px] text-slate-300">Hal {attach.pageNumber || idx + 1}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -2065,6 +2233,64 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
                 </span>
                 <span className="font-mono">ID: {previewLetter.id} | Diterbitkan via BuildX ERP</span>
               </div>
+
+              {/* 11. LAMPIRAN SCAN KAMERA (JIKA ADA) */}
+              {previewLetter.scannedAttachments && previewLetter.scannedAttachments.length > 0 && (
+                <div className="mt-12 pt-8 border-t-2 border-slate-300">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <Camera className="w-5 h-5 text-emerald-600" />
+                      <h3 className="font-extrabold text-slate-900 text-sm uppercase tracking-wide">
+                        Lampiran Fisik & Scan Kamera ({previewLetter.scannedAttachments.length} Halaman)
+                      </h3>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setScannerTargetLetterId(previewLetter.id);
+                        setIsScannerModalOpen(true);
+                      }}
+                      className="no-print px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      + Tambah Scan Kamera
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {previewLetter.scannedAttachments.map((attach, idx) => (
+                      <div key={attach.id} className="border border-slate-300 rounded-xl overflow-hidden bg-slate-50 p-3 space-y-2 shadow-xs">
+                        <div className="relative aspect-3/4 bg-slate-200 rounded-lg overflow-hidden border border-slate-200 group">
+                          <img
+                            src={attach.dataUrl}
+                            alt={attach.title}
+                            className="w-full h-full object-contain bg-slate-900/5"
+                          />
+                          <div className="no-print absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => setLightboxAttachment(attach)}
+                              className="px-3 py-1.5 bg-white text-slate-900 rounded-lg font-bold text-xs flex items-center gap-1 shadow-md hover:bg-slate-100"
+                            >
+                              <Maximize2 className="w-3.5 h-3.5" /> Zoom
+                            </button>
+                            <button
+                              onClick={() => handleDeleteScannedAttachment(previewLetter.id, attach.id)}
+                              className="px-2.5 py-1.5 bg-red-600 text-white rounded-lg font-bold text-xs flex items-center gap-1 shadow-md hover:bg-red-700"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" /> Hapus
+                            </button>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center text-[11px] text-slate-700 pt-1">
+                          <span className="font-bold text-slate-900 line-clamp-1">{attach.title}</span>
+                          <span className="font-mono bg-slate-200 text-slate-800 font-bold px-2 py-0.5 rounded text-[10px]">
+                            Hal {attach.pageNumber || idx + 1}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -2235,6 +2461,56 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
                 className="px-5 py-2 bg-slate-900 text-white font-bold rounded-xl text-xs hover:bg-slate-800 transition"
               >
                 Selesai
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Document Scanner Camera Modal */}
+      {isScannerModalOpen && (
+        <DocumentScannerModal
+          isOpen={isScannerModalOpen}
+          onClose={() => setIsScannerModalOpen(false)}
+          onSaveScans={handleSaveScannedDocs}
+        />
+      )}
+
+      {/* Lightbox Modal for Scanned Attachment */}
+      {lightboxAttachment && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 no-print">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Camera className="w-5 h-5 text-emerald-400" />
+                <div>
+                  <h3 className="font-bold text-sm text-white">{lightboxAttachment.title}</h3>
+                  <p className="text-[11px] text-slate-400">
+                    Halaman {lightboxAttachment.pageNumber || 1} • Discan: {new Date(lightboxAttachment.scannedAt).toLocaleString('id-ID')} • Filter: {lightboxAttachment.filterUsed || 'magic'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setLightboxAttachment(null)}
+                className="p-1.5 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 bg-slate-100 flex-1 overflow-auto flex items-center justify-center min-h-[300px]">
+              <img
+                src={lightboxAttachment.dataUrl}
+                alt={lightboxAttachment.title}
+                className="max-w-full max-h-[70vh] object-contain shadow-lg rounded-lg border border-slate-300 bg-white"
+              />
+            </div>
+            <div className="p-3 bg-white border-t border-slate-200 flex justify-between items-center">
+              <span className="text-xs text-slate-500 font-mono">Format: High-Resolution Processed Scan</span>
+              <button
+                onClick={() => setLightboxAttachment(null)}
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition"
+              >
+                Tutup Pratinjau
               </button>
             </div>
           </div>

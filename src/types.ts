@@ -57,6 +57,19 @@ export type LetterCategory =
   | 'PERMOHONAN'
   | 'CUSTOM';
 
+export interface ScannedAttachment {
+  id: string;
+  title: string;
+  category?: 'Kontrak' | 'Nota / Kwitansi' | 'Lampiran BAST' | 'Surat Jalan' | 'Lainnya';
+  dataUrl?: string;
+  imageDataUrl?: string;
+  pageNumber?: number;
+  scannedAt: string;
+  fileSizeKb?: number;
+  notes?: string;
+  filterUsed?: 'normal' | 'bw' | 'magic' | 'contrast';
+}
+
 export interface OfficialLetter {
   id: string;
   letterNumber: string;
@@ -82,6 +95,8 @@ export interface OfficialLetter {
   showStamp: boolean;
   showQrCode?: boolean;
   qrCodeValue?: string;
+  // Scanned Physical Attachments (Camera Scan)
+  scannedAttachments?: ScannedAttachment[];
   // Status
   status: 'Draft' | 'Diterbitkan' | 'Arsip';
   createdAt: string;

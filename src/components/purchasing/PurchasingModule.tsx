@@ -374,8 +374,6 @@ export const PurchasingModule: React.FC<PurchasingModuleProps> = ({
         </div>
       )}
 
-      <PrintSignature note="Laporan Rekapitulasi Purchase Order & Pengadaan Material Proyek" />
-
       {/* Modal Cetak PO Document Printable */}
       {selectedPoForPrint && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-6 overflow-hidden">

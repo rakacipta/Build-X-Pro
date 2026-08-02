@@ -1391,8 +1391,6 @@ export const HrPayrollModule: React.FC<HrPayrollModuleProps> = ({
         </div>
       )}
 
-      <PrintSignature note="Laporan Penggajian (Payroll), Presensi Kehadiran & Lembur Karyawan" />
-
       {/* MODAL PRINT SLIP GAJI */}
       {selectedSlip && (() => {
         const matchedEmp = employees.find(

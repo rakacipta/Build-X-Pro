@@ -37,7 +37,6 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
-import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import { SignatoriesSettings } from './SignatoriesSettings';
 import {
@@ -57,6 +56,7 @@ import {
 
 interface SettingsModuleProps {
   currentRole: UserRole;
+  currentUser?: SystemUser | null;
   companyProfile: CompanyProfile;
   onUpdateCompanyProfile: (profile: CompanyProfile) => void;
   letterhead: LetterheadSettings;
@@ -106,6 +106,7 @@ const PRESET_LOGOS = [
 
 export const SettingsModule: React.FC<SettingsModuleProps> = ({
   currentRole,
+  currentUser,
   companyProfile,
   onUpdateCompanyProfile,
   letterhead,
@@ -116,6 +117,8 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   systemSettings,
   onUpdateSystemSettings,
 }) => {
+  const isSuperAdminEmail = currentUser?.email?.toLowerCase().trim() === 'sr.rcs88@gmail.com';
+
   const [activeTab, setActiveTab] = useState<'company' | 'letterhead' | 'signatories' | 'users' | 'system' | 'audit'>('company');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
@@ -309,6 +312,78 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   });
 
   const isSuperAdmin = currentRole === 'Super Admin' || currentRole === 'Direktur Utama';
+
+  if (!isSuperAdminEmail) {
+    return (
+      <div id="settings-module" className="p-6 md:p-10 max-w-4xl mx-auto space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 sm:p-12 text-white shadow-2xl space-y-6 relative overflow-hidden backdrop-blur-xl">
+          {/* Decorative Lighting */}
+          <div className="absolute -top-20 -right-20 w-80 h-80 bg-rose-600/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center font-bold shrink-0">
+              <Lock className="w-7 h-7" />
+            </div>
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold mb-1">
+                <ShieldAlert className="w-3.5 h-3.5" />
+                <span>Pengaturan Super Admin Terkunci</span>
+              </div>
+              <h2 className="text-2xl font-black text-white tracking-tight">
+                Hak Akses Pengaturan Terbatas
+              </h2>
+            </div>
+          </div>
+
+          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            Menu Pengaturan Sistem, Konfigurasi Profil Perusahaan, Desain Kop Surat Resmi, dan Pengelolaan Otorisasi Pengguna dikunci secara khusus dan hanya dapat diakses oleh akun utama Super Admin:
+          </p>
+
+          <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono text-xs sm:text-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
+                <Mail className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="block text-[10px] text-slate-500 font-sans">Email Resmi Super Admin:</span>
+                <span className="font-bold text-blue-300 text-sm">sr.rcs88@gmail.com</span>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1.5 text-[10px] bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-3 py-1.5 rounded-full font-sans font-bold w-fit">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Otorisasi Utama PT Raka Cipta Seraya
+            </span>
+          </div>
+
+          <div className="pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs text-slate-400">
+            <div className="space-y-1">
+              <div className="text-slate-400">
+                <span className="text-slate-500">Email Akun Anda saat ini: </span>
+                <strong className="text-white font-mono">{currentUser ? currentUser.email : 'Guest / Tidak Terautentikasi'}</strong>
+              </div>
+              <div className="text-slate-400">
+                <span className="text-slate-500">Role Terpasang: </span>
+                <span className="bg-slate-800 text-blue-300 px-2 py-0.5 rounded font-semibold text-[11px]">
+                  {currentUser ? currentUser.role : currentRole}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                alert('Untuk masuk sebagai Super Admin, silakan gunakan tombol Keluar di pojok kanan atas profil akun Anda, lalu masuk dengan email: sr.rcs88@gmail.com');
+              }}
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/30 transition flex items-center justify-center gap-2"
+            >
+              <Lock className="w-4 h-4" />
+              <span>Petunjuk Login Super Admin</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div id="settings-module" className="p-8 space-y-6 bg-slate-50 min-h-screen">
@@ -1637,8 +1712,6 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
           </div>
         </div>
       )}
-
-      <PrintSignature note="Laporan Konfigurasi Sistem, Identitas Perusahaan & Hak Akses ERP" />
 
       {/* USER MODAL (ADD / EDIT) */}
       {isUserModalOpen && (

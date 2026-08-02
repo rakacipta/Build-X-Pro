@@ -17,8 +17,10 @@ import {
   TrendingDown,
   ExternalLink,
   MessageSquare,
+  LogOut,
+  User as UserIcon,
 } from 'lucide-react';
-import { UserRole, AppNotification, ModuleType } from '../types';
+import { UserRole, AppNotification, ModuleType, SystemUser } from '../types';
 import { formatRupiah } from '../utils/formatters';
 import {
   openWhatsappNotification,
@@ -40,6 +42,8 @@ interface HeaderProps {
   onMarkAllNotificationsRead?: () => void;
   onNavigateModule?: (module: ModuleType) => void;
   onSendTestReminder?: () => void;
+  currentUser?: SystemUser | null;
+  onLogout?: () => void;
 }
 
 const ROLES: UserRole[] = [
@@ -74,13 +78,17 @@ export const Header: React.FC<HeaderProps> = ({
   onMarkAllNotificationsRead,
   onNavigateModule,
   onSendTestReminder,
+  currentUser,
+  onLogout,
 }) => {
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [notifFilter, setNotifFilter] = useState<'All' | 'PO' | 'Budget' | 'Unread'>('All');
 
   const notifRef = useRef<HTMLDivElement | null>(null);
   const roleRef = useRef<HTMLDivElement | null>(null);
+  const userRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -89,6 +97,9 @@ export const Header: React.FC<HeaderProps> = ({
       }
       if (roleRef.current && !roleRef.current.contains(event.target as Node)) {
         setShowRoleDropdown(false);
+      }
+      if (userRef.current && !userRef.current.contains(event.target as Node)) {
+        setShowUserDropdown(false);
       }
     };
 
@@ -407,23 +418,113 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
                   Simulasi Akses User Role
                 </div>
-                {ROLES.map((role) => (
+                {ROLES.map((role) => {
+                  const isSuperAdminRole = role === 'Super Admin';
+                  const isAuthorizedSuperAdmin = currentUser?.email?.toLowerCase().trim() === 'sr.rcs88@gmail.com';
+                  const isLockedRole = isSuperAdminRole && !isAuthorizedSuperAdmin;
+
+                  return (
+                    <button
+                      key={role}
+                      onClick={() => {
+                        if (isLockedRole) {
+                          alert(
+                            'Otorisasi Super Admin dan Pengaturan Sistem dikunci khusus untuk akun resmi: sr.rcs88@gmail.com'
+                          );
+                          return;
+                        }
+                        onRoleChange(role);
+                        setShowRoleDropdown(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between transition ${
+                        isLockedRole
+                          ? 'opacity-60 bg-slate-50 cursor-not-allowed hover:bg-slate-100 text-slate-400'
+                          : currentRole === role
+                          ? 'bg-blue-50 text-blue-700 font-bold'
+                          : 'hover:bg-slate-50 text-slate-700'
+                      }`}
+                      title={isLockedRole ? 'Dikunci khusus untuk sr.rcs88@gmail.com' : undefined}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        {role}
+                        {isLockedRole && <Lock className="w-3 h-3 text-rose-500" />}
+                      </span>
+                      {currentRole === role && <UserCheck className="w-3.5 h-3.5 text-blue-600" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* User Account & Logout Menu */}
+          <div className="relative" ref={userRef}>
+            <button
+              onClick={() => setShowUserDropdown(!showUserDropdown)}
+              className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-medium px-2.5 py-1.5 rounded-lg text-white transition shadow-sm"
+              title="Profil Pengguna & Logout"
+            >
+              <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-[11px] shrink-0">
+                {currentUser ? currentUser.name.charAt(0) : 'U'}
+              </div>
+              <div className="text-left hidden md:block max-w-[110px] truncate">
+                <span className="block text-[10px] text-slate-400 leading-none truncate">
+                  {currentUser ? currentUser.email : 'Akun Pengguna'}
+                </span>
+                <span className="font-bold text-white text-xs truncate block">
+                  {currentUser ? currentUser.name : 'User ERP'}
+                </span>
+              </div>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            </button>
+
+            {showUserDropdown && (
+              <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 p-3 space-y-3">
+                <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+                  <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-base shrink-0">
+                    {currentUser ? currentUser.name.charAt(0) : 'U'}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-bold text-xs text-slate-900 truncate">
+                      {currentUser ? currentUser.name : 'Pengguna ERP'}
+                    </h4>
+                    <p className="text-[11px] text-slate-500 truncate">
+                      {currentUser ? currentUser.email : 'user@rakaciptaseraya.co.id'}
+                    </p>
+                    <div className="mt-1 inline-flex items-center gap-1 text-[10px] bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded-md">
+                      <span>{currentRole}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1 text-xs text-slate-600">
+                  <div className="flex items-center justify-between py-1 px-2 rounded-lg bg-slate-50">
+                    <span className="text-slate-400 text-[11px]">Departemen:</span>
+                    <span className="font-semibold text-slate-800 text-[11px]">
+                      {currentUser?.department || 'Operasional ERP'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between py-1 px-2 rounded-lg bg-slate-50">
+                    <span className="text-slate-400 text-[11px]">Status Akun:</span>
+                    <span className="font-semibold text-emerald-600 text-[11px] flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      Aktif
+                    </span>
+                  </div>
+                </div>
+
+                {onLogout && (
                   <button
-                    key={role}
                     onClick={() => {
-                      onRoleChange(role);
-                      setShowRoleDropdown(false);
+                      setShowUserDropdown(false);
+                      onLogout();
                     }}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-50 transition ${
-                      currentRole === role
-                        ? 'bg-blue-50 text-blue-700 font-bold'
-                        : 'text-slate-700'
-                    }`}
+                    className="w-full text-left px-3 py-2 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition flex items-center justify-between mt-2"
                   >
-                    <span>{role}</span>
-                    {currentRole === role && <UserCheck className="w-3.5 h-3.5 text-blue-600" />}
+                    <span>Keluar dari Aplikasi</span>
+                    <LogOut className="w-4 h-4 text-rose-600" />
                   </button>
-                ))}
+                )}
               </div>
             )}
           </div>
