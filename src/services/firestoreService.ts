@@ -28,6 +28,7 @@ import {
   INITIAL_NOTIFICATIONS,
   INITIAL_SUBKON_CONTRACTS,
   INITIAL_SUBKON_OPNAMES,
+  INITIAL_INVOICES,
 } from '../lib/seedData';
 
 const LS_PREFIX = 'buildx_erp_v1_';
@@ -76,6 +77,7 @@ const SEED_MAP: Record<string, any[]> = {
   notifications: INITIAL_NOTIFICATIONS,
   subkon_contracts: INITIAL_SUBKON_CONTRACTS,
   subkon_opnames: INITIAL_SUBKON_OPNAMES,
+  invoices: INITIAL_INVOICES,
 };
 
 // Generic subscribe function with LocalStorage persistence & Firestore sync

@@ -19,6 +19,7 @@ import {
   Settings,
   ShieldCheck,
   FileText,
+  Receipt,
 } from 'lucide-react';
 import { ModuleType } from '../types';
 
@@ -84,6 +85,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       items: [
         { id: 'hr_payroll', label: 'HRD & Payroll', icon: HardHat },
         { id: 'finance', label: 'Finance & Cashflow', icon: Wallet },
+        { id: 'invoicing', label: 'Invoicing & Tagihan', icon: Receipt },
         { id: 'bank_accounts', label: 'Akun Bank Perusahaan', icon: Landmark },
         { id: 'accounting', label: 'Accounting & COA', icon: BookOpenCheck },
       ],

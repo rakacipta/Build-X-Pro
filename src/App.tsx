@@ -12,6 +12,7 @@ import { PurchasingModule } from './components/purchasing/PurchasingModule';
 import { EquipmentModule } from './components/equipment/EquipmentModule';
 import { HrPayrollModule } from './components/hr/HrPayrollModule';
 import { FinanceModule } from './components/finance/FinanceModule';
+import { InvoiceModule } from './components/invoicing/InvoiceModule';
 import { BankAccountsModule } from './components/finance/BankAccountsModule';
 import { AccountingModule } from './components/accounting/AccountingModule';
 import { ApprovalsModule } from './components/approvals/ApprovalsModule';
@@ -48,6 +49,7 @@ import {
   AppNotification,
   SubkonContract,
   SubkonOpname,
+  ProjectInvoice,
 } from './types';
 
 import {
@@ -76,6 +78,7 @@ import {
   INITIAL_NOTIFICATIONS,
   INITIAL_SUBKON_CONTRACTS,
   INITIAL_SUBKON_OPNAMES,
+  INITIAL_INVOICES,
 } from './lib/seedData';
 import { formatRupiah } from './utils/formatters';
 
@@ -158,6 +161,11 @@ export default function App() {
     getStoredData('subkon_opnames', INITIAL_SUBKON_OPNAMES)
   );
 
+  // Invoices State
+  const [invoices, setInvoices] = useState<ProjectInvoice[]>(() =>
+    getStoredData('invoices', INITIAL_INVOICES)
+  );
+
   // Notifications & Alert State
   const [notifications, setNotifications] = useState<AppNotification[]>(() =>
     getStoredData('notifications', INITIAL_NOTIFICATIONS)
@@ -211,6 +219,7 @@ export default function App() {
     const unsubNotifs = subscribeToCollection('notifications', INITIAL_NOTIFICATIONS, setNotifications);
     const unsubSubkon = subscribeToCollection('subkon_contracts', INITIAL_SUBKON_CONTRACTS, setSubkonContracts);
     const unsubOpnames = subscribeToCollection('subkon_opnames', INITIAL_SUBKON_OPNAMES, setSubkonOpnames);
+    const unsubInvoices = subscribeToCollection('invoices', INITIAL_INVOICES, setInvoices);
 
     return () => {
       unsubProjects();
@@ -234,6 +243,7 @@ export default function App() {
       unsubNotifs();
       unsubSubkon();
       unsubOpnames();
+      unsubInvoices();
     };
   }, []);
 
@@ -499,6 +509,61 @@ export default function App() {
     setAhspList(updated);
   };
 
+  // Invoice Handlers
+  const handleSaveInvoice = async (invoice: ProjectInvoice) => {
+    const updated = await saveDocument('invoices', invoice);
+    setInvoices(updated);
+  };
+
+  const handleDeleteInvoice = async (id: string) => {
+    const updated = await deleteDocument<ProjectInvoice>('invoices', id);
+    setInvoices(updated);
+  };
+
+  const handleMarkInvoiceAsPaid = async (
+    invoiceId: string,
+    paymentDetails: {
+      paymentDate: string;
+      account: 'Kas Utama' | 'Kas Proyek' | 'Bank BCA' | 'Bank Mandiri' | 'Petty Cash';
+      paymentRefNo: string;
+      notes?: string;
+    }
+  ) => {
+    const targetInvoice = invoices.find((i) => i.id === invoiceId);
+    if (!targetInvoice) return;
+
+    // Create Cash In finance transaction
+    const newTrxId = `trx-${Date.now()}`;
+    const newTrx: FinanceTransaction = {
+      id: newTrxId,
+      trxNo: paymentDetails.paymentRefNo || `TRX/IN/${new Date().getFullYear()}/${Date.now().toString().slice(-4)}`,
+      type: 'Cash In',
+      account: paymentDetails.account,
+      amount: targetInvoice.totalAmount,
+      category: 'Pembayaran Proyek',
+      description: `Pembayaran Invoice ${targetInvoice.invoiceNumber} - ${targetInvoice.projectName} (${targetInvoice.termName})`,
+      date: paymentDetails.paymentDate,
+      projectId: targetInvoice.projectId,
+      refNo: targetInvoice.invoiceNumber,
+    };
+
+    const updatedFinance = await saveDocument('finance_transactions', newTrx);
+    setFinanceTransactions(updatedFinance);
+
+    // Update invoice status to Paid
+    const updatedInvoice: ProjectInvoice = {
+      ...targetInvoice,
+      status: 'Paid',
+      paymentDate: paymentDetails.paymentDate,
+      paymentRefNo: newTrx.trxNo,
+      financeTransactionId: newTrxId,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const updatedInvoices = await saveDocument('invoices', updatedInvoice);
+    setInvoices(updatedInvoices);
+  };
+
   // Settings Handlers
   const handleSaveSystemUser = async (u: SystemUser) => {
     const updated = await saveDocument('system_users', u);
@@ -751,6 +816,19 @@ export default function App() {
               projects={projects}
               onSaveTransaction={handleSaveFinance}
               onDeleteTransaction={handleDeleteFinance}
+            />
+          )}
+
+          {activeModule === 'invoicing' && (
+            <InvoiceModule
+              invoices={invoices}
+              projects={projects}
+              companyProfile={companyProfile}
+              letterhead={letterhead}
+              onSaveInvoice={handleSaveInvoice}
+              onDeleteInvoice={handleDeleteInvoice}
+              onMarkInvoiceAsPaid={handleMarkInvoiceAsPaid}
+              onTriggerNotification={handleTriggerNotification}
             />
           )}
 

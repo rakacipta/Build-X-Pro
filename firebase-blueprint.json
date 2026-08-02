@@ -65,6 +65,33 @@
       "properties": {
         "id": { "type": "string" }
       }
+    },
+    "invoices": {
+      "title": "Invoices",
+      "description": "Tagihan & Termijn Invoice Proyek",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "projectId": { "type": "string" },
+        "status": { "type": "string" }
+      }
+    },
+    "subkon_contracts": {
+      "title": "Subkon Contracts",
+      "description": "Kontrak Subkon & SPK Borongan",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" }
+      }
+    },
+    "subkon_opnames": {
+      "title": "Subkon Opnames",
+      "description": "Opname Kemajuan Fisik Subkon",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" }
+      }
     }
   }
 }

@@ -36,6 +36,7 @@ export type ModuleType =
   | 'equipment'
   | 'hr_payroll'
   | 'finance'
+  | 'invoicing'
   | 'bank_accounts'
   | 'accounting'
   | 'approvals'
@@ -481,6 +482,42 @@ export interface FinanceTransaction {
   date: string;
   projectId?: string;
   refNo?: string;
+}
+
+export interface InvoiceItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  subtotal: number;
+}
+
+export interface ProjectInvoice {
+  id: string;
+  invoiceNumber: string;
+  projectId: string;
+  projectName: string;
+  clientName: string;
+  termName: string;
+  issueDate: string;
+  dueDate: string;
+  items: InvoiceItem[];
+  subtotal: number;
+  taxPct: number;
+  taxAmount: number;
+  retentionDeduction?: number;
+  dpDeduction?: number;
+  totalAmount: number;
+  notes?: string;
+  bankAccountId?: string;
+  bankAccountDetails?: string;
+  status: 'Draft' | 'Sent' | 'Paid' | 'Overdue' | 'Cancelled';
+  paymentDate?: string;
+  paymentRefNo?: string;
+  financeTransactionId?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // --- ACCOUNTING & COA ---
