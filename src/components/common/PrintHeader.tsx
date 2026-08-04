@@ -19,7 +19,7 @@ export const PrintHeader: React.FC<PrintHeaderProps> = ({
   docNumber,
   companyProfile: companyProfileProp,
   letterhead: letterheadProp,
-  alwaysVisible = true,
+  alwaysVisible = false,
   className = '',
 }) => {
   const profile = companyProfileProp || getStoredData<CompanyProfile>('company_profile', INITIAL_COMPANY_PROFILE);

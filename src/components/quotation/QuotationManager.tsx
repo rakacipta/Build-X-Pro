@@ -755,7 +755,7 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
                 subtitle={`Nomor SPH: ${selectedQuotationForPrint.quotationNo} | Tanggal: ${selectedQuotationForPrint.date}`}
                 companyProfile={companyProfile}
                 letterhead={letterheadSettings}
-                alwaysVisible={true}
+                alwaysVisible={false}
               />
 
               {/* Document Reference Info & Recipient */}

@@ -132,6 +132,21 @@ export async function generatePdfFromElement({
         return false;
       },
       onclone: (clonedDoc) => {
+        // 0. Ensure print-only elements (e.g. PrintHeader with 'hidden print:block') are unhidden in clonedDoc for PDF export
+        const printOnlyElements = clonedDoc.querySelectorAll('[class*="print:block"], [class*="print:flex"], [class*="print:grid"]');
+        printOnlyElements.forEach((el) => {
+          if (el instanceof HTMLElement) {
+            el.classList.remove('hidden');
+            if (el.className.includes('print:flex')) {
+              el.style.display = 'flex';
+            } else if (el.className.includes('print:grid')) {
+              el.style.display = 'grid';
+            } else {
+              el.style.display = 'block';
+            }
+          }
+        });
+
         // 1. Process all <style> elements in clonedDoc
         const styleElements = clonedDoc.querySelectorAll('style');
         styleElements.forEach((styleEl) => {
