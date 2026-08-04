@@ -137,6 +137,7 @@ export interface DocumentSignatory {
   division?: string;
   nipOrNik?: string;
   isDefault?: boolean;
+  employeeId?: string;
 }
 
 export interface CompanyProfile {

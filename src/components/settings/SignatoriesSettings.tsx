@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   PenTool,
   Plus,
@@ -12,11 +12,20 @@ import {
   X,
   Award,
   Info,
+  RefreshCw,
+  Users,
+  Link2,
 } from 'lucide-react';
 import { DocumentSignatory } from '../../types';
 import { PrintSignature } from '../common/PrintSignature';
 import { getStoredData, setStoredData } from '../../services/firestoreService';
 import { INITIAL_SIGNATORIES } from '../../lib/seedData';
+import {
+  getRegisteredPeople,
+  determineRoleType,
+  syncSignatoriesWithEmployees,
+  RegisteredPerson,
+} from '../../utils/signatorySync';
 
 interface SignatoriesSettingsProps {
   onNotify?: (msg: string) => void;
@@ -29,6 +38,7 @@ export const SignatoriesSettings: React.FC<SignatoriesSettingsProps> = ({
     getStoredData('document_signatories', INITIAL_SIGNATORIES)
   );
 
+  const [registeredPeople, setRegisteredPeople] = useState<RegisteredPerson[]>([]);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -41,11 +51,28 @@ export const SignatoriesSettings: React.FC<SignatoriesSettingsProps> = ({
     division: '',
     nipOrNik: '',
     isDefault: false,
+    employeeId: '',
   });
+
+  useEffect(() => {
+    setRegisteredPeople(getRegisteredPeople());
+  }, [signatories]);
 
   const saveToStorage = (updated: DocumentSignatory[]) => {
     setSignatories(updated);
     setStoredData('document_signatories', updated);
+  };
+
+  const handleSyncEmployees = () => {
+    const { signatories: updated, addedCount, updatedCount } = syncSignatoriesWithEmployees();
+    setSignatories(updated);
+    if (addedCount === 0 && updatedCount === 0) {
+      onNotify('Daftar penandatangan sudah 100% selaras dengan Master Karyawan & User.');
+    } else {
+      onNotify(
+        `Sinkronisasi Berhasil! ${addedCount} penandatangan ditambahkan & ${updatedCount} diperbarui dari Master Karyawan.`
+      );
+    }
   };
 
   const handleOpenAddModal = () => {
@@ -57,6 +84,7 @@ export const SignatoriesSettings: React.FC<SignatoriesSettingsProps> = ({
       division: 'Operasional',
       nipOrNik: '',
       isDefault: false,
+      employeeId: '',
     });
     setIsModalOpen(true);
   };
@@ -70,8 +98,25 @@ export const SignatoriesSettings: React.FC<SignatoriesSettingsProps> = ({
       division: sig.division || '',
       nipOrNik: sig.nipOrNik || '',
       isDefault: !!sig.isDefault,
+      employeeId: sig.employeeId || '',
     });
     setIsModalOpen(true);
+  };
+
+  const handleSelectEmployee = (personId: string) => {
+    if (!personId) return;
+    const person = registeredPeople.find((p) => p.id === personId);
+    if (person) {
+      setFormData({
+        ...formData,
+        name: person.name,
+        title: person.title,
+        division: person.division,
+        nipOrNik: person.nipOrNik,
+        employeeId: person.id,
+        roleType: determineRoleType(person.title),
+      });
+    }
   };
 
   const handleDelete = (id: string, name: string) => {
@@ -113,9 +158,9 @@ export const SignatoriesSettings: React.FC<SignatoriesSettingsProps> = ({
             division: formData.division,
             nipOrNik: formData.nipOrNik,
             isDefault: formData.isDefault,
+            employeeId: formData.employeeId,
           };
         }
-        // If this one is set as default, unset others with same roleType
         if (formData.isDefault && s.roleType === formData.roleType) {
           return { ...s, isDefault: false };
         }
@@ -131,6 +176,7 @@ export const SignatoriesSettings: React.FC<SignatoriesSettingsProps> = ({
         division: formData.division,
         nipOrNik: formData.nipOrNik,
         isDefault: formData.isDefault,
+        employeeId: formData.employeeId,
       };
 
       if (formData.isDefault) {
@@ -161,6 +207,9 @@ export const SignatoriesSettings: React.FC<SignatoriesSettingsProps> = ({
   const preparedCount = signatories.filter((s) => s.roleType === 'Disiapkan').length;
   const verifiedCount = signatories.filter((s) => s.roleType === 'Diverifikasi').length;
   const approvedCount = signatories.filter((s) => s.roleType === 'Disetujui').length;
+  const syncedWithEmpCount = signatories.filter(
+    (s) => s.employeeId || registeredPeople.some((p) => p.name.toLowerCase() === s.name.toLowerCase())
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -172,16 +221,25 @@ export const SignatoriesSettings: React.FC<SignatoriesSettingsProps> = ({
           </div>
           <h3 className="text-lg font-bold">Pengaturan Penandatangan Dokumen Resmi</h3>
           <p className="text-xs text-slate-300 max-w-2xl">
-            Atur dan kelola daftar pejabat / staf penandatangan untuk dokumen PDF (Kop Surat, Purchase Order, Penawaran, Laporan Proyek, Slip Gaji, dll). Anda dapat merubah, menambah, atau menghapus nama penandatangan secara permanen.
+            Atur dan kelola daftar pejabat / staf penandatangan untuk dokumen PDF (Kop Surat, Purchase Order, Penawaran, Laporan Proyek, Slip Gaji, dll). Tersinkronisasi penuh dengan Daftar Master Karyawan terdaftar.
           </p>
         </div>
 
-        <button
-          onClick={handleOpenAddModal}
-          className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg transition shrink-0"
-        >
-          <Plus className="w-4 h-4" /> Tambah Penandatangan
-        </button>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <button
+            onClick={handleSyncEmployees}
+            className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-md transition"
+            title="Tarik data nama dan jabatan dari Master Karyawan secara otomatis"
+          >
+            <RefreshCw className="w-4 h-4" /> Sinkronkan Karyawan
+          </button>
+          <button
+            onClick={handleOpenAddModal}
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg transition"
+          >
+            <Plus className="w-4 h-4" /> Tambah Manual
+          </button>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -189,7 +247,10 @@ export const SignatoriesSettings: React.FC<SignatoriesSettingsProps> = ({
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
             <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Penandatangan</p>
-            <p className="text-2xl font-black text-slate-900 mt-1">{signatories.length}</p>
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className="text-2xl font-black text-slate-900">{signatories.length}</span>
+              <span className="text-[10px] text-emerald-600 font-bold">({syncedWithEmpCount} Terhubung Karyawan)</span>
+            </div>
           </div>
           <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
             <UserCheck className="w-5 h-5" />
@@ -267,6 +328,7 @@ export const SignatoriesSettings: React.FC<SignatoriesSettingsProps> = ({
                 <th className="p-3">Jabatan & Divisi</th>
                 <th className="p-3">Role Otorisasi</th>
                 <th className="p-3">NIP / Kode</th>
+                <th className="p-3 text-center">Status Master Karyawan</th>
                 <th className="p-3 text-center">Status Default</th>
                 <th className="p-3 text-right">Aksi Modifikasi</th>
               </tr>
@@ -274,86 +336,104 @@ export const SignatoriesSettings: React.FC<SignatoriesSettingsProps> = ({
             <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
               {filteredSignatories.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-400 italic">
+                  <td colSpan={7} className="p-8 text-center text-slate-400 italic">
                     Tidak ada data penandatangan dokumen yang ditemukan.
                   </td>
                 </tr>
               ) : (
-                filteredSignatories.map((sig) => (
-                  <tr key={sig.id} className="hover:bg-slate-50/80 transition">
-                    <td className="p-3 font-bold text-slate-900">
-                      <div className="flex items-center gap-2">
-                        <span className="w-8 h-8 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-black text-xs shrink-0">
-                          {sig.name.charAt(0)}
-                        </span>
-                        <div>
-                          <p className="font-bold text-slate-900">{sig.name}</p>
-                          <p className="text-[10px] text-slate-500 font-mono">{sig.nipOrNik || 'NIP: -'}</p>
+                filteredSignatories.map((sig) => {
+                  const isLinkedToEmployee =
+                    !!sig.employeeId ||
+                    registeredPeople.some((p) => p.name.toLowerCase() === sig.name.toLowerCase());
+
+                  return (
+                    <tr key={sig.id} className="hover:bg-slate-50/80 transition">
+                      <td className="p-3 font-bold text-slate-900">
+                        <div className="flex items-center gap-2">
+                          <span className="w-8 h-8 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-black text-xs shrink-0">
+                            {sig.name.charAt(0)}
+                          </span>
+                          <div>
+                            <p className="font-bold text-slate-900">{sig.name}</p>
+                            <p className="text-[10px] text-slate-500 font-mono">{sig.nipOrNik || 'NIP: -'}</p>
+                          </div>
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    <td className="p-3">
-                      <p className="font-semibold text-slate-800">{sig.title}</p>
-                      <p className="text-[10px] text-slate-500">{sig.division || 'Umum'}</p>
-                    </td>
+                      <td className="p-3">
+                        <p className="font-semibold text-slate-800">{sig.title}</p>
+                        <p className="text-[10px] text-slate-500">{sig.division || 'Umum'}</p>
+                      </td>
 
-                    <td className="p-3">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                          sig.roleType === 'Disetujui'
-                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                            : sig.roleType === 'Diverifikasi'
-                            ? 'bg-purple-100 text-purple-800 border border-purple-300'
-                            : sig.roleType === 'Disiapkan'
-                            ? 'bg-blue-100 text-blue-800 border border-blue-300'
-                            : 'bg-slate-100 text-slate-700 border border-slate-300'
-                        }`}
-                      >
-                        {sig.roleType}
-                      </span>
-                    </td>
-
-                    <td className="p-3 font-mono text-slate-600 text-[11px]">
-                      {sig.nipOrNik || '-'}
-                    </td>
-
-                    <td className="p-3 text-center">
-                      {sig.isDefault ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-800 rounded-md text-[10px] font-bold border border-amber-300">
-                          <CheckCircle2 className="w-3 h-3 text-amber-600" /> Utama (Default)
+                      <td className="p-3">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                            sig.roleType === 'Disetujui'
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              : sig.roleType === 'Diverifikasi'
+                              ? 'bg-purple-100 text-purple-800 border border-purple-300'
+                              : sig.roleType === 'Disiapkan'
+                              ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                              : 'bg-slate-100 text-slate-700 border border-slate-300'
+                          }`}
+                        >
+                          {sig.roleType}
                         </span>
-                      ) : (
-                        <button
-                          onClick={() => handleSetDefault(sig)}
-                          className="text-[10px] font-bold text-slate-400 hover:text-slate-700 underline"
-                          title="Klik untuk menjadikan default untuk kategori ini"
-                        >
-                          Atur sbg Utama
-                        </button>
-                      )}
-                    </td>
+                      </td>
 
-                    <td className="p-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => handleOpenEditModal(sig)}
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                          title="Ubah Penandatangan"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(sig.id, sig.name)}
-                          className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                          title="Hapus Penandatangan"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      <td className="p-3 font-mono text-slate-600 text-[11px]">
+                        {sig.nipOrNik || '-'}
+                      </td>
+
+                      <td className="p-3 text-center">
+                        {isLinkedToEmployee ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md text-[10px] font-bold">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Terhubung Karyawan
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-600 border border-slate-200 rounded-md text-[10px] font-medium">
+                            Eksternal / Manual
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="p-3 text-center">
+                        {sig.isDefault ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-800 rounded-md text-[10px] font-bold border border-amber-300">
+                            <CheckCircle2 className="w-3 h-3 text-amber-600" /> Utama (Default)
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handleSetDefault(sig)}
+                            className="text-[10px] font-bold text-slate-400 hover:text-slate-700 underline"
+                            title="Klik untuk menjadikan default untuk kategori ini"
+                          >
+                            Atur sbg Utama
+                          </button>
+                        )}
+                      </td>
+
+                      <td className="p-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => handleOpenEditModal(sig)}
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                            title="Ubah Penandatangan"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(sig.id, sig.name)}
+                            className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                            title="Hapus Penandatangan"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -392,7 +472,7 @@ export const SignatoriesSettings: React.FC<SignatoriesSettingsProps> = ({
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-900 text-base">
-                    {editingSignatory ? 'Ubah Penandatangan' : 'Tambah Penandatangan Baru'}
+                    {editingSignatory ? 'Ubah Penandatangan' : 'Tambah Penandatangan'}
                   </h3>
                   <p className="text-xs text-slate-500">
                     Lengkapi profil pejabat / staf penandatangan dokumen PDF
@@ -408,6 +488,29 @@ export const SignatoriesSettings: React.FC<SignatoriesSettingsProps> = ({
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+              {/* SELECT FROM REGISTERED EMPLOYEES */}
+              <div className="p-3 bg-blue-50/70 border border-blue-200/80 rounded-xl space-y-1.5">
+                <label className="font-bold text-blue-900 flex items-center gap-1.5 text-xs">
+                  <Users className="w-4 h-4 text-blue-600" />
+                  <span>Pilih Dari Daftar Master Karyawan Terdaftar:</span>
+                </label>
+                <select
+                  onChange={(e) => handleSelectEmployee(e.target.value)}
+                  defaultValue=""
+                  className="w-full border border-blue-300 rounded-lg p-2 font-medium text-slate-900 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-xs"
+                >
+                  <option value="">-- Pilih Karyawan Terdaftar (Otomatis Isi Data) --</option>
+                  {registeredPeople.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} — {p.title} ({p.division})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-blue-700 italic">
+                  *Memilih karyawan akan otomatis mengisi nama lengkap, jabatan, divisi, NIK, dan role penandatangan.
+                </p>
+              </div>
+
               <div>
                 <label className="block font-bold text-slate-700 mb-1">
                   Nama Lengkap Pejabat & Gelar <span className="text-rose-500">*</span>

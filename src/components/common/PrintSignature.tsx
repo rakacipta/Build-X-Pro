@@ -46,10 +46,10 @@ export const PrintSignature: React.FC<PrintSignatureProps> = ({
   const finalCity = city || profile.city || 'Jakarta';
   const finalDirector = directorName || defaultApproved?.name || profile.directorName || 'Ir. Hendra Wijaya, MM';
   const finalDirectorTitle = directorTitle || defaultApproved?.title || profile.directorTitle || 'Direktur Utama';
-  const finalVerifiedBy = verifiedBy || defaultVerified?.name || profile.financeManager || 'Sari Rahmawati, SE, Ak';
-  const finalVerifiedJobTitle = defaultVerified?.title || 'Manajer Keuangan & Akuntansi';
-  const finalPreparedBy = preparedBy || defaultPrepared?.name || 'System Administrator ERP';
-  const finalPreparedJobTitle = defaultPrepared?.title || 'Staff / Operational ERP';
+  const finalVerifiedBy = verifiedBy || defaultVerified?.name || profile.financeManager || 'Siti Aminah, SE';
+  const finalVerifiedJobTitle = defaultVerified?.title || 'Finance Manager';
+  const finalPreparedBy = preparedBy || defaultPrepared?.name || 'Ir. Budi Santoso, MT';
+  const finalPreparedJobTitle = defaultPrepared?.title || 'Project Manager Utama';
 
   const formattedDate = dateStr || new Date().toLocaleDateString('id-ID', {
     day: 'numeric',
