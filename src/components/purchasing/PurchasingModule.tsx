@@ -27,6 +27,7 @@ import { PurchaseOrder, CompanyProfile, LetterheadSettings, AppNotification } fr
 import { formatRupiah } from '../../utils/formatters';
 import { getStoredData } from '../../services/firestoreService';
 import { INITIAL_COMPANY_PROFILE, INITIAL_LETTERHEAD } from '../../lib/seedData';
+import { triggerPrintFallback } from '../../utils/pdfGenerator';
 
 interface PurchasingModuleProps {
   purchases: PurchaseOrder[];
@@ -401,12 +402,26 @@ export const PurchasingModule: React.FC<PurchasingModuleProps> = ({
                 >
                   Tutup
                 </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    triggerPrintFallback(
+                      `Purchase Order - ${selectedPoForPrint.poNumber}`,
+                      document.getElementById('po-printable-document')
+                    )
+                  }
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-md transition cursor-pointer active:scale-95 border border-amber-400/50"
+                  title="Cetak langsung melalui dialog printer web browser"
+                >
+                  <Printer className="w-4 h-4 shrink-0" />
+                  <span>Cetak Web (Browser)</span>
+                </button>
                 <CetakPdfButton
                   elementId="po-printable-document"
                   filename={`Purchase_Order_${selectedPoForPrint.poNumber.replace(/[\/\s]/g, '_')}.pdf`}
                   title={`Purchase Order - ${selectedPoForPrint.poNumber}`}
                   variant="emerald"
-                  label="Unduh / Cetak PO (PDF)"
+                  label="Unduh PDF"
                 />
               </div>
             </div>

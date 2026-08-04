@@ -127,6 +127,7 @@ export interface CompanyBank {
   accountNumber: string;
   accountHolder: string;
   branch: string;
+  initialBalance?: number;
 }
 
 export interface DocumentSignatory {

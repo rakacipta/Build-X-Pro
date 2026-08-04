@@ -149,6 +149,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
     accountNumber: '',
     accountHolder: profileForm.name,
     branch: '',
+    initialBalance: 500000000,
   });
 
   // Audit Logs Mock
@@ -239,12 +240,13 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
     const bankItem = {
       id: `bank-${Date.now()}`,
       ...newBank,
+      initialBalance: Number(newBank.initialBalance) || 0,
     };
     const updatedBanks = [...profileForm.banks, bankItem];
     const updatedProfile = { ...profileForm, banks: updatedBanks };
     setProfileForm(updatedProfile);
     onUpdateCompanyProfile(updatedProfile);
-    setNewBank({ bankName: 'Bank BCA', accountNumber: '', accountHolder: profileForm.name, branch: '' });
+    setNewBank({ bankName: 'Bank BCA', accountNumber: '', accountHolder: profileForm.name, branch: '', initialBalance: 500000000 });
     setShowAddBank(false);
     triggerNotification('Rekening Bank Perusahaan berhasil ditambahkan.');
   };
@@ -883,6 +885,17 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                       value={newBank.branch}
                       onChange={(e) => setNewBank({ ...newBank, branch: e.target.value })}
                       className="w-full border border-slate-200 rounded-lg p-2 bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold mb-1">Saldo Awal Rekening (Rp)</label>
+                    <input
+                      type="number"
+                      placeholder="0"
+                      value={newBank.initialBalance}
+                      onChange={(e) => setNewBank({ ...newBank, initialBalance: Number(e.target.value) })}
+                      className="w-full border border-slate-200 rounded-lg p-2 bg-white font-mono font-bold text-emerald-700"
                     />
                   </div>
                 </div>

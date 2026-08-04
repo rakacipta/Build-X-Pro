@@ -44,7 +44,7 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  // Modal State
+  // Modal State for Bank Account Detail
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBank, setEditingBank] = useState<CompanyBank | null>(null);
   const [bankForm, setBankForm] = useState({
@@ -52,7 +52,12 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
     accountNumber: '',
     accountHolder: companyProfile.name,
     branch: '',
+    initialBalance: 0,
   });
+
+  // Modal State for Quick Saldo Edit
+  const [editingBalanceBank, setEditingBalanceBank] = useState<CompanyBank | null>(null);
+  const [newBalanceInput, setNewBalanceInput] = useState<string>('0');
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -66,6 +71,66 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  // Helper to compute base/initial balance of a bank
+  const getBankBaseBalance = (bankOrName: CompanyBank | string): number => {
+    if (typeof bankOrName === 'object') {
+      if (bankOrName.initialBalance !== undefined) return bankOrName.initialBalance;
+      const bankName = bankOrName.bankName;
+      return bankName.toLowerCase().includes('mandiri')
+        ? 1250000000
+        : bankName.toLowerCase().includes('bca')
+        ? 850000000
+        : 500000000;
+    } else {
+      const foundBank = companyProfile.banks.find(
+        (b) => b.bankName.toLowerCase() === bankOrName.toLowerCase() || b.id === bankOrName
+      );
+      if (foundBank && foundBank.initialBalance !== undefined) {
+        return foundBank.initialBalance;
+      }
+      return bankOrName.toLowerCase().includes('mandiri')
+        ? 1250000000
+        : bankOrName.toLowerCase().includes('bca')
+        ? 850000000
+        : 500000000;
+    }
+  };
+
+  // Compute calculated balance per bank account based on transactions
+  const getBankBalance = (bankOrName: CompanyBank | string) => {
+    const bankName = typeof bankOrName === 'object' ? bankOrName.bankName : bankOrName;
+    const bankTrx = transactions.filter(
+      (t) =>
+        t.account.toLowerCase().includes(bankName.toLowerCase()) ||
+        bankName.toLowerCase().includes(t.account.toLowerCase())
+    );
+    const totalIn = bankTrx
+      .filter((t) => t.type === 'Cash In')
+      .reduce((acc, t) => acc + t.amount, 0);
+    const totalOut = bankTrx
+      .filter((t) => t.type === 'Cash Out')
+      .reduce((acc, t) => acc + t.amount, 0);
+
+    const baseBalance = getBankBaseBalance(bankOrName);
+    return baseBalance + totalIn - totalOut;
+  };
+
+  // Get total mutasi (Cash In / Cash Out) per bank account
+  const getBankMutasi = (bankName: string) => {
+    const bankTrx = transactions.filter(
+      (t) =>
+        t.account.toLowerCase().includes(bankName.toLowerCase()) ||
+        bankName.toLowerCase().includes(t.account.toLowerCase())
+    );
+    const totalIn = bankTrx
+      .filter((t) => t.type === 'Cash In')
+      .reduce((acc, t) => acc + t.amount, 0);
+    const totalOut = bankTrx
+      .filter((t) => t.type === 'Cash Out')
+      .reduce((acc, t) => acc + t.amount, 0);
+    return { totalIn, totalOut, netMutasi: totalIn - totalOut };
+  };
+
   const handleOpenModal = (bank?: CompanyBank) => {
     if (bank) {
       setEditingBank(bank);
@@ -74,6 +139,7 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
         accountNumber: bank.accountNumber,
         accountHolder: bank.accountHolder,
         branch: bank.branch,
+        initialBalance: getBankBaseBalance(bank),
       });
     } else {
       setEditingBank(null);
@@ -82,25 +148,55 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
         accountNumber: '',
         accountHolder: companyProfile.name,
         branch: 'KCU Utama',
+        initialBalance: 500000000,
       });
     }
     setIsModalOpen(true);
+  };
+
+  const handleOpenEditBalance = (bank: CompanyBank) => {
+    setEditingBalanceBank(bank);
+    setNewBalanceInput(getBankBaseBalance(bank).toString());
+  };
+
+  const handleSaveBalanceOnly = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBalanceBank) return;
+
+    const parsedVal = parseFloat(newBalanceInput.replace(/[^0-9.-]/g, '')) || 0;
+    if (parsedVal < 0) {
+      alert('Masukkan nominal saldo awal yang valid (>= 0)');
+      return;
+    }
+
+    const updatedBanks = companyProfile.banks.map((b) =>
+      b.id === editingBalanceBank.id ? { ...b, initialBalance: parsedVal } : b
+    );
+
+    onUpdateCompanyProfile({ ...companyProfile, banks: updatedBanks });
+    showToast(`Saldo awal rekening ${editingBalanceBank.bankName} (${editingBalanceBank.accountNumber}) berhasil diperbarui.`);
+    setEditingBalanceBank(null);
   };
 
   const handleSaveBank = (e: React.FormEvent) => {
     e.preventDefault();
     if (!bankForm.accountNumber || !bankForm.accountHolder) return;
 
+    const bankPayload = {
+      ...bankForm,
+      initialBalance: Number(bankForm.initialBalance) || 0,
+    };
+
     let updatedBanks: CompanyBank[];
     if (editingBank) {
       updatedBanks = companyProfile.banks.map((b) =>
-        b.id === editingBank.id ? { ...b, ...bankForm } : b
+        b.id === editingBank.id ? { ...b, ...bankPayload } : b
       );
-      showToast('Data Rekening Bank berhasil diperbarui.');
+      showToast('Data Rekening Bank & Saldo Awal berhasil diperbarui.');
     } else {
       const newBank: CompanyBank = {
         id: `bank-${Date.now()}`,
-        ...bankForm,
+        ...bankPayload,
       };
       updatedBanks = [...companyProfile.banks, newBank];
       showToast('Rekening Bank Perusahaan baru berhasil ditambahkan.');
@@ -120,23 +216,6 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
       onUpdateCompanyProfile({ ...companyProfile, banks: updatedBanks });
       showToast(`Rekening ${bankName} berhasil dihapus.`);
     }
-  };
-
-  // Compute calculated balance per bank account based on transactions
-  const getBankBalance = (bankName: string) => {
-    const bankTrx = transactions.filter(
-      (t) => t.account.toLowerCase().includes(bankName.toLowerCase()) || bankName.toLowerCase().includes(t.account.toLowerCase())
-    );
-    const totalIn = bankTrx
-      .filter((t) => t.type === 'Cash In')
-      .reduce((acc, t) => acc + t.amount, 0);
-    const totalOut = bankTrx
-      .filter((t) => t.type === 'Cash Out')
-      .reduce((acc, t) => acc + t.amount, 0);
-
-    // Initial base seed balance for demonstration
-    const baseBalance = bankName.includes('Mandiri') ? 1250000000 : bankName.includes('BCA') ? 850000000 : 500000000;
-    return baseBalance + totalIn - totalOut;
   };
 
   // State for selecting which registered banks are included in the combined balance calculation
@@ -382,19 +461,34 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {selectedBanksList.map((bank) => {
-              const bal = getBankBalance(bank.bankName);
+              const bal = getBankBalance(bank);
+              const baseBal = getBankBaseBalance(bank);
               const percentage = totalCombinedBalance > 0 ? ((bal / totalCombinedBalance) * 100).toFixed(1) : '0';
 
               return (
-                <div key={bank.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 flex flex-col justify-between hover:bg-slate-100/80 transition">
+                <div key={bank.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 flex flex-col justify-between hover:bg-slate-100/80 transition group relative">
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-extrabold text-slate-900 text-xs">{bank.bankName}</span>
-                      <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200">
-                        {percentage}%
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {isSuperAdmin && (
+                          <button
+                            onClick={() => handleOpenEditBalance(bank)}
+                            className="p-1 text-emerald-700 hover:bg-emerald-100 rounded-md transition"
+                            title="Edit Saldo Awal Rekening"
+                          >
+                            <Wallet className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200">
+                          {percentage}%
+                        </span>
+                      </div>
                     </div>
                     <div className="text-base font-black text-slate-900 font-mono">{formatRupiah(bal)}</div>
+                    <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                      Saldo Awal: <span className="font-semibold text-slate-700">{formatRupiah(baseBal)}</span>
+                    </div>
                   </div>
 
                   <div className="mt-3 space-y-1">
@@ -423,13 +517,15 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
             Daftar Rekening Bank Operasional
           </h3>
           <span className="text-xs text-slate-500 font-medium">
-            Klik nomor rekening untuk menyalin otomatis
+            Klik tombol Edit Saldo untuk memperbarui saldo awal rekening
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {companyProfile.banks.map((bank, index) => {
-            const calculatedBalance = getBankBalance(bank.bankName);
+            const calculatedBalance = getBankBalance(bank);
+            const baseBalance = getBankBaseBalance(bank);
+            const mutasi = getBankMutasi(bank.bankName);
             const isMandiri = bank.bankName.toLowerCase().includes('mandiri');
             const isBca = bank.bankName.toLowerCase().includes('bca');
             const isBni = bank.bankName.toLowerCase().includes('bni');
@@ -437,7 +533,7 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
             return (
               <div
                 key={bank.id}
-                className={`relative rounded-2xl p-6 text-white shadow-xl transition-transform hover:-translate-y-1 overflow-hidden flex flex-col justify-between min-h-[220px] ${
+                className={`relative rounded-2xl p-6 text-white shadow-xl transition-transform hover:-translate-y-1 overflow-hidden flex flex-col justify-between min-h-[240px] ${
                   isMandiri
                     ? 'bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-950 border border-blue-700/50'
                     : isBca
@@ -464,19 +560,29 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1 bg-black/20 backdrop-blur-md rounded-lg p-1 border border-white/10">
+                  <div className="flex items-center gap-1 bg-black/30 backdrop-blur-md rounded-xl p-1 border border-white/15">
+                    {isSuperAdmin && (
+                      <button
+                        onClick={() => handleOpenEditBalance(bank)}
+                        className="px-2 py-1 bg-emerald-500/30 hover:bg-emerald-500/50 text-emerald-200 border border-emerald-400/40 rounded-lg transition flex items-center gap-1 text-[10px] font-bold"
+                        title="Edit Saldo Rekening"
+                      >
+                        <Wallet className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Edit Saldo</span>
+                      </button>
+                    )}
                     <button
                       onClick={() => handleOpenModal(bank)}
                       disabled={!isSuperAdmin}
-                      className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded transition"
-                      title="Edit Rekening"
+                      className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition"
+                      title="Edit Detail Rekening"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
                     </button>
                     {isSuperAdmin && companyProfile.banks.length > 1 && (
                       <button
                         onClick={() => handleDeleteBank(bank.id, bank.bankName)}
-                        className="p-1.5 text-white/60 hover:text-rose-400 hover:bg-white/10 rounded transition"
+                        className="p-1.5 text-white/60 hover:text-rose-400 hover:bg-white/10 rounded-lg transition"
                         title="Hapus Rekening"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -486,8 +592,8 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
                 </div>
 
                 {/* Middle Row: Account Number */}
-                <div className="my-4 relative z-10">
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-white/60 block mb-1">
+                <div className="my-3 relative z-10">
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-white/60 block mb-0.5">
                     Nomor Rekening
                   </span>
                   <div className="flex items-center gap-3">
@@ -508,18 +614,37 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
                   </div>
                 </div>
 
-                {/* Bottom Row: Account Holder & Estimated Balance */}
-                <div className="pt-3 border-t border-white/10 flex items-end justify-between relative z-10 text-xs">
-                  <div>
-                    <span className="text-[9px] font-semibold text-white/60 block uppercase">Atas Nama (Owner)</span>
-                    <span className="font-bold text-white uppercase text-[11px]">{bank.accountHolder}</span>
+                {/* Bottom Row: Account Holder, Saldo Awal & Estimated Balance */}
+                <div className="pt-3 border-t border-white/10 relative z-10 text-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[9px] font-semibold text-white/60 block uppercase">Atas Nama (Owner)</span>
+                      <span className="font-bold text-white uppercase text-[11px]">{bank.accountHolder}</span>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[9px] font-semibold text-white/60 block uppercase">Saldo Awal (Base)</span>
+                      <span className="font-mono font-extrabold text-white/90 text-xs">
+                        {formatRupiah(baseBalance)}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="text-right">
-                    <span className="text-[9px] font-semibold text-white/60 block uppercase">Estimasi Saldo</span>
-                    <span className="font-mono font-black text-emerald-300 text-sm">
-                      {formatRupiah(calculatedBalance)}
-                    </span>
+                  <div className="flex items-center justify-between bg-black/20 p-2 rounded-xl border border-white/10 text-[11px]">
+                    <div>
+                      <span className="text-[9px] text-slate-300 block">Total Saldo Akhir Berjalan:</span>
+                      <span className="font-mono font-black text-emerald-300 text-sm">
+                        {formatRupiah(calculatedBalance)}
+                      </span>
+                    </div>
+                    {isSuperAdmin && (
+                      <button
+                        onClick={() => handleOpenEditBalance(bank)}
+                        className="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white rounded-lg font-bold text-[10px] transition flex items-center gap-1 border border-white/10"
+                      >
+                        <Edit3 className="w-3 h-3 text-emerald-300" /> Edit Saldo
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -619,6 +744,119 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
 
       <PrintSignature note="Laporan Rekening Perusahaan & Saldo Kas Perbankan" />
 
+      {/* Quick Edit Saldo Modal */}
+      {editingBalanceBank && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-emerald-100 text-emerald-800 rounded-xl">
+                  <Wallet className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-sm uppercase">
+                    Edit Saldo Rekening Bank
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    {editingBalanceBank.bankName} • {editingBalanceBank.accountNumber}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingBalanceBank(null)}
+                className="text-slate-400 hover:text-slate-600 text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveBalanceOnly} className="space-y-4 text-xs">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1.5">
+                <div className="flex justify-between text-slate-600 font-medium">
+                  <span>Pemilik Rekening:</span>
+                  <span className="font-bold text-slate-900">{editingBalanceBank.accountHolder}</span>
+                </div>
+                <div className="flex justify-between text-slate-600 font-medium">
+                  <span>Kantor Cabang:</span>
+                  <span className="font-bold text-slate-900">{editingBalanceBank.branch || 'KCU Utama'}</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-extrabold text-slate-800 mb-1 uppercase text-[10px] tracking-wider">
+                  Nominal Saldo Awal / Pembukaan Rekening (Rp)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 font-bold text-slate-400 text-sm">Rp</span>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    step="1000"
+                    value={newBalanceInput}
+                    onChange={(e) => setNewBalanceInput(e.target.value)}
+                    className="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono text-base font-black text-emerald-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="0"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Saldo awal ini akan dijumlahkan dengan total mutasi kas masuk/keluar pada rekening.
+                </p>
+              </div>
+
+              {/* Realtime Breakdown */}
+              {(() => {
+                const mutasi = getBankMutasi(editingBalanceBank.bankName);
+                const baseVal = Number(newBalanceInput) || 0;
+                const totalProj = baseVal + mutasi.netMutasi;
+
+                return (
+                  <div className="p-3.5 bg-emerald-50/80 rounded-xl border border-emerald-200 space-y-2 text-slate-800">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 border-b border-emerald-200 pb-1 flex items-center justify-between">
+                      <span>Kalkulasi Saldo Akhir Berjalan</span>
+                      <span className="font-mono">{editingBalanceBank.bankName}</span>
+                    </div>
+                    <div className="flex justify-between font-mono text-xs">
+                      <span className="text-slate-600">Saldo Awal Baru:</span>
+                      <span className="font-bold text-slate-900">{formatRupiah(baseVal)}</span>
+                    </div>
+                    <div className="flex justify-between font-mono text-xs">
+                      <span className="text-slate-600">Total Cash In (Masuk):</span>
+                      <span className="font-bold text-emerald-600">+{formatRupiah(mutasi.totalIn)}</span>
+                    </div>
+                    <div className="flex justify-between font-mono text-xs">
+                      <span className="text-slate-600">Total Cash Out (Keluar):</span>
+                      <span className="font-bold text-rose-600">-{formatRupiah(mutasi.totalOut)}</span>
+                    </div>
+                    <div className="flex justify-between font-mono text-sm font-black border-t border-emerald-200 pt-1.5 text-emerald-950">
+                      <span>Proyeksi Saldo Akhir:</span>
+                      <span className="text-emerald-700">{formatRupiah(totalProj)}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingBalanceBank(null)}
+                  className="px-4 py-2 text-slate-600 font-semibold hover:bg-slate-100 rounded-xl"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl shadow-md transition flex items-center gap-1.5"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  Simpan Saldo
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Bank Account Modal Form */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -684,6 +922,18 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
                   value={bankForm.branch}
                   onChange={(e) => setBankForm({ ...bankForm, branch: e.target.value })}
                   className="w-full border border-slate-200 rounded-xl p-2.5 text-slate-800"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Saldo Awal / Modal Dasar Rekening (Rp)</label>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={bankForm.initialBalance}
+                  onChange={(e) => setBankForm({ ...bankForm, initialBalance: Number(e.target.value) })}
+                  className="w-full border border-slate-200 rounded-xl p-2.5 font-mono font-bold text-emerald-700 bg-slate-50"
                 />
               </div>
 
