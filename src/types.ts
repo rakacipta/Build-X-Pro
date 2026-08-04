@@ -541,6 +541,7 @@ export interface JournalEntry {
   accountName: string;
   debit: number;
   credit: number;
+  source?: 'Finance' | 'Invoice' | 'PO' | 'Payroll' | 'Manual' | string;
 }
 
 // --- APPROVAL WORKFLOW & NOTIFICATIONS ---

@@ -495,6 +495,16 @@ export default function App() {
     setFinanceTransactions(updated);
   };
 
+  const handleSaveJournal = async (jrn: JournalEntry) => {
+    const updated = await saveDocument('journals', jrn);
+    setJournals(updated);
+  };
+
+  const handleSaveCoa = async (coa: ChartOfAccount) => {
+    const updated = await saveDocument('coa', coa);
+    setCoaList(updated);
+  };
+
   const handleSaveRabItem = async (r: RABItem) => {
     const updated = await saveDocument('rab_items', r);
     setRabItems(updated);
@@ -842,7 +852,17 @@ export default function App() {
           )}
 
           {activeModule === 'accounting' && (
-            <AccountingModule coaList={coaList} journals={journals} onSaveJournal={() => {}} />
+            <AccountingModule
+              coaList={coaList}
+              journals={journals}
+              financeTransactions={financeTransactions}
+              companyProfile={companyProfile}
+              invoices={invoices}
+              purchases={purchases}
+              payrollSlips={payrollSlips}
+              onSaveJournal={handleSaveJournal}
+              onSaveCoa={handleSaveCoa}
+            />
           )}
 
           {activeModule === 'approvals' && (
