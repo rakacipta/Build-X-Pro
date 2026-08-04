@@ -591,12 +591,12 @@ export const PurchasingModule: React.FC<PurchasingModuleProps> = ({
 
               {/* Signatures */}
               <PrintSignature
-                preparedBy={selectedPoForPrint.requestedBy || 'Tim Purchasing'}
-                preparedTitle="Staff Bagian Pengadaan"
+                preparedBy={selectedPoForPrint.requestedBy}
+                preparedTitle={selectedPoForPrint.requestedBy ? "Staff Bagian Pengadaan" : undefined}
                 verifiedBy={selectedPoForPrint.vendorName || 'Perwakilan Vendor'}
                 verifiedTitle="Konfirmasi Supplier / Vendor"
-                directorName={selectedPoForPrint.approvedBy || 'Ir. Hendra Wijaya, MM'}
-                directorTitle={selectedPoForPrint.signatoryTitle || 'Direktur Utama'}
+                directorName={selectedPoForPrint.approvedBy}
+                directorTitle={selectedPoForPrint.signatoryTitle}
                 signatureUrl={selectedPoForPrint.signatureUrl}
                 note="Dokumen Purchase Order Sah & Disetujui Secara Digital oleh Direksi"
               />
