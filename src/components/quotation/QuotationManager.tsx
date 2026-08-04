@@ -45,6 +45,7 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingQuotation, setEditingQuotation] = useState<Partial<Quotation> | null>(null);
   const [selectedQuotationForPrint, setSelectedQuotationForPrint] = useState<Quotation | null>(null);
+  const [showKopInPreview, setShowKopInPreview] = useState(true);
 
   const companyProfile = getStoredData<CompanyProfile>('company_profile', INITIAL_COMPANY_PROFILE);
   const letterheadSettings =
@@ -368,10 +369,11 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
                         <div className="flex items-center justify-center gap-1.5">
                           <button
                             onClick={() => setSelectedQuotationForPrint(q)}
-                            className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg transition-colors border border-amber-200"
-                            title="Cetak PDF Surat Penawaran"
+                            className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg transition-colors border border-emerald-200 flex items-center gap-1 text-xs font-bold shadow-xs"
+                            title="Pratinjau & Cetak Dokumen SPH"
                           >
-                            <Printer className="w-3.5 h-3.5" />
+                            <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Preview</span>
                           </button>
                           <button
                             onClick={() => handleEdit(q)}
@@ -719,28 +721,51 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
         </div>
       )}
 
-      {/* PRINTABLE QUOTATION MODAL */}
+      {/* PRINTABLE / PREVIEW QUOTATION MODAL */}
       {selectedQuotationForPrint && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-6 overflow-y-auto">
-          <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden my-auto border border-slate-300 flex flex-col max-h-[95vh]">
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-6 overflow-y-auto">
+          <div className="bg-slate-900 w-full max-w-5xl rounded-2xl shadow-2xl overflow-hidden my-auto border border-slate-800 flex flex-col max-h-[95vh]">
             {/* Toolbar Top */}
-            <div className="p-3 bg-slate-900 text-white flex items-center justify-between print:hidden">
+            <div className="p-3 bg-slate-900 border-b border-slate-800 text-white flex flex-wrap items-center justify-between gap-2 print:hidden">
               <div className="flex items-center gap-2">
-                <Printer className="w-4 h-4 text-amber-400" />
-                <span className="font-bold text-xs">
-                  Pratinjau Dokumen SPH: {selectedQuotationForPrint.quotationNo}
+                <Eye className="w-4 h-4 text-emerald-400" />
+                <span className="font-bold text-xs sm:text-sm text-slate-100">
+                  Pratinjau Surat Penawaran Harga (SPH): <span className="font-mono text-emerald-400">{selectedQuotationForPrint.quotationNo}</span>
                 </span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => setShowKopInPreview(!showKopInPreview)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all border ${
+                    showKopInPreview
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+                      : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
+                  }`}
+                  title="Tampilkan / Sembunyikan Kop Surat untuk cetak kertas A4 bergambar"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>{showKopInPreview ? 'Kop Surat: Aktif' : 'Tanpa Kop Surat'}</span>
+                </button>
+
                 <CetakPdfButton
                   elementId="quotation-printable-document"
                   filename={`Surat_Penawaran_Harga_${selectedQuotationForPrint.quotationNo.replace(/[/]/g, '_')}.pdf`}
                   title={`Surat Penawaran Harga - ${selectedQuotationForPrint.companyName}`}
                   variant="amber"
                 />
+
+                <button
+                  onClick={() => window.print()}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors"
+                  title="Cetak langsung menggunakan printer browser"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Cetak (Print)</span>
+                </button>
+
                 <button
                   onClick={() => setSelectedQuotationForPrint(null)}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold"
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold border border-slate-700 transition-colors"
                 >
                   Tutup
                 </button>
@@ -748,131 +773,149 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
             </div>
 
             {/* Document Printable View Container */}
-            <div className="overflow-y-auto p-6 sm:p-10 bg-white" id="quotation-printable-document">
-              {/* Kop Surat Header */}
-              <PrintHeader
-                title="SURAT PENAWARAN HARGA (QUOTATION)"
-                subtitle={`Nomor SPH: ${selectedQuotationForPrint.quotationNo} | Tanggal: ${selectedQuotationForPrint.date}`}
-                companyProfile={companyProfile}
-                letterhead={letterheadSettings}
-                alwaysVisible={false}
-              />
+            <div className="overflow-y-auto p-4 sm:p-8 bg-slate-200/80 flex-1 flex justify-center">
+              <div
+                className="bg-white w-full max-w-[210mm] shadow-2xl rounded-sm p-6 sm:p-10 border border-slate-300 text-slate-900 font-sans text-xs min-h-[297mm] flex flex-col justify-between"
+                id="quotation-printable-document"
+              >
+                <div>
+                  {/* Kop Surat Header */}
+                  {showKopInPreview ? (
+                    <PrintHeader
+                      title="SURAT PENAWARAN HARGA (QUOTATION)"
+                      subtitle={`Nomor SPH: ${selectedQuotationForPrint.quotationNo} | Tanggal: ${selectedQuotationForPrint.date}`}
+                      companyProfile={companyProfile}
+                      letterhead={letterheadSettings}
+                      alwaysVisible={true}
+                    />
+                  ) : (
+                    <div className="text-center border-b-2 border-slate-900 pb-3 mb-6">
+                      <h2 className="text-lg font-black tracking-wide text-slate-900 uppercase">
+                        SURAT PENAWARAN HARGA (QUOTATION)
+                      </h2>
+                      <p className="text-xs font-semibold text-slate-600 mt-1">
+                        Nomor SPH: {selectedQuotationForPrint.quotationNo} | Tanggal: {selectedQuotationForPrint.date}
+                      </p>
+                    </div>
+                  )}
 
-              {/* Document Reference Info & Recipient */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 my-6 text-xs text-slate-800">
-                <div className="p-4 bg-slate-50/80 rounded-xl border border-slate-200 space-y-1">
-                  <p className="font-bold text-amber-800 uppercase text-[10px] tracking-wider mb-1">
-                    KEPADA YTH:
-                  </p>
-                  <p className="font-black text-slate-900 text-sm">{selectedQuotationForPrint.companyName || 'Perusahaan Klien'}</p>
-                  <p className="font-semibold text-slate-700">Up. {selectedQuotationForPrint.clientName}</p>
-                  <p className="text-slate-500">{selectedQuotationForPrint.clientAddress || 'Di Tempat'}</p>
+                  {/* Document Reference Info & Recipient */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 my-6 text-xs text-slate-800">
+                    <div className="p-4 bg-slate-50/90 rounded-xl border border-slate-200 space-y-1">
+                      <p className="font-bold text-amber-800 uppercase text-[10px] tracking-wider mb-1">
+                        KEPADA YTH:
+                      </p>
+                      <p className="font-black text-slate-900 text-sm">{selectedQuotationForPrint.companyName || 'Perusahaan Klien'}</p>
+                      <p className="font-semibold text-slate-700">Up. {selectedQuotationForPrint.clientName}</p>
+                      <p className="text-slate-500">{selectedQuotationForPrint.clientAddress || 'Di Tempat'}</p>
+                    </div>
+
+                    <div className="p-4 bg-slate-50/90 rounded-xl border border-slate-200 space-y-1 text-right sm:text-left">
+                      <div className="flex justify-between py-0.5 border-b border-slate-200/60">
+                        <span className="text-slate-500 font-medium">Nomor Dokumen:</span>
+                        <span className="font-extrabold font-mono text-slate-900">{selectedQuotationForPrint.quotationNo}</span>
+                      </div>
+                      <div className="flex justify-between py-0.5 border-b border-slate-200/60">
+                        <span className="text-slate-500 font-medium">Tanggal Penawaran:</span>
+                        <span className="font-bold text-slate-900">{selectedQuotationForPrint.date}</span>
+                      </div>
+                      <div className="flex justify-between py-0.5 border-b border-slate-200/60">
+                        <span className="text-slate-500 font-medium">Masa Berlaku s/d:</span>
+                        <span className="font-bold text-amber-700">{selectedQuotationForPrint.validUntil}</span>
+                      </div>
+                      <div className="flex justify-between py-0.5">
+                        <span className="text-slate-500 font-medium">Perihal:</span>
+                        <span className="font-bold text-slate-900">Penawaran Harga Pekerjaan</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Subject / Opening Statement */}
+                  <div className="mb-4 text-xs text-slate-700 leading-relaxed">
+                    <p className="font-medium">Dengan hormat,</p>
+                    <p className="mt-1">
+                      Sehubungan dengan rencana pelaksanaan pekerjaan{' '}
+                      <strong className="text-slate-900">{selectedQuotationForPrint.projectName}</strong>, dengan ini kami mengajukan Surat Penawaran Harga (SPH) dengan rincian biaya sebagai berikut:
+                    </p>
+                  </div>
+
+                  {/* Items Breakdown Table */}
+                  <div className="border border-slate-300 rounded-xl overflow-hidden mb-6">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-100 text-slate-800 font-bold uppercase border-b border-slate-300">
+                        <tr>
+                          <th className="p-2.5 w-10 text-center">No.</th>
+                          <th className="p-2.5">Uraian Pekerjaan & Spesifikasi</th>
+                          <th className="p-2.5 w-16 text-center">Satuan</th>
+                          <th className="p-2.5 w-16 text-center">Vol</th>
+                          <th className="p-2.5 w-32 text-right">Harga Satuan</th>
+                          <th className="p-2.5 w-36 text-right">Jumlah Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200">
+                        {selectedQuotationForPrint.items?.map((item, idx) => (
+                          <tr key={item.id || idx}>
+                            <td className="p-2.5 text-center font-bold text-slate-500">{idx + 1}</td>
+                            <td className="p-2.5 font-semibold text-slate-900">{item.description}</td>
+                            <td className="p-2.5 text-center font-medium text-slate-700">{item.unit}</td>
+                            <td className="p-2.5 text-center font-bold text-slate-800">{item.quantity}</td>
+                            <td className="p-2.5 text-right font-mono text-slate-800">{formatRupiah(item.unitPrice)}</td>
+                            <td className="p-2.5 text-right font-extrabold text-slate-900 font-mono">
+                              {formatRupiah(item.totalPrice)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="bg-slate-50 border-t border-slate-300 font-bold">
+                        <tr>
+                          <td colSpan={5} className="p-2.5 text-right uppercase text-slate-700">Subtotal Pekerjaan:</td>
+                          <td className="p-2.5 text-right font-extrabold text-slate-900 font-mono">
+                            {formatRupiah(selectedQuotationForPrint.subtotal)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td colSpan={5} className="p-2.5 text-right uppercase text-slate-700">
+                            PPN ({selectedQuotationForPrint.taxPercent}%):
+                          </td>
+                          <td className="p-2.5 text-right font-extrabold text-slate-900 font-mono">
+                            {formatRupiah(selectedQuotationForPrint.taxAmount)}
+                          </td>
+                        </tr>
+                        <tr className="bg-amber-100/80 text-amber-900 text-sm">
+                          <td colSpan={5} className="p-3 text-right uppercase font-black">
+                            GRAND TOTAL PENAWARAN:
+                          </td>
+                          <td className="p-3 text-right font-black font-mono text-amber-900">
+                            {formatRupiah(selectedQuotationForPrint.grandTotal)}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+
+                  {/* Terms & Notes Section */}
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 mb-8 text-xs text-slate-700 space-y-1">
+                    <p className="font-bold text-slate-900 uppercase text-[11px]">
+                      Syarat & Ketentuan Pembayaran:
+                    </p>
+                    <div className="whitespace-pre-line text-slate-600 leading-relaxed pl-1 font-medium">
+                      {selectedQuotationForPrint.notes || '1. Pembayaran dilakukan via transfer bank resmi perusahaan.\n2. Harga berlaku 30 hari kalender sejak diterbitkan.'}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="p-4 bg-slate-50/80 rounded-xl border border-slate-200 space-y-1 text-right sm:text-left">
-                  <div className="flex justify-between py-0.5 border-b border-slate-200/60">
-                    <span className="text-slate-500 font-medium">Nomor Dokumen:</span>
-                    <span className="font-extrabold font-mono text-slate-900">{selectedQuotationForPrint.quotationNo}</span>
-                  </div>
-                  <div className="flex justify-between py-0.5 border-b border-slate-200/60">
-                    <span className="text-slate-500 font-medium">Tanggal Penawaran:</span>
-                    <span className="font-bold text-slate-900">{selectedQuotationForPrint.date}</span>
-                  </div>
-                  <div className="flex justify-between py-0.5 border-b border-slate-200/60">
-                    <span className="text-slate-500 font-medium">Masa Berlaku s/d:</span>
-                    <span className="font-bold text-amber-700">{selectedQuotationForPrint.validUntil}</span>
-                  </div>
-                  <div className="flex justify-between py-0.5">
-                    <span className="text-slate-500 font-medium">Perihal:</span>
-                    <span className="font-bold text-slate-900">Penawaran Harga Pekerjaan</span>
-                  </div>
-                </div>
+                {/* Signatures Component */}
+                <PrintSignature
+                  preparedBy={selectedQuotationForPrint.preparedBy || 'Deni Kurniawan, ST'}
+                  preparedTitle="Disiapkan Oleh (Estimator / Marketing)"
+                  directorName={selectedQuotationForPrint.approvedBy || companyProfile.directorName}
+                  directorTitle={selectedQuotationForPrint.signatoryTitle || companyProfile.directorTitle || 'Direktur Utama'}
+                  signatureUrl={selectedQuotationForPrint.signatureUrl}
+                  verifiedBy={companyProfile.financeManager}
+                  verifiedTitle="Disetujui Oleh Direksi"
+                  note={`Surat Penawaran Harga Sah & Resmi Diterbitkan Oleh ${companyProfile.name}`}
+                />
               </div>
-
-              {/* Subject / Opening Statement */}
-              <div className="mb-4 text-xs text-slate-700 leading-relaxed">
-                <p className="font-medium">Dengan hormat,</p>
-                <p className="mt-1">
-                  Sehubungan dengan rencana pelaksanaan pekerjaan{' '}
-                  <strong className="text-slate-900">{selectedQuotationForPrint.projectName}</strong>, dengan ini kami mengajukan Surat Penawaran Harga (SPH) dengan rincian biaya sebagai berikut:
-                </p>
-              </div>
-
-              {/* Items Breakdown Table */}
-              <div className="border border-slate-300 rounded-xl overflow-hidden mb-6">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-100 text-slate-800 font-bold uppercase border-b border-slate-300">
-                    <tr>
-                      <th className="p-2.5 w-10 text-center">No.</th>
-                      <th className="p-2.5">Uraian Pekerjaan & Spesifikasi</th>
-                      <th className="p-2.5 w-16 text-center">Satuan</th>
-                      <th className="p-2.5 w-16 text-center">Vol</th>
-                      <th className="p-2.5 w-32 text-right">Harga Satuan</th>
-                      <th className="p-2.5 w-36 text-right">Jumlah Total</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {selectedQuotationForPrint.items?.map((item, idx) => (
-                      <tr key={item.id || idx}>
-                        <td className="p-2.5 text-center font-bold text-slate-500">{idx + 1}</td>
-                        <td className="p-2.5 font-semibold text-slate-900">{item.description}</td>
-                        <td className="p-2.5 text-center font-medium text-slate-700">{item.unit}</td>
-                        <td className="p-2.5 text-center font-bold text-slate-800">{item.quantity}</td>
-                        <td className="p-2.5 text-right font-mono text-slate-800">{formatRupiah(item.unitPrice)}</td>
-                        <td className="p-2.5 text-right font-extrabold text-slate-900 font-mono">
-                          {formatRupiah(item.totalPrice)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot className="bg-slate-50 border-t border-slate-300 font-bold">
-                    <tr>
-                      <td colSpan={5} className="p-2.5 text-right uppercase text-slate-700">Subtotal Pekerjaan:</td>
-                      <td className="p-2.5 text-right font-extrabold text-slate-900 font-mono">
-                        {formatRupiah(selectedQuotationForPrint.subtotal)}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td colSpan={5} className="p-2.5 text-right uppercase text-slate-700">
-                        PPN ({selectedQuotationForPrint.taxPercent}%):
-                      </td>
-                      <td className="p-2.5 text-right font-extrabold text-slate-900 font-mono">
-                        {formatRupiah(selectedQuotationForPrint.taxAmount)}
-                      </td>
-                    </tr>
-                    <tr className="bg-amber-100/80 text-amber-900 text-sm">
-                      <td colSpan={5} className="p-3 text-right uppercase font-black">
-                        GRAND TOTAL PENAWARAN:
-                      </td>
-                      <td className="p-3 text-right font-black font-mono text-amber-900">
-                        {formatRupiah(selectedQuotationForPrint.grandTotal)}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-
-              {/* Terms & Notes Section */}
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 mb-8 text-xs text-slate-700 space-y-1">
-                <p className="font-bold text-slate-900 uppercase text-[11px]">
-                  Syarat & Ketentuan Pembayaran:
-                </p>
-                <div className="whitespace-pre-line text-slate-600 leading-relaxed pl-1 font-medium">
-                  {selectedQuotationForPrint.notes || '1. Pembayaran dilakukan via transfer bank resmi perusahaan.\n2. Harga berlaku 30 hari kalender sejak diterbitkan.'}
-                </div>
-              </div>
-
-              {/* Signatures Component */}
-              <PrintSignature
-                preparedBy={selectedQuotationForPrint.preparedBy || 'Deni Kurniawan, ST'}
-                preparedTitle="Disiapkan Oleh (Estimator / Marketing)"
-                directorName={selectedQuotationForPrint.approvedBy || companyProfile.directorName}
-                directorTitle={selectedQuotationForPrint.signatoryTitle || companyProfile.directorTitle || 'Direktur Utama'}
-                signatureUrl={selectedQuotationForPrint.signatureUrl}
-                verifiedBy={companyProfile.financeManager}
-                verifiedTitle="Disetujui Oleh Direksi"
-                note={`Surat Penawaran Harga Sah & Resmi Diterbitkan Oleh ${companyProfile.name}`}
-              />
             </div>
           </div>
         </div>
