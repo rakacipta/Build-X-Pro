@@ -123,68 +123,67 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       </header>
 
       {/* Main Container */}
-      <main className="relative z-10 flex-1 flex items-center justify-center p-4 sm:p-8">
-        <div className="w-full max-w-4xl bg-slate-900/80 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 backdrop-blur-xl">
+      <main className="relative z-10 flex-1 flex items-center justify-center p-4 sm:p-6">
+        <div className="w-full max-w-3xl bg-slate-900/80 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 backdrop-blur-xl">
           {/* Left Side: System Info & Features (Visible on Large Screens) */}
-          <div className="lg:col-span-5 p-8 lg:p-10 bg-gradient-to-br from-slate-900 via-blue-950/40 to-slate-900 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col justify-between">
-            <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-semibold">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Sistem Manajemen Kontraktor Integratif</span>
+          <div className="lg:col-span-5 p-6 lg:p-7 bg-gradient-to-br from-slate-900 via-blue-950/40 to-slate-900 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col justify-between">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[11px] font-semibold">
+                <Sparkles className="w-3 h-3" />
+                <span>Sistem Manajemen Kontraktor</span>
               </div>
 
               <div>
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
+                <h2 className="text-xl sm:text-2xl font-extrabold text-white leading-tight">
                   Sistem ERP <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
                     Konstruksi & Proyek
                   </span>
                 </h2>
-                <p className="mt-3 text-xs sm:text-sm text-slate-300 leading-relaxed">
-                  Platform manajemen terpadu untuk RAB, Tender, Purchasing, Logistik Gudang,
-                  SPK Subkon Borongan, Penggajian & Laporan Keuangan Direksi.
+                <p className="mt-2 text-xs text-slate-300 leading-relaxed">
+                  Platform manajemen terpadu RAB, Tender, Purchasing, Gudang, SPK & Keuangan.
                 </p>
               </div>
 
-              <div className="space-y-3 pt-2">
-                <div className="flex items-start gap-3">
-                  <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
-                    <CheckCircle2 className="w-4 h-4" />
+              <div className="space-y-2 pt-1">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-6 h-6 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-slate-200">
-                      Multi-Role & Otorisasi Bertingkat
+                      Multi-Role & Otorisasi
                     </h4>
-                    <p className="text-[11px] text-slate-400">
-                      Akses sesuai tanggung jawab: Direksi, PM, Finance, Purchasing, Estimator & Logistik.
+                    <p className="text-[10px] text-slate-400">
+                      Akses Direksi, PM, Finance, Purchasing, Estimator & Logistik.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
-                    <Layers className="w-4 h-4" />
+                <div className="flex items-start gap-2.5">
+                  <div className="w-6 h-6 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                    <Layers className="w-3.5 h-3.5" />
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-slate-200">
-                      Sinkronisasi Database Real-time
+                      Database Real-time
                     </h4>
-                    <p className="text-[11px] text-slate-400">
-                      Data otomatis tersimpan & terhubung aman ke Firebase Cloud Store.
+                    <p className="text-[10px] text-slate-400">
+                      Data otomatis tersimpan & terhubung ke Firebase Cloud Store.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3">
-                  <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0 mt-0.5">
-                    <ShieldCheck className="w-4 h-4" />
+                <div className="flex items-start gap-2.5">
+                  <div className="w-6 h-6 rounded-md bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0 mt-0.5">
+                    <ShieldCheck className="w-3.5 h-3.5" />
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-slate-200">
-                      Cetak PDF & E-Signature Resmi
+                      Cetak PDF & E-Signature
                     </h4>
-                    <p className="text-[11px] text-slate-400">
-                      Dokumen PO, SPK Borongan, & Laporan Keuangan lengkap dengan QR Verifikasi.
+                    <p className="text-[10px] text-slate-400">
+                      Dokumen PO, SPK Borongan & Laporan Keuangan resmi.
                     </p>
                   </div>
                 </div>
@@ -192,53 +191,53 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             </div>
 
             {/* Bottom Quote / Company Tagline */}
-            <div className="pt-8 border-t border-slate-800/80 mt-8">
-              <p className="text-[11px] text-slate-400 italic">
+            <div className="pt-4 border-t border-slate-800/80 mt-6">
+              <p className="text-[10px] text-slate-400 italic">
                 "{companyProfile.tagline || 'General Contractor & Infrastructure Specialist'}"
               </p>
-              <div className="mt-2 text-[10px] text-slate-500 font-mono">
-                &copy; {new Date().getFullYear()} {companyProfile.name || 'PT RAKA CIPTA SERAYA'}. All rights reserved.
+              <div className="mt-1 text-[9px] text-slate-500 font-mono">
+                &copy; {new Date().getFullYear()} {companyProfile.name || 'PT RAKA CIPTA SERAYA'}.
               </div>
             </div>
           </div>
 
           {/* Right Side: Login Form */}
-          <div className="lg:col-span-7 p-6 sm:p-10 flex flex-col justify-center bg-slate-900/60">
-            <form onSubmit={handleFormSubmit} className="space-y-6">
+          <div className="lg:col-span-7 p-5 sm:p-7 flex flex-col justify-center bg-slate-900/60">
+            <form onSubmit={handleFormSubmit} className="space-y-4">
               <div>
-                <h3 className="text-2xl font-bold text-white">Masuk ke Akun Anda</h3>
-                <p className="text-xs text-slate-400 mt-1">
-                  Masukkan email dan kata sandi akun ERP Anda untuk melanjutkan.
+                <h3 className="text-xl font-bold text-white">Masuk ke Akun Anda</h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Masukkan email dan kata sandi akun ERP Anda.
                 </p>
               </div>
 
               {errorMessage && (
-                <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs rounded-xl flex items-center gap-2 animate-shake">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
+                <div className="p-2.5 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs rounded-lg flex items-center gap-2 animate-shake">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                   <span>{errorMessage}</span>
                 </div>
               )}
 
               {/* Email Input */}
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-300 block">
                   Alamat Email / ID Pengguna
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Masukkan alamat email anda..."
-                    className="w-full bg-slate-950 border border-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl pl-10 pr-4 py-3 text-xs text-white placeholder-slate-500 outline-none transition"
+                    className="w-full bg-slate-950 border border-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 outline-none transition"
                   />
                 </div>
               </div>
 
               {/* Password Input */}
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-300">Kata Sandi</label>
                   <button
@@ -248,25 +247,25 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         'Untuk menyetel ulang kata sandi, silakan hubungi Tim Admin IT melalui Pengaturan Pengguna.'
                       )
                     }
-                    className="text-[11px] text-blue-400 hover:underline"
+                    className="text-[10px] text-blue-400 hover:underline"
                   >
                     Lupa sandi?
                   </button>
                 </div>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Masukkan kata sandi..."
-                    className="w-full bg-slate-950 border border-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl pl-10 pr-10 py-3 text-xs text-white placeholder-slate-500 outline-none transition"
+                    className="w-full bg-slate-950 border border-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-lg pl-9 pr-9 py-2 text-xs text-white placeholder-slate-500 outline-none transition"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -275,12 +274,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
               {/* Remember me */}
               <div className="flex items-center justify-between text-xs text-slate-400">
-                <label className="flex items-center gap-2 cursor-pointer select-none">
+                <label className="flex items-center gap-2 cursor-pointer select-none text-[11px]">
                   <input
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="rounded border-slate-800 bg-slate-950 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                    className="rounded border-slate-800 bg-slate-950 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
                   />
                   <span>Ingat saya di perangkat ini</span>
                 </label>
@@ -290,17 +289,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold text-xs py-3.5 rounded-xl shadow-lg shadow-blue-600/30 transition flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold text-xs py-2.5 rounded-lg shadow-md shadow-blue-600/30 transition flex items-center justify-center gap-2 disabled:opacity-50 mt-1"
               >
                 {isLoading ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                     <span>Memverifikasi Akses ERP...</span>
                   </>
                 ) : (
                   <>
                     <span>Masuk ke Dashboard ERP</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </>
                 )}
               </button>
