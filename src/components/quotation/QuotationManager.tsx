@@ -20,7 +20,7 @@ import {
   ShieldCheck,
   Building,
 } from 'lucide-react';
-import { Quotation, QuotationItem, CompanyProfile, LetterheadSettings } from '../../types';
+import { Quotation, QuotationItem, CompanyProfile, LetterheadSettings, DocumentSignatory } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
 import { PrintHeader } from '../common/PrintHeader';
 import { PrintSignature } from '../common/PrintSignature';
@@ -28,7 +28,7 @@ import { CetakPdfButton } from '../common/CetakPdfButton';
 import { triggerPrintFallback } from '../../utils/pdfGenerator';
 import { SignaturePicker } from '../common/SignaturePicker';
 import { getStoredData } from '../../services/firestoreService';
-import { INITIAL_COMPANY_PROFILE, INITIAL_LETTERHEAD } from '../../lib/seedData';
+import { INITIAL_COMPANY_PROFILE, INITIAL_LETTERHEAD, INITIAL_SIGNATORIES } from '../../lib/seedData';
 
 interface QuotationManagerProps {
   quotations: Quotation[];
@@ -52,6 +52,7 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
   const letterheadSettings =
     getStoredData<LetterheadSettings>('letterhead', INITIAL_LETTERHEAD) ||
     getStoredData<LetterheadSettings>('letterhead_settings', INITIAL_LETTERHEAD);
+  const signatories = getStoredData<DocumentSignatory[]>('document_signatories', INITIAL_SIGNATORIES);
 
   const filteredQuotations = quotations.filter((q) => {
     const matchesSearch =
@@ -78,6 +79,9 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
     const randomNum = Math.floor(100 + Math.random() * 900);
     const newNo = `SPH/BX/${year}/${month}-${randomNum}`;
 
+    const defaultPrepared = signatories.find((s) => s.roleType === 'Disiapkan' && s.isDefault) || signatories.find((s) => s.roleType === 'Disiapkan');
+    const defaultApproved = signatories.find((s) => s.roleType === 'Disetujui' && s.isDefault) || signatories.find((s) => s.roleType === 'Disetujui');
+
     setEditingQuotation({
       id: 'quo-' + Date.now(),
       quotationNo: newNo,
@@ -93,8 +97,9 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
       taxAmount: 0,
       grandTotal: 0,
       notes: '1. Harga sudah termasuk PPN 11% & Jasa Pelaksanaan Pekerjaan.\n2. Jadwal Pembayaran Termijn: DP 20%, Progress 30%, 30%, 15%, Retensi 5%.\n3. Masa berlaku Surat Penawaran Harga ini adalah 30 hari kalender.',
-      preparedBy: 'Deni Kurniawan, ST',
-      approvedBy: 'Ir. Hendra Wijaya, MM',
+      preparedBy: defaultPrepared?.name || 'Ir. Budi Santoso, MT',
+      approvedBy: defaultApproved?.name || companyProfile.directorName || 'Ir. Hendra Wijaya, MM',
+      signatoryTitle: defaultApproved?.title || companyProfile.directorTitle || 'Direktur Utama',
       items: [
         {
           id: 'qitem-' + Date.now() + '-1',
@@ -531,30 +536,76 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
               {/* Digital Signature & Otorisasi Section */}
               <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
                 <h4 className="font-bold text-slate-900 text-xs uppercase text-blue-700">
-                  Pengesahan & Tanda Tangan Digital (Export PDF)
+                  Pengesahan & Penandatangan Dokumen (Tersinkron Pengaturan)
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="font-semibold block mb-1">Nama Penandatangan (Direksi / Otorisator)</label>
+                    <label className="font-semibold block mb-1">Pilih Pembuat (Disiapkan Oleh)</label>
+                    <select
+                      value={editingQuotation.preparedBy || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditingQuotation({ ...editingQuotation, preparedBy: val });
+                      }}
+                      className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold mb-1.5"
+                    >
+                      <option value="">-- Pilih Dari Pengaturan Penandatangan --</option>
+                      {signatories.map((sig) => (
+                        <option key={sig.id} value={sig.name}>
+                          {sig.name} ({sig.title} - {sig.roleType})
+                        </option>
+                      ))}
+                    </select>
                     <input
                       type="text"
-                      placeholder="Ir. Hendra Wijaya, MM"
-                      value={editingQuotation.approvedBy || ''}
-                      onChange={(e) => setEditingQuotation({ ...editingQuotation, approvedBy: e.target.value })}
-                      className="w-full p-2 bg-white border border-slate-300 rounded-lg font-semibold"
+                      placeholder="Atau ketik nama pembuat..."
+                      value={editingQuotation.preparedBy || ''}
+                      onChange={(e) => setEditingQuotation({ ...editingQuotation, preparedBy: e.target.value })}
+                      className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs"
                     />
                   </div>
+
                   <div>
-                    <label className="font-semibold block mb-1">Jabatan Penandatangan</label>
-                    <input
-                      type="text"
-                      placeholder="Direktur Utama"
-                      value={editingQuotation.signatoryTitle || ''}
-                      onChange={(e) => setEditingQuotation({ ...editingQuotation, signatoryTitle: e.target.value })}
-                      className="w-full p-2 bg-white border border-slate-300 rounded-lg font-semibold"
-                    />
+                    <label className="font-semibold block mb-1">Pilih Penyetuju (Direksi / Otorisator)</label>
+                    <select
+                      value={editingQuotation.approvedBy || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const match = signatories.find((s) => s.name === val);
+                        setEditingQuotation({
+                          ...editingQuotation,
+                          approvedBy: val,
+                          signatoryTitle: match ? match.title : editingQuotation.signatoryTitle,
+                        });
+                      }}
+                      className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold mb-1.5"
+                    >
+                      <option value="">-- Pilih Dari Pengaturan Penandatangan --</option>
+                      {signatories.map((sig) => (
+                        <option key={sig.id} value={sig.name}>
+                          {sig.name} ({sig.title} - {sig.roleType})
+                        </option>
+                      ))}
+                    </select>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        placeholder="Nama Direksi / Penyetuju"
+                        value={editingQuotation.approvedBy || ''}
+                        onChange={(e) => setEditingQuotation({ ...editingQuotation, approvedBy: e.target.value })}
+                        className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Jabatan (misal: Direktur Utama)"
+                        value={editingQuotation.signatoryTitle || ''}
+                        onChange={(e) => setEditingQuotation({ ...editingQuotation, signatoryTitle: e.target.value })}
+                        className="w-full p-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold"
+                      />
+                    </div>
                   </div>
                 </div>
+
                 <SignaturePicker
                   label="Upload / Gambar Tanda Tangan Digital Direksi"
                   value={editingQuotation.signatureUrl}
@@ -914,13 +965,11 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
 
                 {/* Signatures Component */}
                 <PrintSignature
-                  preparedBy={selectedQuotationForPrint.preparedBy || 'Deni Kurniawan, ST'}
-                  preparedTitle="Disiapkan Oleh (Estimator / Marketing)"
-                  directorName={selectedQuotationForPrint.approvedBy || companyProfile.directorName}
-                  directorTitle={selectedQuotationForPrint.signatoryTitle || companyProfile.directorTitle || 'Direktur Utama'}
+                  preparedBy={selectedQuotationForPrint.preparedBy}
+                  preparedTitle="Disiapkan Oleh"
+                  directorName={selectedQuotationForPrint.approvedBy}
+                  directorTitle={selectedQuotationForPrint.signatoryTitle}
                   signatureUrl={selectedQuotationForPrint.signatureUrl}
-                  verifiedBy={companyProfile.financeManager}
-                  verifiedTitle="Disetujui Oleh Direksi"
                   note={`Surat Penawaran Harga Sah & Resmi Diterbitkan Oleh ${companyProfile.name}`}
                 />
                 </div>

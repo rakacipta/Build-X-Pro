@@ -158,7 +158,7 @@ export const INITIAL_QUOTATIONS: Quotation[] = [
     taxAmount: 1375000000,
     grandTotal: 13875000000,
     notes: '1. Harga sudah termasuk PPN 11% & Mobilisasi Alat.\n2. Pembayaran Termijn: DP 20%, Progress 30%, 30%, 15%, Retensi 5%.\n3. Masa berlaku penawaran 30 hari kalender.',
-    preparedBy: 'Deni Kurniawan, ST',
+    preparedBy: 'Ir. Budi Santoso, MT',
     approvedBy: 'Ir. Hendra Wijaya, MM',
     items: [
       {
