@@ -132,6 +132,19 @@ export async function generatePdfFromElement({
         return false;
       },
       onclone: (clonedDoc) => {
+        // Unhide print-only elements and normalize cloned printable element for pristine A4 export
+        const clonedElement = clonedDoc.getElementById(elementId);
+        if (clonedElement instanceof HTMLElement) {
+          clonedElement.style.boxShadow = 'none';
+          clonedElement.style.border = 'none';
+          clonedElement.style.borderRadius = '0';
+          clonedElement.style.width = '794px'; // Standard A4 pixel width at 96 DPI
+          clonedElement.style.maxWidth = '794px';
+          clonedElement.style.minHeight = 'auto'; // Prevent trailing blank page caused by min-h-[297mm]
+          clonedElement.style.margin = '0 auto';
+          clonedElement.style.backgroundColor = '#ffffff';
+        }
+
         // 0. Ensure print-only elements (e.g. PrintHeader with 'hidden print:block') are unhidden in clonedDoc for PDF export
         const printOnlyElements = clonedDoc.querySelectorAll('[class*="print:block"], [class*="print:flex"], [class*="print:grid"]');
         printOnlyElements.forEach((el) => {
@@ -232,8 +245,8 @@ export async function generatePdfFromElement({
     pdf.addImage(imgData, 'JPEG', 10, position, imgWidth, imgHeight);
     heightLeft -= pdfHeight - 20;
 
-    // Handle multi-page documents if content is long
-    while (heightLeft > 0) {
+    // Handle multi-page documents if remaining content height exceeds 5mm tolerance
+    while (heightLeft > 5) {
       position = heightLeft - imgHeight + 10;
       pdf.addPage();
       pdf.addImage(imgData, 'JPEG', 10, position, imgWidth, imgHeight);
@@ -260,14 +273,14 @@ export async function generatePdfFromElement({
  */
 export function triggerPrintFallback(title: string, element?: HTMLElement | null) {
   try {
-    const printWindow = window.open('', '_blank', 'width=1000,height=800');
+    const printWindow = window.open('', '_blank', 'width=1000,height=900');
     if (!printWindow) {
       // If popup blocked, fallback to direct print
       window.print();
       return;
     }
 
-    const contentHtml = element ? element.innerHTML : document.body.innerHTML;
+    const contentHtml = element ? element.outerHTML : document.body.innerHTML;
     const stylesHtml = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
       .map((node) => node.outerHTML)
       .join('\n');
@@ -276,13 +289,24 @@ export function triggerPrintFallback(title: string, element?: HTMLElement | null
       <!DOCTYPE html>
       <html>
         <head>
+          <meta charset="utf-8">
           <title>${title}</title>
           ${stylesHtml}
           <style>
-            body { background: white !important; padding: 20px !important; color: #0f172a !important; font-family: sans-serif; }
-            .print\\:hidden, button, input[type="file"] { display: none !important; }
+            @page { size: A4 portrait; margin: 10mm; }
+            body { background: #ffffff !important; color: #0f172a !important; margin: 0; padding: 20px; font-family: sans-serif; }
+            .print\\:hidden, button, input[type="file"], select { display: none !important; }
             .print\\:block { display: block !important; }
-            @page { size: A4 portrait; margin: 15mm; }
+            #quotation-printable-document, #printable-letter-area, .print-container {
+              display: block !important;
+              visibility: visible !important;
+              width: 100% !important;
+              max-width: 100% !important;
+              margin: 0 auto !important;
+              padding: 0 !important;
+              box-shadow: none !important;
+              border: none !important;
+            }
           </style>
         </head>
         <body>
@@ -293,8 +317,7 @@ export function triggerPrintFallback(title: string, element?: HTMLElement | null
             window.onload = function() {
               setTimeout(function() {
                 window.print();
-                window.close();
-              }, 500);
+              }, 400);
             };
           </script>
         </body>
@@ -306,7 +329,7 @@ export function triggerPrintFallback(title: string, element?: HTMLElement | null
     try {
       window.print();
     } catch (e) {
-      alert('Gagal membuka dialog cetak. Mohon izinkan popup di browser Anda.');
+      alert('Gagal membuka dialog cetak browser. Mohon periksa izin popup pada browser Anda.');
     }
   }
 }

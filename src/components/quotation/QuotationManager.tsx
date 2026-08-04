@@ -25,6 +25,7 @@ import { formatRupiah } from '../../utils/formatters';
 import { PrintHeader } from '../common/PrintHeader';
 import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
+import { triggerPrintFallback } from '../../utils/pdfGenerator';
 import { SignaturePicker } from '../common/SignaturePicker';
 import { getStoredData } from '../../services/firestoreService';
 import { INITIAL_COMPANY_PROFILE, INITIAL_LETTERHEAD } from '../../lib/seedData';
@@ -723,8 +724,8 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
 
       {/* PRINTABLE / PREVIEW QUOTATION MODAL */}
       {selectedQuotationForPrint && (
-        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-6 overflow-y-auto">
-          <div className="bg-slate-900 w-full max-w-5xl rounded-2xl shadow-2xl overflow-hidden my-auto border border-slate-800 flex flex-col max-h-[95vh]">
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-6 overflow-y-auto print:static print:p-0 print:bg-white print-visible">
+          <div className="bg-slate-900 w-full max-w-5xl rounded-2xl shadow-2xl overflow-hidden my-auto border border-slate-800 flex flex-col max-h-[95vh] print:max-w-none print:max-h-none print:shadow-none print:border-none print:bg-white">
             {/* Toolbar Top */}
             <div className="p-3 bg-slate-900 border-b border-slate-800 text-white flex flex-wrap items-center justify-between gap-2 print:hidden">
               <div className="flex items-center gap-2">
@@ -755,12 +756,18 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
                 />
 
                 <button
-                  onClick={() => window.print()}
+                  onClick={() => {
+                    const el = document.getElementById('quotation-printable-document');
+                    triggerPrintFallback(
+                      `Surat Penawaran Harga - ${selectedQuotationForPrint.quotationNo}`,
+                      el
+                    );
+                  }}
                   className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors"
-                  title="Cetak langsung menggunakan printer browser"
+                  title="Cetak langsung menggunakan dialog printer browser"
                 >
                   <Printer className="w-3.5 h-3.5" />
-                  <span>Cetak (Print)</span>
+                  <span>Cetak Browser</span>
                 </button>
 
                 <button
@@ -773,11 +780,12 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
             </div>
 
             {/* Document Printable View Container */}
-            <div className="overflow-y-auto p-4 sm:p-8 bg-slate-200/80 flex-1 flex justify-center">
-              <div
-                className="bg-white w-full max-w-[210mm] shadow-2xl rounded-sm p-6 sm:p-10 border border-slate-300 text-slate-900 font-sans text-xs min-h-[297mm] flex flex-col justify-between"
-                id="quotation-printable-document"
-              >
+            <div className="overflow-y-auto p-4 sm:p-8 bg-slate-200/80 flex-1 flex justify-center print:p-0 print:bg-white">
+              <div className="bg-white w-full max-w-[210mm] shadow-2xl rounded-sm p-6 sm:p-10 border border-slate-300 print:shadow-none print:border-none print:p-0 my-auto">
+                <div
+                  className="bg-white text-slate-900 font-sans text-xs flex flex-col justify-between min-h-[250mm] space-y-6"
+                  id="quotation-printable-document"
+                >
                 <div>
                   {/* Kop Surat Header */}
                   {showKopInPreview ? (
@@ -915,6 +923,7 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
                   verifiedTitle="Disetujui Oleh Direksi"
                   note={`Surat Penawaran Harga Sah & Resmi Diterbitkan Oleh ${companyProfile.name}`}
                 />
+                </div>
               </div>
             </div>
           </div>

@@ -32,10 +32,28 @@
   button:not(.print-keep),
   input,
   select,
-  textarea,
-  .fixed,
-  .backdrop-blur-xs {
+  textarea {
     display: none !important;
+  }
+
+  /* Hide fixed background overlays unless they contain a printable document */
+  .fixed:not(.print-visible):not(:has(#quotation-printable-document)):not(:has(#printable-letter-area)):not(:has(.print-container)) {
+    display: none !important;
+  }
+
+  /* Allow fixed modals with printable content to remain visible during print */
+  .fixed.print-visible,
+  .fixed:has(#quotation-printable-document),
+  .fixed:has(#printable-letter-area),
+  .fixed:has(.print-container) {
+    display: block !important;
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    box-shadow: none !important;
   }
 
   /* Show print-only elements */
@@ -48,23 +66,19 @@
 
   /* Unconstrain parent layout wrappers so overflow is not clipped */
   #root,
-  div,
   main,
   section {
     overflow: visible !important;
     height: auto !important;
     max-height: none !important;
-    position: static !important;
     box-shadow: none !important;
   }
 
-  /* Target printable area elements */
+  /* Target printable area elements container */
   #printable-letter-area,
-  #printable-letter-area *,
+  #quotation-printable-document,
   .print-container {
-    display: block !important;
     visibility: visible !important;
-    position: relative !important;
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 auto !important;
