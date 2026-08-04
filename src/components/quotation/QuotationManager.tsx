@@ -47,7 +47,9 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
   const [selectedQuotationForPrint, setSelectedQuotationForPrint] = useState<Quotation | null>(null);
 
   const companyProfile = getStoredData<CompanyProfile>('company_profile', INITIAL_COMPANY_PROFILE);
-  const letterheadSettings = getStoredData<LetterheadSettings>('letterhead_settings', INITIAL_LETTERHEAD);
+  const letterheadSettings =
+    getStoredData<LetterheadSettings>('letterhead', INITIAL_LETTERHEAD) ||
+    getStoredData<LetterheadSettings>('letterhead_settings', INITIAL_LETTERHEAD);
 
   const filteredQuotations = quotations.filter((q) => {
     const matchesSearch =
@@ -751,6 +753,9 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
               <PrintHeader
                 title="SURAT PENAWARAN HARGA (QUOTATION)"
                 subtitle={`Nomor SPH: ${selectedQuotationForPrint.quotationNo} | Tanggal: ${selectedQuotationForPrint.date}`}
+                companyProfile={companyProfile}
+                letterhead={letterheadSettings}
+                alwaysVisible={true}
               />
 
               {/* Document Reference Info & Recipient */}

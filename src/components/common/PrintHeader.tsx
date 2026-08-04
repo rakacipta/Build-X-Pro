@@ -9,6 +9,8 @@ interface PrintHeaderProps {
   docNumber?: string;
   companyProfile?: CompanyProfile;
   letterhead?: LetterheadSettings;
+  alwaysVisible?: boolean;
+  className?: string;
 }
 
 export const PrintHeader: React.FC<PrintHeaderProps> = ({
@@ -17,9 +19,14 @@ export const PrintHeader: React.FC<PrintHeaderProps> = ({
   docNumber,
   companyProfile: companyProfileProp,
   letterhead: letterheadProp,
+  alwaysVisible = true,
+  className = '',
 }) => {
   const profile = companyProfileProp || getStoredData<CompanyProfile>('company_profile', INITIAL_COMPANY_PROFILE);
-  const letterhead = letterheadProp || getStoredData<LetterheadSettings>('letterhead', INITIAL_LETTERHEAD);
+  const letterhead =
+    letterheadProp ||
+    getStoredData<LetterheadSettings>('letterhead', INITIAL_LETTERHEAD) ||
+    getStoredData<LetterheadSettings>('letterhead_settings', INITIAL_LETTERHEAD);
 
   const headerTitle = letterhead.headerTitle || profile.name;
   const headerSubtitle = letterhead.headerSubtitle || profile.tagline;
@@ -39,7 +46,7 @@ export const PrintHeader: React.FC<PrintHeaderProps> = ({
   });
 
   return (
-    <div className="hidden print:block mb-6 pb-4 border-b-2 border-slate-900 relative">
+    <div className={`${alwaysVisible ? 'block' : 'hidden print:block'} mb-6 pb-4 border-b-2 border-slate-900 relative ${className}`}>
       {showDivider && (
         <div className="h-1.5 w-full bg-gradient-to-r from-blue-600 via-amber-500 to-emerald-600 rounded-t mb-4"></div>
       )}
