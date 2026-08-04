@@ -15,7 +15,6 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
-import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import { ExternalNotificationModal } from '../common/ExternalNotificationModal';
 import { PoAlertPayload } from '../../services/externalNotificationService';
@@ -193,8 +192,6 @@ export const ApprovalsModule: React.FC<ApprovalsModuleProps> = ({
           </div>
         ))}
       </div>
-
-      <PrintSignature note="Laporan Pengesahan Otorisasi, Verifikasi & Persetujuan Direksi" />
 
       {/* Review & Approve Modal */}
       {selectedApp && (

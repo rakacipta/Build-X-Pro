@@ -16,7 +16,6 @@ import {
   Printer,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
-import { PrintSignature } from '../common/PrintSignature';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import {
   Project,
@@ -427,8 +426,6 @@ export const DashboardModule: React.FC<DashboardModuleProps> = ({
           </div>
         </div>
       </div>
-
-      <PrintSignature note="Laporan Ringkasan Eksekutif KPI & Performa Bisnis Realtime" />
     </div>
   );
 };
