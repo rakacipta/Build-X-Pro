@@ -33,6 +33,7 @@ import {
   Printer,
   Smartphone,
   MessageSquare,
+  RotateCcw,
   Send,
   ExternalLink,
 } from 'lucide-react';
@@ -66,6 +67,7 @@ interface SettingsModuleProps {
   onDeleteUser: (userId: string) => void;
   systemSettings: SystemSettings;
   onUpdateSystemSettings: (settings: SystemSettings) => void;
+  onZeroOutFinancialLedger?: () => void;
 }
 
 const ROLES_LIST: UserRole[] = [
@@ -116,6 +118,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   onDeleteUser,
   systemSettings,
   onUpdateSystemSettings,
+  onZeroOutFinancialLedger,
 }) => {
   const isSuperAdminEmail = currentUser?.email?.toLowerCase().trim() === 'sr.rcs88@gmail.com';
 
@@ -149,7 +152,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
     accountNumber: '',
     accountHolder: profileForm.name,
     branch: '',
-    initialBalance: 500000000,
+    initialBalance: 0,
   });
 
   // Audit Logs Mock
@@ -246,7 +249,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
     const updatedProfile = { ...profileForm, banks: updatedBanks };
     setProfileForm(updatedProfile);
     onUpdateCompanyProfile(updatedProfile);
-    setNewBank({ bankName: 'Bank BCA', accountNumber: '', accountHolder: profileForm.name, branch: '', initialBalance: 500000000 });
+    setNewBank({ bankName: 'Bank BCA', accountNumber: '', accountHolder: profileForm.name, branch: '', initialBalance: 0 });
     setShowAddBank(false);
     triggerNotification('Rekening Bank Perusahaan berhasil ditambahkan.');
   };
@@ -827,13 +830,25 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowAddBank(!showAddBank)}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition"
-              >
-                <Plus className="w-4 h-4" /> Tambah Rekening
-              </button>
+              <div className="flex items-center gap-2">
+                {currentRole === 'Super Admin' && onZeroOutFinancialLedger && (
+                  <button
+                    type="button"
+                    onClick={onZeroOutFinancialLedger}
+                    className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition shadow-sm"
+                    title="Khusus Super Admin: Nol-kan semua nilai Rupiah untuk pembukuan periode baru"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" /> Nol-kan Saldo Pembukuan (Super Admin)
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowAddBank(!showAddBank)}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition"
+                >
+                  <Plus className="w-4 h-4" /> Tambah Rekening
+                </button>
+              </div>
             </div>
 
             {/* Form Add Bank inline */}
@@ -1520,6 +1535,38 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
               </div>
             </div>
           </div>
+
+          {/* CARD KHUSUS SUPER ADMIN: NOL-KAN SALDO PEMBUKUAN PERIODE BARU */}
+          {currentRole === 'Super Admin' && onZeroOutFinancialLedger && (
+            <div className="bg-gradient-to-r from-rose-900 to-slate-900 rounded-xl border border-rose-700/50 p-6 shadow-md text-white space-y-4">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 flex items-center justify-center font-bold">
+                    <RotateCcw className="w-5 h-5 text-rose-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-white text-sm uppercase tracking-wide flex items-center gap-2">
+                      Reset Pembukuan Periode Baru (Nol-kan Saldo)
+                      <span className="bg-rose-500/30 text-rose-200 text-[10px] px-2 py-0.5 rounded-full font-bold border border-rose-400/30">
+                        Khusus Super Admin
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-300 mt-0.5">
+                      Menolkan seluruh saldo awal kas/bank, akun COA, serta riwayat transaksi keuangan untuk memulai tahun buku periode baru.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={onZeroOutFinancialLedger}
+                  className="bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-rose-950/50 transition border border-rose-400/40 active:scale-95 shrink-0"
+                >
+                  <RotateCcw className="w-4 h-4" /> Nol-kan Saldo Pembukuan
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* CARD CONFIG NOTIFIKASI EKSTERNAL WHATSAPP & EMAIL DIREKSI */}
           <div className="bg-white rounded-xl border border-emerald-200 p-6 shadow-sm space-y-5 text-xs">

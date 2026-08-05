@@ -12,6 +12,7 @@ import {
   Trash2,
   Edit2,
   Printer,
+  RotateCcw,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
 import { CetakPdfButton } from '../common/CetakPdfButton';
@@ -84,7 +85,7 @@ export const EquipmentModule: React.FC<EquipmentModuleProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <CetakPdfButton
             elementId="equipment-module"
             filename="Laporan_Alat_Berat_Build_X_Pro.pdf"

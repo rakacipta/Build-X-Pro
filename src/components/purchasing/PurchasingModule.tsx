@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Smartphone,
   Mail,
+  RotateCcw,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
 import { PrintSignature } from '../common/PrintSignature';
@@ -139,7 +140,7 @@ export const PurchasingModule: React.FC<PurchasingModuleProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <CetakPdfButton
             elementId="purchasing-module"
             filename="Laporan_Purchase_Order_Build_X_Pro.pdf"

@@ -12,6 +12,7 @@ import {
   Trash2,
   Edit2,
   FileText,
+  RotateCcw,
 } from 'lucide-react';
 import { CrmLead, Quotation } from '../../types';
 import { formatRupiah } from '../../utils/formatters';

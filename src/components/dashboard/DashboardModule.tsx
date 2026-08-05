@@ -14,6 +14,7 @@ import {
   Activity,
   FileText,
   Printer,
+  RotateCcw,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
 import { CetakPdfButton } from '../common/CetakPdfButton';
@@ -128,7 +129,7 @@ export const DashboardModule: React.FC<DashboardModuleProps> = ({
               Monitoring proyek konstruksi, suplai material, arus kas, dan approval dalam satu tampilan terpadu.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
             <CetakPdfButton
               elementId="dashboard-module"
               filename="Dashboard_Executive_KPI_Build_X_Pro.pdf"

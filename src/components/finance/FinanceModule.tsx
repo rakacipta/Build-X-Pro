@@ -21,6 +21,7 @@ import {
   AlertCircle,
   Calendar,
   FolderOpen,
+  RotateCcw,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
 import { PrintSignature } from '../common/PrintSignature';

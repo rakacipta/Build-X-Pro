@@ -18,6 +18,7 @@ import {
   ExternalLink,
   MessageSquare,
   LogOut,
+  RotateCcw,
   User as UserIcon,
 } from 'lucide-react';
 import { UserRole, AppNotification, ModuleType, SystemUser } from '../types';

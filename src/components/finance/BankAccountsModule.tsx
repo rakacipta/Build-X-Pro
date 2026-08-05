@@ -20,6 +20,7 @@ import {
   Square,
   SlidersHorizontal,
   PieChart,
+  RotateCcw,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
 import { PrintSignature } from '../common/PrintSignature';
@@ -75,12 +76,7 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
   const getBankBaseBalance = (bankOrName: CompanyBank | string): number => {
     if (typeof bankOrName === 'object') {
       if (bankOrName.initialBalance !== undefined) return bankOrName.initialBalance;
-      const bankName = bankOrName.bankName;
-      return bankName.toLowerCase().includes('mandiri')
-        ? 1250000000
-        : bankName.toLowerCase().includes('bca')
-        ? 850000000
-        : 500000000;
+      return 0;
     } else {
       const foundBank = companyProfile.banks.find(
         (b) => b.bankName.toLowerCase() === bankOrName.toLowerCase() || b.id === bankOrName
@@ -88,11 +84,7 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
       if (foundBank && foundBank.initialBalance !== undefined) {
         return foundBank.initialBalance;
       }
-      return bankOrName.toLowerCase().includes('mandiri')
-        ? 1250000000
-        : bankOrName.toLowerCase().includes('bca')
-        ? 850000000
-        : 500000000;
+      return 0;
     }
   };
 
@@ -148,7 +140,7 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
         accountNumber: '',
         accountHolder: companyProfile.name,
         branch: 'KCU Utama',
-        initialBalance: 500000000,
+        initialBalance: 0,
       });
     }
     setIsModalOpen(true);
@@ -298,7 +290,7 @@ export const BankAccountsModule: React.FC<BankAccountsModuleProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <CetakPdfButton
               elementId="bank-accounts-module"
               filename="Akun_Bank_Perusahaan_Build_X_Pro.pdf"

@@ -16,6 +16,7 @@ import {
   FileText,
   CreditCard,
   PieChart,
+  RotateCcw,
 } from 'lucide-react';
 import {
   ChartOfAccount,
@@ -96,12 +97,12 @@ export const AccountingModule: React.FC<AccountingModuleProps> = ({
   const synchronizedCoaList = useMemo(() => {
     // Base COA from props or fallback defaults
     const baseList: ChartOfAccount[] = coaList && coaList.length > 0 ? [...coaList] : [
-      { id: 'coa-001', code: '101-001', name: 'Kas Utama Kantor', type: 'Aktiva', balance: 425000000 },
-      { id: 'coa-002', code: '101-002', name: 'Petty Cash Proyek', type: 'Aktiva', balance: 35000000 },
+      { id: 'coa-001', code: '101-001', name: 'Kas Utama Kantor', type: 'Aktiva', balance: 0 },
+      { id: 'coa-002', code: '101-002', name: 'Petty Cash Proyek', type: 'Aktiva', balance: 0 },
       { id: 'coa-005', code: '103-001', name: 'Piutang Usaha Proyek', type: 'Aktiva', balance: 0 },
-      { id: 'coa-006', code: '104-001', name: 'Persediaan Material Gudang', type: 'Aktiva', balance: 1450000000 },
+      { id: 'coa-006', code: '104-001', name: 'Persediaan Material Gudang', type: 'Aktiva', balance: 0 },
       { id: 'coa-007', code: '201-001', name: 'Hutang Dagang Supplier / Vendor', type: 'Kewajiban', balance: 0 },
-      { id: 'coa-008', code: '301-001', name: 'Modal Disetor Pemegang Saham', type: 'Ekuitas', balance: 20000000000 },
+      { id: 'coa-008', code: '301-001', name: 'Modal Disetor Pemegang Saham', type: 'Ekuitas', balance: 0 },
       { id: 'coa-009', code: '401-001', name: 'Pendapatan Jasa Konstruksi', type: 'Pendapatan', balance: 0 },
       { id: 'coa-010', code: '402-001', name: 'Pendapatan Penjualan Material Trading', type: 'Pendapatan', balance: 0 },
       { id: 'coa-011', code: '501-001', name: 'Beban Pokok Kontrak (HPP Proyek)', type: 'Beban', balance: 0 },
@@ -127,7 +128,7 @@ export const AccountingModule: React.FC<AccountingModuleProps> = ({
           code: bankCoaCode,
           name: bankCoaName,
           type: 'Aktiva',
-          balance: bank.initialBalance || 500000000,
+          balance: bank.initialBalance || 0,
         });
       }
     });

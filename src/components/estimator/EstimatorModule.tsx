@@ -11,6 +11,7 @@ import {
   Sparkles,
   Printer,
   Check,
+  RotateCcw,
 } from 'lucide-react';
 import { AHSPItem, RABItem } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
@@ -99,7 +100,7 @@ export const EstimatorModule: React.FC<EstimatorModuleProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <div className="bg-slate-100 p-1 rounded-xl flex text-xs font-semibold">
             <button
               onClick={() => setActiveSubTab('rab')}

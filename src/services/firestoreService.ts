@@ -53,6 +53,7 @@ export function getStoredData<T>(key: string, defaultData: T): T {
 export function setStoredData<T>(key: string, data: T): void {
   try {
     localStorage.setItem(LS_PREFIX + key, JSON.stringify(data));
+    localStorage.setItem(OLD_LS_PREFIX + key, JSON.stringify(data));
   } catch (e) {
     console.warn(`Error saving ${key} to localStorage:`, e);
   }
@@ -101,18 +102,28 @@ export function subscribeToCollection<T extends { id: string }>(
         snapshot.forEach((docSnap) => {
           items.push({ id: docSnap.id, ...docSnap.data() } as T);
         });
+        localStorage.setItem(LS_PREFIX + collectionName + '_has_been_seeded', 'true');
         setStoredData(collectionName, items);
         onUpdate(items);
       } else {
-        // If remote database is empty, seed it with current stored data
-        try {
-          await Promise.all(
-            currentLocal.map((item) =>
-              setDoc(doc(db, collectionName, item.id), item, { merge: true })
-            )
-          );
-        } catch (e) {
-          console.warn(`Could not seed empty Firestore collection ${collectionName}:`, e);
+        const isAlreadySeeded =
+          localStorage.getItem(LS_PREFIX + collectionName + '_has_been_seeded') === 'true';
+        if (!isAlreadySeeded && currentLocal && currentLocal.length > 0) {
+          // First-time app initialization only: seed remote database once
+          try {
+            await Promise.all(
+              currentLocal.map((item) =>
+                setDoc(doc(db, collectionName, item.id), item, { merge: true })
+              )
+            );
+            localStorage.setItem(LS_PREFIX + collectionName + '_has_been_seeded', 'true');
+          } catch (e) {
+            console.warn(`Could not seed empty Firestore collection ${collectionName}:`, e);
+          }
+        } else {
+          // The collection is intentionally empty (e.g. after zeroing out / clearing)
+          setStoredData(collectionName, []);
+          onUpdate([]);
         }
       }
     },
@@ -174,7 +185,41 @@ export async function deleteDocument<T extends { id: string }>(
   return updatedList;
 }
 
-// Helper to seed all collections manually if requested
+// Overwrite all documents in a collection (LocalStorage & Firestore)
+export async function replaceAllDocuments<T extends { id: string }>(
+  collectionName: string,
+  newList: T[]
+): Promise<T[]> {
+  setStoredData(collectionName, newList);
+  try {
+    for (const item of newList) {
+      await setDoc(doc(db, collectionName, item.id), item, { merge: true });
+    }
+  } catch (err) {
+    console.warn(`Error writing to Firestore collection ${collectionName}:`, err);
+  }
+  return newList;
+}
+
+// Clear all documents in a collection (LocalStorage & Firestore)
+export async function clearCollectionDocuments<T extends { id: string }>(
+  collectionName: string,
+  currentList: T[]
+): Promise<T[]> {
+  localStorage.setItem(LS_PREFIX + collectionName + '_has_been_seeded', 'true');
+  localStorage.setItem(OLD_LS_PREFIX + collectionName + '_has_been_seeded', 'true');
+  setStoredData(collectionName, []);
+  try {
+    const colRef = collection(db, collectionName);
+    const snapshot = await getDocs(colRef);
+    if (!snapshot.empty) {
+      await Promise.all(snapshot.docs.map((d) => deleteDoc(d.ref)));
+    }
+  } catch (err) {
+    console.warn(`Error clearing Firestore collection ${collectionName}:`, err);
+  }
+  return [];
+}
 export async function seedAllCollections(): Promise<void> {
   const seeds: [string, any[]][] = [
     ['projects', INITIAL_PROJECTS],

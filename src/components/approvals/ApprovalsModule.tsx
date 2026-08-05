@@ -13,6 +13,7 @@ import {
   BellRing,
   Smartphone,
   ExternalLink,
+  RotateCcw,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
 import { CetakPdfButton } from '../common/CetakPdfButton';
@@ -81,7 +82,7 @@ export const ApprovalsModule: React.FC<ApprovalsModuleProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <CetakPdfButton
             elementId="approvals-module"
             filename="Laporan_Approval_Workflow_Build_X_Pro.pdf"

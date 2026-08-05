@@ -12,6 +12,7 @@ import {
   Edit2,
   Warehouse,
   Printer,
+  RotateCcw,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
 import { CetakPdfButton } from '../common/CetakPdfButton';
@@ -92,7 +93,7 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <CetakPdfButton
             elementId="inventory-module"
             filename="Laporan_Inventaris_Material_Build_X_Pro.pdf"

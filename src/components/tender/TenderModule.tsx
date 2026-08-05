@@ -15,6 +15,7 @@ import {
   Trash2,
   Edit2,
   Printer,
+  RotateCcw,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
 import { CetakPdfButton } from '../common/CetakPdfButton';

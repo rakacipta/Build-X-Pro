@@ -9,6 +9,7 @@ import {
   Wallet,
   BookOpenCheck,
   HardHat,
+  RotateCcw,
 } from 'lucide-react';
 import {
   Project,
@@ -69,7 +70,7 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="bg-slate-100 p-1 rounded-xl flex text-xs font-semibold">
             <button
               onClick={() => setReportType('project')}

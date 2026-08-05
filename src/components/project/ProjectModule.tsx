@@ -20,6 +20,7 @@ import {
   Scale,
   PieChart,
   BarChart3,
+  RotateCcw,
 } from 'lucide-react';
 import { PrintHeader } from '../common/PrintHeader';
 import { CetakPdfButton } from '../common/CetakPdfButton';
@@ -217,7 +218,7 @@ export const ProjectModule: React.FC<ProjectModuleProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <CetakPdfButton
             elementId="project-module"
             filename="Laporan_Manajemen_Proyek_Build_X_Pro.pdf"

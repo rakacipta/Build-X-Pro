@@ -11,6 +11,7 @@ import {
   Trash2,
   DollarSign,
   UserCheck,
+  RotateCcw,
 } from 'lucide-react';
 import { SalesOrder } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
@@ -87,7 +88,7 @@ export const TradingModule: React.FC<TradingModuleProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <CetakPdfButton
             elementId="trading-module"
             filename="Laporan_Trading_SalesOrder_Build_X_Pro.pdf"

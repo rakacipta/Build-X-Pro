@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { RotateCcw, AlertTriangle, X, CheckCircle2 } from 'lucide-react';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { DashboardModule } from './components/dashboard/DashboardModule';
@@ -88,6 +89,8 @@ import {
   deleteDocument,
   getStoredData,
   setStoredData,
+  replaceAllDocuments,
+  clearCollectionDocuments,
 } from './services/firestoreService';
 import { testConnection } from './lib/firebase';
 
@@ -96,6 +99,7 @@ export default function App() {
   const [currentRole, setCurrentRole] = useState<UserRole>('Super Admin');
   const [activeModule, setActiveModule] = useState<ModuleType>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isZeroOutModalOpen, setIsZeroOutModalOpen] = useState(false);
 
   // Persistent Collections State
   const [projects, setProjects] = useState<Project[]>(() =>
@@ -503,6 +507,146 @@ export default function App() {
   const handleSaveCoa = async (coa: ChartOfAccount) => {
     const updated = await saveDocument('coa', coa);
     setCoaList(updated);
+  };
+
+  const handleZeroOutFinancialLedger = () => {
+    setIsZeroOutModalOpen(true);
+  };
+
+  const handleConfirmZeroOut = async () => {
+    try {
+      // 1. Zero out bank initial balances in company profile
+      const updatedBanks = (companyProfile.banks || []).map((b) => ({
+        ...b,
+        initialBalance: 0,
+      }));
+      const updatedProfile: CompanyProfile = {
+        ...companyProfile,
+        banks: updatedBanks,
+      };
+      setCompanyProfile(updatedProfile);
+      setStoredData('company_profile', updatedProfile);
+      saveDocument('settings_single', { id: 'company_profile', ...updatedProfile }).catch((e) =>
+        console.warn('saveDocument settings_single error:', e)
+      );
+
+      // 2. Zero out all COA balances
+      const updatedCoa = (coaList || []).map((c) => ({
+        ...c,
+        balance: 0,
+      }));
+      setCoaList(updatedCoa);
+      setStoredData('coa', updatedCoa);
+      replaceAllDocuments('coa', updatedCoa).catch((e) =>
+        console.warn('replaceAllDocuments coa error:', e)
+      );
+
+      // 3. Clear finance transactions
+      setFinanceTransactions([]);
+      setStoredData('finance_transactions', []);
+      clearCollectionDocuments('finance_transactions', financeTransactions).catch((e) =>
+        console.warn('clearCollectionDocuments finance_transactions error:', e)
+      );
+
+      // 4. Clear journals
+      setJournals([]);
+      setStoredData('journals', []);
+      clearCollectionDocuments('journals', journals).catch((e) =>
+        console.warn('clearCollectionDocuments journals error:', e)
+      );
+
+      // 5. Reset invoice paid amounts / status
+      if (invoices && invoices.length > 0) {
+        const updatedInvoices = invoices.map((inv) => ({
+          ...inv,
+          amountPaid: 0,
+          status: 'Draft' as const,
+        }));
+        setInvoices(updatedInvoices);
+        setStoredData('invoices', updatedInvoices);
+        replaceAllDocuments('invoices', updatedInvoices).catch((e) =>
+          console.warn('replaceAllDocuments invoices error:', e)
+        );
+      }
+
+      // 6. Reset Sales Orders paid amounts
+      if (salesOrders && salesOrders.length > 0) {
+        const updatedSales = salesOrders.map((so) => ({
+          ...so,
+          paidAmount: 0,
+        }));
+        setSalesOrders(updatedSales);
+        setStoredData('sales', updatedSales);
+        replaceAllDocuments('sales', updatedSales).catch((e) =>
+          console.warn('replaceAllDocuments sales error:', e)
+        );
+      }
+
+      // 7. Reset Purchase Orders paid amounts
+      if (purchases && purchases.length > 0) {
+        const updatedPurchases = purchases.map((po) => ({
+          ...po,
+          paidAmount: 0,
+        }));
+        setPurchases(updatedPurchases);
+        setStoredData('purchases', updatedPurchases);
+        replaceAllDocuments('purchases', updatedPurchases).catch((e) =>
+          console.warn('replaceAllDocuments purchases error:', e)
+        );
+      }
+
+      // 8. Reset Subkon Opnames paid amounts / status
+      if (subkonOpnames && subkonOpnames.length > 0) {
+        const updatedSubkonOp = subkonOpnames.map((op) => ({
+          ...op,
+          status: 'Draft' as const,
+        }));
+        setSubkonOpnames(updatedSubkonOp);
+        setStoredData('subkon_opnames', updatedSubkonOp);
+        replaceAllDocuments('subkon_opnames', updatedSubkonOp).catch((e) =>
+          console.warn('replaceAllDocuments subkon_opnames error:', e)
+        );
+      }
+
+      // 9. Reset Projects actual cost
+      if (projects && projects.length > 0) {
+        const updatedProjects = projects.map((prj) => ({
+          ...prj,
+          actualCost: 0,
+        }));
+        setProjects(updatedProjects);
+        setStoredData('projects', updatedProjects);
+        replaceAllDocuments('projects', updatedProjects).catch((e) =>
+          console.warn('replaceAllDocuments projects error:', e)
+        );
+      }
+
+      // 10. Clear payroll history
+      if (payrollSlips && payrollSlips.length > 0) {
+        setPayrollSlips([]);
+        setStoredData('payroll', []);
+        clearCollectionDocuments('payroll', payrollSlips).catch((e) =>
+          console.warn('clearCollectionDocuments payroll error:', e)
+        );
+      }
+
+      setIsZeroOutModalOpen(false);
+
+      handleTriggerNotification({
+        title: 'Nol-kan Pembukuan Berhasil',
+        message:
+          'Semua nilai Rupiah (saldo awal bank, COA, transaksi kas, jurnal, dan pencatatan pembayaran) telah berhasil DINOLKAN (Rp 0) untuk pembukuan periode baru!',
+        type: 'SYSTEM',
+      });
+    } catch (err) {
+      console.error('Error in handleZeroOutFinancialLedger:', err);
+      setIsZeroOutModalOpen(false);
+      handleTriggerNotification({
+        title: 'Gagal Menolkan Saldo',
+        message: 'Terjadi kesalahan saat menolkan saldo pembukuan. Silakan coba lagi.',
+        type: 'SYSTEM',
+      });
+    }
   };
 
   const handleSaveRabItem = async (r: RABItem) => {
@@ -915,10 +1059,68 @@ export default function App() {
               onDeleteUser={handleDeleteSystemUser}
               systemSettings={systemSettings}
               onUpdateSystemSettings={handleUpdateSystemSettings}
+              onZeroOutFinancialLedger={handleZeroOutFinancialLedger}
             />
           )}
         </main>
       </div>
+
+      {/* Custom Confirmation Modal for Nol-kan Saldo */}
+      {isZeroOutModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full overflow-hidden p-6 relative">
+            <button
+              onClick={() => setIsZeroOutModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3.5 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-rose-100 border border-rose-200 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-6 h-6 text-rose-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-extrabold text-slate-900">
+                  Nol-kan Pembukuan Baru
+                </h3>
+                <p className="text-xs text-slate-500 font-medium">
+                  Konfirmasi Reset Nilai Keuangan (Rp 0)
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-rose-50/70 border border-rose-100 rounded-xl p-3.5 mb-5 text-xs text-rose-900 space-y-2">
+              <p className="font-semibold text-rose-950">
+                Apakah Anda yakin ingin menolkan seluruh nilai Rupiah untuk pembukuan periode baru?
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-slate-700 pt-1">
+                <li>Saldo awal akun Kas/Bank menjadi <strong className="text-rose-700">Rp 0</strong></li>
+                <li>Seluruh saldo Chart of Accounts (COA) menjadi <strong className="text-rose-700">Rp 0</strong></li>
+                <li>Riwayat Transaksi Kas, Jurnal Umumm, dan Payroll dibersihkan</li>
+                <li>Catatan Pembayaran Invoice, PO, SO, dan Project Cost di-reset</li>
+              </ul>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsZeroOutModalOpen(false)}
+                className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmZeroOut}
+                className="px-4 py-2.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 active:scale-[0.98] rounded-xl shadow-md transition flex items-center gap-1.5"
+              >
+                <RotateCcw className="w-4 h-4" /> Ya, Nol-kan Sekarang
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
