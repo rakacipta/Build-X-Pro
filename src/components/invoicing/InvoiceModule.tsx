@@ -194,6 +194,12 @@ export const InvoiceModule: React.FC<InvoiceModuleProps> = ({
         unit: 'ls',
         unitPrice: 1000000000,
         subtotal: 1000000000,
+        ppnPct: 11,
+        ppnAmount: 110000000,
+        pph21Pct: 2.5,
+        pph21Amount: 25000000,
+        customTaxPct: 0,
+        customTaxAmount: 0,
       },
     ]);
 
@@ -203,7 +209,25 @@ export const InvoiceModule: React.FC<InvoiceModuleProps> = ({
   // Open Edit Form
   const handleOpenEdit = (inv: ProjectInvoice) => {
     setEditingInvoice({ ...inv });
-    setFormItems(inv.items && inv.items.length > 0 ? [...inv.items] : []);
+    const mappedItems = inv.items && inv.items.length > 0
+      ? inv.items.map((item) => {
+          const sub = item.subtotal || ((item.quantity || 0) * (item.unitPrice || 0));
+          const ppnPct = item.ppnPct !== undefined ? item.ppnPct : (inv.taxPct ?? 11);
+          const pph21Pct = item.pph21Pct !== undefined ? item.pph21Pct : (inv.pph21Pct ?? 0);
+          const customTaxPct = item.customTaxPct !== undefined ? item.customTaxPct : (inv.customTaxPct ?? 0);
+          return {
+            ...item,
+            subtotal: sub,
+            ppnPct,
+            ppnAmount: item.ppnAmount !== undefined ? item.ppnAmount : (sub * ppnPct) / 100,
+            pph21Pct,
+            pph21Amount: item.pph21Amount !== undefined ? item.pph21Amount : (sub * pph21Pct) / 100,
+            customTaxPct,
+            customTaxAmount: item.customTaxAmount !== undefined ? item.customTaxAmount : (sub * customTaxPct) / 100,
+          };
+        })
+      : [];
+    setFormItems(mappedItems);
     setIsFormOpen(true);
   };
 
@@ -225,17 +249,31 @@ export const InvoiceModule: React.FC<InvoiceModuleProps> = ({
     const updated = [...formItems];
     const current = { ...updated[index], [field]: value };
 
-    if (field === 'quantity' || field === 'unitPrice') {
-      const q = parseFloat(current.quantity as any) || 0;
-      const p = parseFloat(current.unitPrice as any) || 0;
-      current.subtotal = q * p;
-    }
+    const q = parseFloat(current.quantity as any) || 0;
+    const p = parseFloat(current.unitPrice as any) || 0;
+    const sub = q * p;
+    current.subtotal = sub;
+
+    const ppnPct = current.ppnPct !== undefined ? (parseFloat(current.ppnPct as any) || 0) : (editingInvoice?.taxPct ?? 11);
+    current.ppnPct = ppnPct;
+    current.ppnAmount = (sub * ppnPct) / 100;
+
+    const pph21Pct = parseFloat(current.pph21Pct as any) || 0;
+    current.pph21Pct = pph21Pct;
+    current.pph21Amount = (sub * pph21Pct) / 100;
+
+    const customTaxPct = parseFloat(current.customTaxPct as any) || 0;
+    current.customTaxPct = customTaxPct;
+    current.customTaxAmount = (sub * customTaxPct) / 100;
 
     updated[index] = current;
     setFormItems(updated);
   };
 
   const handleAddItem = () => {
+    const defaultPpn = editingInvoice?.taxPct ?? 11;
+    const defaultPph21 = editingInvoice?.pph21Pct ?? 0;
+    const defaultCustom = editingInvoice?.customTaxPct ?? 0;
     setFormItems([
       ...formItems,
       {
@@ -245,8 +283,37 @@ export const InvoiceModule: React.FC<InvoiceModuleProps> = ({
         unit: 'ls',
         unitPrice: 0,
         subtotal: 0,
+        ppnPct: defaultPpn,
+        ppnAmount: 0,
+        pph21Pct: defaultPph21,
+        pph21Amount: 0,
+        customTaxPct: defaultCustom,
+        customTaxAmount: 0,
       },
     ]);
+  };
+
+  const handleApplyTaxToAllItems = (taxType: 'ppn' | 'pph21' | 'custom', percentage: number) => {
+    const updated = formItems.map((item) => {
+      const q = parseFloat(item.quantity as any) || 0;
+      const p = parseFloat(item.unitPrice as any) || 0;
+      const sub = q * p;
+      const newItem = { ...item, subtotal: sub };
+
+      if (taxType === 'ppn') {
+        newItem.ppnPct = percentage;
+        newItem.ppnAmount = (sub * percentage) / 100;
+      } else if (taxType === 'pph21') {
+        newItem.pph21Pct = percentage;
+        newItem.pph21Amount = (sub * percentage) / 100;
+      } else if (taxType === 'custom') {
+        newItem.customTaxPct = percentage;
+        newItem.customTaxAmount = (sub * percentage) / 100;
+      }
+
+      return newItem;
+    });
+    setFormItems(updated);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -260,11 +327,33 @@ export const InvoiceModule: React.FC<InvoiceModuleProps> = ({
     if (!editingInvoice || !editingInvoice.projectId) return;
 
     const itemsSubtotal = formItems.reduce((acc, item) => acc + (item.subtotal || 0), 0);
+    const totalPpn = formItems.reduce(
+      (acc, item) => acc + (item.ppnAmount ?? ((item.subtotal * (item.ppnPct ?? 11)) / 100)),
+      0
+    );
+    const totalPph21 = formItems.reduce(
+      (acc, item) => acc + (item.pph21Amount ?? ((item.subtotal * (item.pph21Pct ?? 0)) / 100)),
+      0
+    );
+    const totalCustomTax = formItems.reduce(
+      (acc, item) => acc + (item.customTaxAmount ?? ((item.subtotal * (item.customTaxPct ?? 0)) / 100)),
+      0
+    );
+
     const taxPct = editingInvoice.taxPct ?? 11;
-    const taxAmount = (itemsSubtotal * taxPct) / 100;
-    const retention = editingInvoice.retentionDeduction || 0;
+
+    const retentionPct = editingInvoice.retentionPct ?? 5;
+    const retention = editingInvoice.retentionDeduction !== undefined
+      ? editingInvoice.retentionDeduction
+      : (itemsSubtotal * retentionPct) / 100;
+
+    const pphPct = editingInvoice.pphPct ?? 0;
+    const pph = editingInvoice.pphAmount !== undefined
+      ? editingInvoice.pphAmount
+      : (itemsSubtotal * pphPct) / 100;
+
     const dp = editingInvoice.dpDeduction || 0;
-    const grandTotal = Math.max(0, itemsSubtotal + taxAmount - retention - dp);
+    const grandTotal = Math.max(0, itemsSubtotal + totalPpn + totalCustomTax - totalPph21 - retention - pph - dp);
 
     const now = new Date().toISOString();
 
@@ -280,8 +369,15 @@ export const InvoiceModule: React.FC<InvoiceModuleProps> = ({
       items: formItems,
       subtotal: itemsSubtotal,
       taxPct: taxPct,
-      taxAmount: taxAmount,
+      taxAmount: totalPpn,
+      pph21Pct: editingInvoice.pph21Pct,
+      pph21Amount: totalPph21,
+      customTaxPct: editingInvoice.customTaxPct,
+      customTaxAmount: totalCustomTax,
+      retentionPct: retentionPct,
       retentionDeduction: retention,
+      pphPct: pphPct,
+      pphAmount: pph,
       dpDeduction: dp,
       totalAmount: grandTotal,
       notes: editingInvoice.notes || '',
@@ -339,13 +435,33 @@ export const InvoiceModule: React.FC<InvoiceModuleProps> = ({
 
   // Calculate live calculations inside Modal
   const currentItemsSubtotal = formItems.reduce((acc, item) => acc + (item.subtotal || 0), 0);
-  const currentTaxPct = editingInvoice?.taxPct ?? 11;
-  const currentTaxAmount = (currentItemsSubtotal * currentTaxPct) / 100;
-  const currentRetention = editingInvoice?.retentionDeduction || 0;
+  const currentTotalPpnAmount = formItems.reduce(
+    (acc, item) => acc + (item.ppnAmount ?? ((item.subtotal * (item.ppnPct ?? 11)) / 100)),
+    0
+  );
+  const currentTotalPph21Amount = formItems.reduce(
+    (acc, item) => acc + (item.pph21Amount ?? ((item.subtotal * (item.pph21Pct ?? 0)) / 100)),
+    0
+  );
+  const currentTotalCustomTaxAmount = formItems.reduce(
+    (acc, item) => acc + (item.customTaxAmount ?? ((item.subtotal * (item.customTaxPct ?? 0)) / 100)),
+    0
+  );
+
+  const currentRetentionPct = editingInvoice?.retentionPct ?? 5;
+  const currentRetention = editingInvoice?.retentionDeduction !== undefined
+    ? editingInvoice.retentionDeduction
+    : (currentItemsSubtotal * currentRetentionPct) / 100;
+
+  const currentPphPct = editingInvoice?.pphPct ?? 0;
+  const currentPph = editingInvoice?.pphAmount !== undefined
+    ? editingInvoice.pphAmount
+    : (currentItemsSubtotal * currentPphPct) / 100;
+
   const currentDp = editingInvoice?.dpDeduction || 0;
   const currentGrandTotal = Math.max(
     0,
-    currentItemsSubtotal + currentTaxAmount - currentRetention - currentDp
+    currentItemsSubtotal + currentTotalPpnAmount + currentTotalCustomTaxAmount - currentTotalPph21Amount - currentRetention - currentPph - currentDp
   );
 
   return (
@@ -786,40 +902,129 @@ export const InvoiceModule: React.FC<InvoiceModuleProps> = ({
                 </div>
               </div>
 
-              {/* Items Table */}
+              {/* Items Table with Per-Item Tax Breakdown */}
               <div className="space-y-2 pt-2">
                 <div className="flex items-center justify-between">
                   <label className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                    <span>Rincian Item Penagihan</span>
+                    <span>Rincian Item & Kalkulasi Pajak Per Baris</span>
                     <span className="text-[10px] text-slate-500 font-normal">
-                      (Deskripsi pekerjaan, volume, & harga satuan)
+                      (Deskripsi, volume, PPN 11%, PPh 21, dan persentase pajak kustom per item)
                     </span>
                   </label>
                   <button
                     type="button"
                     onClick={handleAddItem}
-                    className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-lg text-[11px] transition flex items-center gap-1"
+                    className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-lg text-[11px] transition flex items-center gap-1 shadow-xs"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>Tambah Baris</span>
+                    <span>Tambah Baris Item</span>
                   </button>
                 </div>
 
-                <div className="border border-slate-200 rounded-xl overflow-hidden">
-                  <table className="w-full text-left border-collapse text-xs">
-                    <thead className="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
+                {/* Batch apply tax bar */}
+                <div className="bg-indigo-50/60 p-2.5 rounded-xl border border-indigo-100 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                  <span className="font-bold text-indigo-900 flex items-center gap-1">
+                    <Percent className="w-3.5 h-3.5 text-indigo-600" />
+                    Terapkan Cepat Ke Semua Item:
+                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-indigo-100 shadow-2xs">
+                      <span className="text-slate-600 font-semibold">PPN:</span>
+                      <button
+                        type="button"
+                        onClick={() => handleApplyTaxToAllItems('ppn', 11)}
+                        className="px-1.5 py-0.5 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded font-bold text-[10px]"
+                      >
+                        11%
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleApplyTaxToAllItems('ppn', 12)}
+                        className="px-1.5 py-0.5 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded font-bold text-[10px]"
+                      >
+                        12%
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleApplyTaxToAllItems('ppn', 0)}
+                        className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-bold text-[10px]"
+                      >
+                        0%
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-indigo-100 shadow-2xs">
+                      <span className="text-slate-600 font-semibold">PPh 21:</span>
+                      <button
+                        type="button"
+                        onClick={() => handleApplyTaxToAllItems('pph21', 2.5)}
+                        className="px-1.5 py-0.5 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded font-bold text-[10px]"
+                      >
+                        2.5%
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleApplyTaxToAllItems('pph21', 5)}
+                        className="px-1.5 py-0.5 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded font-bold text-[10px]"
+                      >
+                        5%
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleApplyTaxToAllItems('pph21', 0)}
+                        className="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-bold text-[10px]"
+                      >
+                        0%
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-indigo-100 shadow-2xs">
+                      <span className="text-slate-600 font-semibold">Kustom:</span>
+                      <input
+                        type="number"
+                        placeholder="%"
+                        step="0.1"
+                        className="w-12 border border-slate-200 rounded px-1 py-0.5 text-center text-[10px] font-bold"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const val = parseFloat((e.target as HTMLInputElement).value) || 0;
+                            handleApplyTaxToAllItems('custom', val);
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                          const val = parseFloat(input.value) || 0;
+                          handleApplyTaxToAllItems('custom', val);
+                        }}
+                        className="px-1.5 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-bold text-[10px]"
+                      >
+                        Set
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border border-slate-200 rounded-xl overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs min-w-[750px]">
+                    <thead className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
                       <tr>
                         <th className="p-2.5">Deskripsi Pekerjaan</th>
-                        <th className="p-2.5 w-20">Volume</th>
-                        <th className="p-2.5 w-20">Satuan</th>
-                        <th className="p-2.5 w-36 text-right">Harga Satuan (Rp)</th>
-                        <th className="p-2.5 w-36 text-right">Subtotal (Rp)</th>
+                        <th className="p-2.5 w-28 text-center">Vol & Satuan</th>
+                        <th className="p-2.5 w-32 text-right">Harga Satuan (Rp)</th>
+                        <th className="p-2.5 w-32 text-right">Subtotal (Rp)</th>
+                        <th className="p-2.5 w-28 text-center bg-blue-50/50 text-blue-900">PPN 11%</th>
+                        <th className="p-2.5 w-28 text-center bg-amber-50/50 text-amber-900">PPh 21 (%)</th>
+                        <th className="p-2.5 w-28 text-center bg-indigo-50/50 text-indigo-900">Pajak Kustom</th>
                         <th className="p-2.5 w-10 text-center"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 bg-white">
                       {formItems.map((item, idx) => (
-                        <tr key={item.id || idx}>
+                        <tr key={item.id || idx} className="hover:bg-slate-50/80 transition">
                           <td className="p-2">
                             <input
                               type="text"
@@ -827,29 +1032,29 @@ export const InvoiceModule: React.FC<InvoiceModuleProps> = ({
                               placeholder="Deskripsi item penagihan..."
                               value={item.description}
                               onChange={(e) => handleItemChange(idx, 'description', e.target.value)}
-                              className="w-full border border-slate-200 rounded-lg p-1.5 text-xs font-medium"
+                              className="w-full border border-slate-200 rounded-lg p-1.5 text-xs font-medium focus:ring-1 focus:ring-indigo-500"
                             />
                           </td>
                           <td className="p-2">
-                            <input
-                              type="number"
-                              min="0"
-                              step="any"
-                              value={item.quantity}
-                              onChange={(e) =>
-                                handleItemChange(idx, 'quantity', parseFloat(e.target.value) || 0)
-                              }
-                              className="w-full border border-slate-200 rounded-lg p-1.5 text-xs text-center font-bold"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <input
-                              type="text"
-                              value={item.unit}
-                              onChange={(e) => handleItemChange(idx, 'unit', e.target.value)}
-                              placeholder="ls, m2, unit"
-                              className="w-full border border-slate-200 rounded-lg p-1.5 text-xs text-center"
-                            />
+                            <div className="flex gap-1">
+                              <input
+                                type="number"
+                                min="0"
+                                step="any"
+                                value={item.quantity}
+                                onChange={(e) =>
+                                  handleItemChange(idx, 'quantity', parseFloat(e.target.value) || 0)
+                                }
+                                className="w-14 border border-slate-200 rounded-lg p-1 text-xs text-center font-bold"
+                              />
+                              <input
+                                type="text"
+                                value={item.unit}
+                                onChange={(e) => handleItemChange(idx, 'unit', e.target.value)}
+                                placeholder="ls"
+                                className="w-12 border border-slate-200 rounded-lg p-1 text-xs text-center text-slate-600"
+                              />
+                            </div>
                           </td>
                           <td className="p-2">
                             <input
@@ -865,12 +1070,69 @@ export const InvoiceModule: React.FC<InvoiceModuleProps> = ({
                           <td className="p-2 text-right font-bold text-slate-900">
                             {formatRupiah(item.subtotal || 0)}
                           </td>
+                          <td className="p-2 text-center bg-blue-50/30">
+                            <div className="flex flex-col items-center gap-0.5">
+                              <div className="flex items-center justify-center gap-0.5">
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  min="0"
+                                  value={item.ppnPct ?? 11}
+                                  onChange={(e) => handleItemChange(idx, 'ppnPct', parseFloat(e.target.value) || 0)}
+                                  className="w-12 border border-blue-200 rounded p-0.5 text-[11px] text-center font-bold text-blue-700 bg-white"
+                                />
+                                <span className="text-[10px] text-blue-600 font-bold">%</span>
+                              </div>
+                              <span className="text-[10px] text-blue-700 font-medium">
+                                +{formatRupiah(item.ppnAmount || ((item.subtotal * (item.ppnPct ?? 11)) / 100))}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="p-2 text-center bg-amber-50/30">
+                            <div className="flex flex-col items-center gap-0.5">
+                              <div className="flex items-center justify-center gap-0.5">
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  min="0"
+                                  value={item.pph21Pct ?? 0}
+                                  onChange={(e) => handleItemChange(idx, 'pph21Pct', parseFloat(e.target.value) || 0)}
+                                  className="w-12 border border-amber-200 rounded p-0.5 text-[11px] text-center font-bold text-amber-800 bg-white"
+                                  placeholder="0"
+                                />
+                                <span className="text-[10px] text-amber-700 font-bold">%</span>
+                              </div>
+                              <span className="text-[10px] text-amber-800 font-medium">
+                                -{formatRupiah(item.pph21Amount || ((item.subtotal * (item.pph21Pct ?? 0)) / 100))}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="p-2 text-center bg-indigo-50/30">
+                            <div className="flex flex-col items-center gap-0.5">
+                              <div className="flex items-center justify-center gap-0.5">
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  min="0"
+                                  value={item.customTaxPct ?? 0}
+                                  onChange={(e) => handleItemChange(idx, 'customTaxPct', parseFloat(e.target.value) || 0)}
+                                  className="w-12 border border-indigo-200 rounded p-0.5 text-[11px] text-center font-bold text-indigo-700 bg-white"
+                                  placeholder="0"
+                                />
+                                <span className="text-[10px] text-indigo-600 font-bold">%</span>
+                              </div>
+                              <span className="text-[10px] text-indigo-700 font-medium">
+                                +{formatRupiah(item.customTaxAmount || ((item.subtotal * (item.customTaxPct ?? 0)) / 100))}
+                              </span>
+                            </div>
+                          </td>
                           <td className="p-2 text-center">
                             {formItems.length > 1 && (
                               <button
                                 type="button"
                                 onClick={() => handleRemoveItem(idx)}
-                                className="p-1 text-slate-400 hover:text-rose-600 rounded"
+                                className="p-1 text-slate-400 hover:text-rose-600 rounded transition"
+                                title="Hapus baris item"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -884,42 +1146,109 @@ export const InvoiceModule: React.FC<InvoiceModuleProps> = ({
               </div>
 
               {/* Taxes, Retention & Deduction Calculations */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-3">
-                <h4 className="font-bold text-xs text-slate-800">Perhitungan Nilai Bersih Tagihan</h4>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-xs text-slate-800 uppercase tracking-wider">
+                    Ringkasan Pajak PPh/PPN, Retensi 5% & Net Invoice
+                  </h4>
+                  <span className="text-[11px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                    Kalkulasi Otomatis Berjalan
+                  </span>
+                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Tarif PPN (%)</label>
-                    <input
-                      type="number"
-                      value={editingInvoice.taxPct ?? 11}
-                      onChange={(e) =>
-                        setEditingInvoice({
-                          ...editingInvoice,
-                          taxPct: parseFloat(e.target.value) || 0,
-                        })
-                      }
-                      className="w-full border border-slate-300 rounded-xl p-2 font-bold bg-white text-slate-800"
-                    />
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                  {/* PPN TOTAL */}
+                  <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
+                    <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      Akumulasi PPN
+                    </span>
+                    <p className="text-sm font-black text-blue-700">
+                      +{formatRupiah(currentTotalPpnAmount)}
+                    </p>
+                    <p className="text-[10px] text-slate-400">
+                      Dihitung dari PPN tiap baris item
+                    </p>
                   </div>
 
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Potongan Retensi (Rp)</label>
-                    <input
-                      type="number"
-                      value={editingInvoice.retentionDeduction || 0}
-                      onChange={(e) =>
-                        setEditingInvoice({
-                          ...editingInvoice,
-                          retentionDeduction: parseFloat(e.target.value) || 0,
-                        })
-                      }
-                      className="w-full border border-slate-300 rounded-xl p-2 font-bold bg-white text-rose-700"
-                    />
+                  {/* PPH 21 TOTAL */}
+                  <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1">
+                    <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      Akumulasi PPh 21
+                    </span>
+                    <p className="text-sm font-black text-amber-700">
+                      -{formatRupiah(currentTotalPph21Amount)}
+                    </p>
+                    <p className="text-[10px] text-slate-400">
+                      Dipotong dari PPh 21 tiap baris item
+                    </p>
                   </div>
 
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Pengembalian DP (Rp)</label>
+                  {/* RETENSI 5% */}
+                  <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold text-rose-800">Retensi Proyek (%)</label>
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const pct = 5;
+                            const amt = (currentItemsSubtotal * pct) / 100;
+                            setEditingInvoice({ ...editingInvoice, retentionPct: pct, retentionDeduction: amt });
+                          }}
+                          className={`text-[10px] px-1.5 py-0.5 rounded font-bold transition ${editingInvoice.retentionPct === 5 ? 'bg-rose-600 text-white' : 'bg-rose-50 text-rose-700'}`}
+                        >
+                          5%
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingInvoice({ ...editingInvoice, retentionPct: 0, retentionDeduction: 0 })}
+                          className={`text-[10px] px-1.5 py-0.5 rounded font-bold transition ${editingInvoice.retentionPct === 0 ? 'bg-rose-600 text-white' : 'bg-slate-100 text-slate-600'}`}
+                        >
+                          0%
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <div className="w-16">
+                        <input
+                          type="number"
+                          placeholder="%"
+                          value={editingInvoice.retentionPct ?? 5}
+                          onChange={(e) => {
+                            const pct = parseFloat(e.target.value) || 0;
+                            const amt = (currentItemsSubtotal * pct) / 100;
+                            setEditingInvoice({
+                              ...editingInvoice,
+                              retentionPct: pct,
+                              retentionDeduction: amt,
+                            });
+                          }}
+                          className="w-full border border-slate-300 rounded-lg p-1.5 text-xs font-bold bg-white text-rose-700 text-center"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <input
+                          type="number"
+                          placeholder="Rp"
+                          value={editingInvoice.retentionDeduction ?? currentRetention}
+                          onChange={(e) =>
+                            setEditingInvoice({
+                              ...editingInvoice,
+                              retentionDeduction: parseFloat(e.target.value) || 0,
+                            })
+                          }
+                          className="w-full border border-slate-300 rounded-lg p-1.5 text-xs font-bold bg-white text-rose-700"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-rose-600 font-semibold">
+                      Potongan Retensi: <span className="font-bold">- {formatRupiah(currentRetention)}</span>
+                    </p>
+                  </div>
+
+                  {/* PPh Final & Pengembalian DP */}
+                  <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1.5">
+                    <label className="block text-xs font-bold text-slate-700">Pengembalian DP (Rp)</label>
                     <input
                       type="number"
                       value={editingInvoice.dpDeduction || 0}
@@ -929,36 +1258,57 @@ export const InvoiceModule: React.FC<InvoiceModuleProps> = ({
                           dpDeduction: parseFloat(e.target.value) || 0,
                         })
                       }
-                      className="w-full border border-slate-300 rounded-xl p-2 font-bold bg-white text-amber-700"
+                      className="w-full border border-slate-300 rounded-lg p-1.5 text-xs font-bold bg-white text-slate-800"
                     />
+                    <p className="text-[10px] text-slate-500 font-semibold">
+                      Pengembalian DP: <span className="font-bold">- {formatRupiah(currentDp)}</span>
+                    </p>
                   </div>
                 </div>
 
                 {/* Calculation Summary Table */}
-                <div className="bg-white p-3 rounded-lg border border-slate-200 text-xs space-y-1.5 font-medium">
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 text-xs space-y-2 font-medium shadow-sm">
                   <div className="flex justify-between text-slate-600">
-                    <span>Subtotal Pekerjaan:</span>
+                    <span>Subtotal Gross Pekerjaan:</span>
                     <span className="font-bold">{formatRupiah(currentItemsSubtotal)}</span>
                   </div>
-                  <div className="flex justify-between text-slate-600">
-                    <span>PPN ({currentTaxPct}%):</span>
-                    <span className="font-bold text-slate-800">+ {formatRupiah(currentTaxAmount)}</span>
+                  <div className="flex justify-between text-blue-700">
+                    <span>Akumulasi PPN (Item Level):</span>
+                    <span className="font-bold">+ {formatRupiah(currentTotalPpnAmount)}</span>
                   </div>
+                  {currentTotalPph21Amount > 0 && (
+                    <div className="flex justify-between text-amber-700">
+                      <span>Akumulasi Potongan PPh 21 (Item Level):</span>
+                      <span className="font-bold">- {formatRupiah(currentTotalPph21Amount)}</span>
+                    </div>
+                  )}
+                  {currentTotalCustomTaxAmount > 0 && (
+                    <div className="flex justify-between text-indigo-700">
+                      <span>Akumulasi Pajak Kustom (Item Level):</span>
+                      <span className="font-bold">+ {formatRupiah(currentTotalCustomTaxAmount)}</span>
+                    </div>
+                  )}
                   {currentRetention > 0 && (
                     <div className="flex justify-between text-rose-600">
-                      <span>Potongan Retensi:</span>
+                      <span>Potongan Retensi ({currentRetentionPct}%):</span>
                       <span className="font-bold">- {formatRupiah(currentRetention)}</span>
                     </div>
                   )}
+                  {currentPph > 0 && (
+                    <div className="flex justify-between text-amber-700">
+                      <span>Potongan PPh Final/Jasa ({currentPphPct}%):</span>
+                      <span className="font-bold">- {formatRupiah(currentPph)}</span>
+                    </div>
+                  )}
                   {currentDp > 0 && (
-                    <div className="flex justify-between text-amber-600">
-                      <span>Potongan Pengembalian Uang Muka:</span>
+                    <div className="flex justify-between text-slate-600">
+                      <span>Potongan Pengembalian DP:</span>
                       <span className="font-bold">- {formatRupiah(currentDp)}</span>
                     </div>
                   )}
-                  <div className="border-t border-slate-200 pt-1.5 flex justify-between font-black text-sm text-indigo-900">
-                    <span>Grand Total Ditagihkan:</span>
-                    <span className="text-emerald-700">{formatRupiah(currentGrandTotal)}</span>
+                  <div className="border-t border-slate-200 pt-2 flex justify-between font-black text-sm text-indigo-900">
+                    <span>TOTAL TAGIHAN BERSIH (NET INVOICE):</span>
+                    <span className="text-emerald-700 text-base">{formatRupiah(currentGrandTotal)}</span>
                   </div>
                 </div>
               </div>
@@ -1290,33 +1640,41 @@ export const InvoiceModule: React.FC<InvoiceModuleProps> = ({
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-100 font-bold text-slate-700 border-b border-slate-200">
                       <tr>
-                        <th className="p-3">No</th>
-                        <th className="p-3">Deskripsi Pekerjaan / Layanan</th>
-                        <th className="p-3 text-center">Volume</th>
-                        <th className="p-3 text-center">Satuan</th>
-                        <th className="p-3 text-right">Harga Satuan (Rp)</th>
-                        <th className="p-3 text-right">Jumlah (Rp)</th>
+                        <th className="p-2.5 text-center w-8">No</th>
+                        <th className="p-2.5">Deskripsi Pekerjaan / Layanan</th>
+                        <th className="p-2.5 text-center w-20">Vol / Sat</th>
+                        <th className="p-2.5 text-right w-28">Harga (Rp)</th>
+                        <th className="p-2.5 text-right w-28">Subtotal (Rp)</th>
+                        <th className="p-2.5 text-center w-24 bg-blue-50/50">PPN</th>
+                        <th className="p-2.5 text-center w-24 bg-amber-50/50">PPh 21</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {viewingInvoice.items && viewingInvoice.items.length > 0 ? (
                         viewingInvoice.items.map((item, idx) => (
                           <tr key={item.id || idx}>
-                            <td className="p-3 text-slate-500 font-medium">{idx + 1}</td>
-                            <td className="p-3 font-semibold text-slate-900">{item.description}</td>
-                            <td className="p-3 text-center font-bold text-slate-700">{item.quantity}</td>
-                            <td className="p-3 text-center text-slate-600">{item.unit}</td>
-                            <td className="p-3 text-right font-medium text-slate-700">
+                            <td className="p-2.5 text-center text-slate-500 font-medium">{idx + 1}</td>
+                            <td className="p-2.5 font-semibold text-slate-900">{item.description}</td>
+                            <td className="p-2.5 text-center font-bold text-slate-700">
+                              {item.quantity} {item.unit}
+                            </td>
+                            <td className="p-2.5 text-right font-medium text-slate-700">
                               {formatRupiah(item.unitPrice)}
                             </td>
-                            <td className="p-3 text-right font-bold text-slate-900">
+                            <td className="p-2.5 text-right font-bold text-slate-900">
                               {formatRupiah(item.subtotal)}
+                            </td>
+                            <td className="p-2.5 text-center bg-blue-50/20 text-blue-900 font-medium">
+                              {item.ppnPct ? `${item.ppnPct}% (+${formatRupiah(item.ppnAmount || 0)})` : '0%'}
+                            </td>
+                            <td className="p-2.5 text-center bg-amber-50/20 text-amber-900 font-medium">
+                              {item.pph21Pct ? `${item.pph21Pct}% (-${formatRupiah(item.pph21Amount || 0)})` : '-'}
                             </td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={6} className="p-4 text-center text-slate-400">
+                          <td colSpan={7} className="p-4 text-center text-slate-400">
                             Tidak ada rincian item
                           </td>
                         </tr>
@@ -1342,28 +1700,42 @@ export const InvoiceModule: React.FC<InvoiceModuleProps> = ({
 
                   <div className="w-full md:w-80 space-y-2 text-xs font-medium">
                     <div className="flex justify-between text-slate-600">
-                      <span>Subtotal Pekerjaan:</span>
+                      <span>Subtotal Gross Pekerjaan:</span>
                       <span className="font-bold text-slate-900">{formatRupiah(viewingInvoice.subtotal)}</span>
                     </div>
-                    <div className="flex justify-between text-slate-600">
-                      <span>PPN ({viewingInvoice.taxPct}%):</span>
-                      <span className="font-bold text-slate-900">+ {formatRupiah(viewingInvoice.taxAmount)}</span>
+                    <div className="flex justify-between text-blue-700">
+                      <span>Total PPN:</span>
+                      <span className="font-bold">+ {formatRupiah(viewingInvoice.taxAmount)}</span>
                     </div>
+                    {viewingInvoice.items?.some(i => i.pph21Amount && i.pph21Amount > 0) ? (
+                      <div className="flex justify-between text-amber-700">
+                        <span>Total Potongan PPh 21 (Item):</span>
+                        <span className="font-bold">
+                          - {formatRupiah(viewingInvoice.items.reduce((s, i) => s + (i.pph21Amount || 0), 0))}
+                        </span>
+                      </div>
+                    ) : null}
                     {viewingInvoice.retentionDeduction ? (
                       <div className="flex justify-between text-rose-600">
-                        <span>Potongan Retensi:</span>
+                        <span>Potongan Retensi ({viewingInvoice.retentionPct ?? 5}%):</span>
                         <span className="font-bold">- {formatRupiah(viewingInvoice.retentionDeduction)}</span>
                       </div>
                     ) : null}
+                    {viewingInvoice.pphAmount ? (
+                      <div className="flex justify-between text-amber-700">
+                        <span>Potongan PPh Final/23 ({viewingInvoice.pphPct ?? 0}%):</span>
+                        <span className="font-bold">- {formatRupiah(viewingInvoice.pphAmount)}</span>
+                      </div>
+                    ) : null}
                     {viewingInvoice.dpDeduction ? (
-                      <div className="flex justify-between text-amber-600">
-                        <span>Pengembalian DP:</span>
+                      <div className="flex justify-between text-slate-600">
+                        <span>Pengembalian Uang Muka DP:</span>
                         <span className="font-bold">- {formatRupiah(viewingInvoice.dpDeduction)}</span>
                       </div>
                     ) : null}
 
                     <div className="border-t-2 border-slate-900 pt-2 flex justify-between font-black text-base text-slate-900">
-                      <span>TOTAL TAGIHAN:</span>
+                      <span>TOTAL TAGIHAN BERSIH:</span>
                       <span className="text-indigo-900">{formatRupiah(viewingInvoice.totalAmount)}</span>
                     </div>
 
@@ -1642,12 +2014,18 @@ export function renderPrintableInvoiceView(
           </div>
           {invoice.retentionDeduction ? (
             <div className="flex justify-between text-rose-600">
-              <span>Potongan Retensi:</span>
+              <span>Potongan Retensi ({invoice.retentionPct ?? 5}%):</span>
               <span className="font-bold">- {formatRupiah(invoice.retentionDeduction)}</span>
             </div>
           ) : null}
+          {invoice.pphAmount ? (
+            <div className="flex justify-between text-amber-700">
+              <span>Potongan PPh ({invoice.pphPct ?? 0}%):</span>
+              <span className="font-bold">- {formatRupiah(invoice.pphAmount)}</span>
+            </div>
+          ) : null}
           {invoice.dpDeduction ? (
-            <div className="flex justify-between text-amber-600">
+            <div className="flex justify-between text-slate-600">
               <span>Pengembalian DP:</span>
               <span className="font-bold">- {formatRupiah(invoice.dpDeduction)}</span>
             </div>

@@ -17,6 +17,15 @@ import {
   CreditCard,
   PieChart,
   RotateCcw,
+  ShieldAlert,
+  Receipt,
+  Coins,
+  AlertCircle,
+  CheckSquare,
+  FileCheck2,
+  ShieldCheck,
+  Building,
+  Calendar,
 } from 'lucide-react';
 import {
   ChartOfAccount,
@@ -28,6 +37,7 @@ import {
   PurchaseOrder,
   PayrollSlip,
   CompanyBank,
+  Project,
 } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
 import { PrintHeader } from '../common/PrintHeader';
@@ -44,6 +54,7 @@ interface AccountingModuleProps {
   invoices?: ProjectInvoice[];
   purchases?: PurchaseOrder[];
   payrollSlips?: PayrollSlip[];
+  projects?: Project[];
   onSaveJournal?: (jrn: JournalEntry) => void;
   onSaveCoa?: (coa: ChartOfAccount) => void;
 }
@@ -56,12 +67,14 @@ export const AccountingModule: React.FC<AccountingModuleProps> = ({
   invoices = [],
   purchases = [],
   payrollSlips = [],
+  projects = [],
   onSaveJournal,
   onSaveCoa,
 }) => {
-  const [activeTab, setActiveTab] = useState<'journal' | 'coa' | 'income' | 'balance'>('journal');
+  const [activeTab, setActiveTab] = useState<'journal' | 'coa' | 'income' | 'balance' | 'tax_audit'>('journal');
   const [search, setSearch] = useState('');
   const [sourceFilter, setSourceFilter] = useState<string>('all');
+  const [auditFilterStatus, setAuditFilterStatus] = useState<'ALL' | 'UNPAID' | 'PAID'>('ALL');
 
   // Modals state
   const [isAddJournalOpen, setIsAddJournalOpen] = useState(false);
@@ -380,6 +393,93 @@ export const AccountingModule: React.FC<AccountingModuleProps> = ({
   const totalPassiva = totalKewajiban + totalEkuitas;
   const isBalanceEqual = Math.abs(totalAktiva - totalPassiva) < 1000;
 
+  // --- 5. AUDIT PAJAK (PPN, PPh) & RETENSI PROYEK AKTIF ---
+  const taxAndRetentionAudit = useMemo(() => {
+    // Active invoices across projects
+    const activeInvoices = invoices.filter((inv) => inv.status !== 'Dibatalkan');
+    const unpaidInvoices = invoices.filter((inv) => inv.status !== 'Lunas' && inv.status !== 'Dibatalkan');
+    const paidInvoices = invoices.filter((inv) => inv.status === 'Lunas');
+
+    // Total PPN 11%/12%
+    const totalPpnAll = activeInvoices.reduce((acc, inv) => acc + (inv.taxAmount || 0), 0);
+    const totalPpnUnpaid = unpaidInvoices.reduce((acc, inv) => acc + (inv.taxAmount || 0), 0);
+    const totalPpnPaid = paidInvoices.reduce((acc, inv) => acc + (inv.taxAmount || 0), 0);
+
+    // Total PPh (PPh Final Jasa Konstruksi / PPh 23 / PPh 22)
+    const totalPphAll = activeInvoices.reduce((acc, inv) => {
+      const pph = inv.pphAmount !== undefined
+        ? inv.pphAmount
+        : ((inv.subtotal || 0) * (inv.pphPct || 0)) / 100;
+      return acc + pph;
+    }, 0);
+    const totalPphUnpaid = unpaidInvoices.reduce((acc, inv) => {
+      const pph = inv.pphAmount !== undefined
+        ? inv.pphAmount
+        : ((inv.subtotal || 0) * (inv.pphPct || 0)) / 100;
+      return acc + pph;
+    }, 0);
+    const totalPphPaid = paidInvoices.reduce((acc, inv) => {
+      const pph = inv.pphAmount !== undefined
+        ? inv.pphAmount
+        : ((inv.subtotal || 0) * (inv.pphPct || 0)) / 100;
+      return acc + pph;
+    }, 0);
+
+    // Total Retensi (5% Jaminan Pemeliharaan Proyek)
+    const totalRetentionAll = activeInvoices.reduce((acc, inv) => {
+      const ret = inv.retentionDeduction !== undefined
+        ? inv.retentionDeduction
+        : ((inv.subtotal || 0) * (inv.retentionPct ?? 5)) / 100;
+      return acc + ret;
+    }, 0);
+    const totalRetentionUnpaid = unpaidInvoices.reduce((acc, inv) => {
+      const ret = inv.retentionDeduction !== undefined
+        ? inv.retentionDeduction
+        : ((inv.subtotal || 0) * (inv.retentionPct ?? 5)) / 100;
+      return acc + ret;
+    }, 0);
+
+    // Read BAST-1 documents from local storage for active retention
+    let bast1RetentionTotal = 0;
+    let bast1Count = 0;
+    try {
+      const savedBast = localStorage.getItem('rcs_bast_documents');
+      if (savedBast) {
+        const parsed = JSON.parse(savedBast);
+        if (Array.isArray(parsed)) {
+          const bast1Docs = parsed.filter((b: any) => b.type === 'BAST1' && b.status !== 'Retensi Dicairkan');
+          bast1RetentionTotal = bast1Docs.reduce((acc: number, b: any) => acc + (b.retentionAmount || 0), 0);
+          bast1Count = bast1Docs.length;
+        }
+      }
+    } catch (e) {
+      console.error('Reading BAST docs error:', e);
+    }
+
+    const effectiveRetentionHeld = Math.max(totalRetentionAll, bast1RetentionTotal);
+
+    // Active projects count
+    const activeProjectsList = projects.filter((p) => p.status === 'Berjalan' || p.status === 'Mulai' || p.status === 'Pemeliharaan');
+
+    return {
+      totalPpnAll,
+      totalPpnUnpaid,
+      totalPpnPaid,
+      totalPphAll,
+      totalPphUnpaid,
+      totalPphPaid,
+      totalRetentionAll,
+      effectiveRetentionHeld,
+      totalRetentionUnpaid,
+      bast1Count,
+      bast1RetentionTotal,
+      activeProjectsCount: activeProjectsList.length > 0 ? activeProjectsList.length : projects.length,
+      totalPendingAudit: totalPpnUnpaid + totalPphUnpaid + totalRetentionUnpaid,
+      totalAccumulatedAudit: totalPpnAll + totalPphAll + effectiveRetentionHeld,
+      activeInvoices,
+    };
+  }, [invoices, projects]);
+
   // Filtered Journals for Display
   const filteredJournals = useMemo(() => {
     return allJournals.filter((j) => {
@@ -592,6 +692,17 @@ export const AccountingModule: React.FC<AccountingModuleProps> = ({
               <Scale className="w-3.5 h-3.5 text-amber-600" />
               <span>Neraca Keuangan</span>
             </button>
+            <button
+              onClick={() => setActiveTab('tax_audit')}
+              className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
+                activeTab === 'tax_audit'
+                  ? 'bg-amber-500 text-slate-950 shadow-sm font-black'
+                  : 'text-slate-700 hover:text-slate-900 font-bold bg-amber-50 hover:bg-amber-100/80 border border-amber-300/60'
+              }`}
+            >
+              <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
+              <span>Audit Pajak & Retensi ({taxAndRetentionAudit.activeProjectsCount})</span>
+            </button>
           </div>
 
           <CetakPdfButton
@@ -601,6 +712,107 @@ export const AccountingModule: React.FC<AccountingModuleProps> = ({
             variant="emerald"
             label="Cetak PDF"
           />
+        </div>
+      </div>
+
+      {/* DASHBOARD QUICK AUDIT SUMMARY BANNER (PPH, PPN & RETENSI PROYEK) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print:hidden">
+        <div className="bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-900 text-white p-4 rounded-2xl border border-indigo-700/50 shadow-sm relative overflow-hidden flex flex-col justify-between">
+          <div className="flex items-center justify-between text-indigo-200">
+            <span className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <Receipt className="w-4 h-4 text-amber-400" /> Akumulasi PPN (11%)
+            </span>
+            <span className="text-[10px] bg-indigo-500/30 text-indigo-200 px-2 py-0.5 rounded-full border border-indigo-400/30 font-semibold">
+              Proyek Aktif
+            </span>
+          </div>
+          <div className="my-2">
+            <div className="text-xl font-black text-white font-mono">
+              {formatRupiah(taxAndRetentionAudit.totalPpnAll)}
+            </div>
+            <div className="text-xs text-indigo-300 mt-1 flex items-center justify-between">
+              <span>Belum Disetor/Terutang:</span>
+              <span className="font-bold text-amber-300 font-mono">{formatRupiah(taxAndRetentionAudit.totalPpnUnpaid)}</span>
+            </div>
+          </div>
+          <div className="text-[11px] text-slate-300 border-t border-indigo-800/60 pt-2 flex items-center justify-between">
+            <span>Sudah Disetor:</span>
+            <span className="font-semibold text-emerald-400 font-mono">{formatRupiah(taxAndRetentionAudit.totalPpnPaid)}</span>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 text-white p-4 rounded-2xl border border-slate-700/60 shadow-sm relative overflow-hidden flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-300">
+            <span className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <Coins className="w-4 h-4 text-emerald-400" /> Potongan PPh Konstruksi
+            </span>
+            <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full border border-slate-700 font-semibold">
+              PPh Final / 23
+            </span>
+          </div>
+          <div className="my-2">
+            <div className="text-xl font-black text-white font-mono">
+              {formatRupiah(taxAndRetentionAudit.totalPphAll)}
+            </div>
+            <div className="text-xs text-slate-300 mt-1 flex items-center justify-between">
+              <span>Terutang/Belum Lapor:</span>
+              <span className="font-bold text-amber-300 font-mono">{formatRupiah(taxAndRetentionAudit.totalPphUnpaid)}</span>
+            </div>
+          </div>
+          <div className="text-[11px] text-slate-400 border-t border-slate-800 pt-2 flex items-center justify-between">
+            <span>Sudah Dipotong/Disetor:</span>
+            <span className="font-semibold text-emerald-400 font-mono">{formatRupiah(taxAndRetentionAudit.totalPphPaid)}</span>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-amber-950 via-slate-900 to-slate-950 text-white p-4 rounded-2xl border border-amber-800/40 shadow-sm relative overflow-hidden flex flex-col justify-between">
+          <div className="flex items-center justify-between text-amber-200">
+            <span className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-amber-400" /> Retensi 5% Tertahan
+            </span>
+            <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30 font-semibold">
+              BAST-1 (PHO)
+            </span>
+          </div>
+          <div className="my-2">
+            <div className="text-xl font-black text-amber-300 font-mono">
+              {formatRupiah(taxAndRetentionAudit.effectiveRetentionHeld)}
+            </div>
+            <div className="text-xs text-amber-200/80 mt-1 flex items-center justify-between">
+              <span>Dokumen BAST-1 Active:</span>
+              <span className="font-bold text-white">{taxAndRetentionAudit.bast1Count} Berkas</span>
+            </div>
+          </div>
+          <div className="text-[11px] text-amber-300/70 border-t border-amber-900/60 pt-2 flex items-center justify-between">
+            <span>Masa Pemeliharaan:</span>
+            <span className="font-semibold text-amber-200">Terkunci s.d BAST-2</span>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-rose-950 via-slate-900 to-slate-950 text-white p-4 rounded-2xl border border-rose-800/40 shadow-sm relative overflow-hidden flex flex-col justify-between">
+          <div className="flex items-center justify-between text-rose-200">
+            <span className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <ShieldAlert className="w-4 h-4 text-rose-400" /> Kewajiban Audit Tertahan
+            </span>
+            <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full border border-rose-500/30 font-semibold">
+              Pending
+            </span>
+          </div>
+          <div className="my-2">
+            <div className="text-xl font-black text-rose-300 font-mono">
+              {formatRupiah(taxAndRetentionAudit.totalPendingAudit)}
+            </div>
+            <p className="text-[11px] text-slate-300 mt-1">
+              Akumulasi PPN + PPh + Retensi belum diselesaikan.
+            </p>
+          </div>
+          <button
+            onClick={() => setActiveTab('tax_audit')}
+            className="w-full mt-1 bg-rose-500 hover:bg-rose-400 text-white font-extrabold text-xs py-1.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+          >
+            <span>Audit Pajak & Retensi Detail</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 
@@ -998,6 +1210,363 @@ export const AccountingModule: React.FC<AccountingModuleProps> = ({
             </div>
             <div className="font-mono text-xs">
               Aktiva: {formatRupiah(totalAktiva)} | Passiva: {formatRupiah(totalPassiva)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- TAB 5: AUDIT PAJAK (PPN, PPH) & RETENSI PROYEK --- */}
+      {activeTab === 'tax_audit' && (
+        <div className="space-y-6">
+          {/* Header Card */}
+          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white p-6 rounded-2xl shadow-md border border-slate-700/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="w-6 h-6 text-amber-400" />
+                <h3 className="text-lg font-extrabold text-white">
+                  Audit Pajak (PPh, PPN) & Dana Retensi Proyek Aktif
+                </h3>
+              </div>
+              <p className="text-xs text-slate-300 max-w-2xl">
+                Laporan akuntansi audit otomatis untuk memantau akumulasi PPN terutang, potongan PPh Jasa Konstruksi, dan dana retensi 5% yang masih tertahan di proyek-proyek berjalan.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <CetakPdfButton
+                elementId="accounting-tax-audit-section"
+                filename="Audit_Pajak_dan_Retensi_Proyek_Build_X_Pro.pdf"
+                title="Laporan Audit Pajak & Dana Retensi Proyek"
+                variant="amber"
+                label="Cetak Audit PDF"
+              />
+            </div>
+          </div>
+
+          <div id="accounting-tax-audit-section" className="space-y-6">
+            {/* 4 Cards Summary */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Card 1: PPN */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-indigo-700">
+                  <span className="flex items-center gap-1.5 uppercase">
+                    <Receipt className="w-4 h-4 text-indigo-600" /> PPN Keluaran (11%)
+                  </span>
+                  <span className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">
+                    UU HPP
+                  </span>
+                </div>
+                <div className="text-2xl font-black text-slate-900 font-mono">
+                  {formatRupiah(taxAndRetentionAudit.totalPpnAll)}
+                </div>
+                <div className="pt-2 border-t border-slate-100 text-xs space-y-1">
+                  <div className="flex justify-between text-slate-600">
+                    <span>Terutang/Belum Disetor:</span>
+                    <span className="font-bold text-amber-600 font-mono">
+                      {formatRupiah(taxAndRetentionAudit.totalPpnUnpaid)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-slate-500">
+                    <span>Sudah Disetor/Lunas:</span>
+                    <span className="font-semibold text-emerald-600 font-mono">
+                      {formatRupiah(taxAndRetentionAudit.totalPpnPaid)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: PPh */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-emerald-700">
+                  <span className="flex items-center gap-1.5 uppercase">
+                    <Coins className="w-4 h-4 text-emerald-600" /> Potongan PPh
+                  </span>
+                  <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">
+                    PPh Final / 23
+                  </span>
+                </div>
+                <div className="text-2xl font-black text-slate-900 font-mono">
+                  {formatRupiah(taxAndRetentionAudit.totalPphAll)}
+                </div>
+                <div className="pt-2 border-t border-slate-100 text-xs space-y-1">
+                  <div className="flex justify-between text-slate-600">
+                    <span>Terutang/Belum Lapor:</span>
+                    <span className="font-bold text-amber-600 font-mono">
+                      {formatRupiah(taxAndRetentionAudit.totalPphUnpaid)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-slate-500">
+                    <span>Sudah Dipotong/Disetor:</span>
+                    <span className="font-semibold text-emerald-600 font-mono">
+                      {formatRupiah(taxAndRetentionAudit.totalPphPaid)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Retensi */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-amber-700">
+                  <span className="flex items-center gap-1.5 uppercase">
+                    <ShieldCheck className="w-4 h-4 text-amber-600" /> Retensi Pemeliharaan (5%)
+                  </span>
+                  <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">
+                    BAST-1 (PHO)
+                  </span>
+                </div>
+                <div className="text-2xl font-black text-slate-900 font-mono">
+                  {formatRupiah(taxAndRetentionAudit.effectiveRetentionHeld)}
+                </div>
+                <div className="pt-2 border-t border-slate-100 text-xs space-y-1">
+                  <div className="flex justify-between text-slate-600">
+                    <span>Tertahan BAST-1:</span>
+                    <span className="font-bold text-amber-700 font-mono">
+                      {taxAndRetentionAudit.bast1Count} Dokumen
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-slate-500">
+                    <span>Syarat Pencairan:</span>
+                    <span className="font-semibold text-indigo-600">BAST-2 (FHO)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4: Total Pending Audit */}
+              <div className="bg-gradient-to-br from-slate-900 to-rose-950 text-white p-5 rounded-2xl border border-rose-800/40 shadow-sm space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-rose-300">
+                  <span className="flex items-center gap-1.5 uppercase">
+                    <AlertCircle className="w-4 h-4 text-rose-400" /> Total Kewajiban Pending
+                  </span>
+                  <span className="bg-rose-500/30 text-rose-200 px-2 py-0.5 rounded-full text-[10px] font-semibold">
+                    Audit Alert
+                  </span>
+                </div>
+                <div className="text-2xl font-black text-amber-300 font-mono">
+                  {formatRupiah(taxAndRetentionAudit.totalPendingAudit)}
+                </div>
+                <p className="text-[11px] text-slate-300 border-t border-rose-900/60 pt-2">
+                  Akumulasi PPN + PPh + Retensi belum lunas/diselesaikan di proyek aktif.
+                </p>
+              </div>
+            </div>
+
+            {/* Breakdown Table Card */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden space-y-4 p-5">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b pb-4">
+                <div>
+                  <h4 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                    <FileCheck2 className="w-5 h-5 text-indigo-600" />
+                    Rincian Audit Pajak & Retensi per Invoiced Proyek ({taxAndRetentionAudit.activeInvoices.length})
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Membedah komponen PPN, Potongan PPh, dan Potongan Retensi untuk setiap tagihan proyek aktif.
+                  </p>
+                </div>
+
+                {/* Filter Buttons & Search */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="bg-slate-100 p-1 rounded-xl flex text-xs font-semibold">
+                    <button
+                      onClick={() => setAuditFilterStatus('ALL')}
+                      className={`px-3 py-1.5 rounded-lg transition ${
+                        auditFilterStatus === 'ALL'
+                          ? 'bg-white text-slate-900 shadow-sm font-extrabold'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Semua ({taxAndRetentionAudit.activeInvoices.length})
+                    </button>
+                    <button
+                      onClick={() => setAuditFilterStatus('UNPAID')}
+                      className={`px-3 py-1.5 rounded-lg transition ${
+                        auditFilterStatus === 'UNPAID'
+                          ? 'bg-white text-rose-700 shadow-sm font-extrabold'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Pending / Unpaid
+                    </button>
+                    <button
+                      onClick={() => setAuditFilterStatus('PAID')}
+                      className={`px-3 py-1.5 rounded-lg transition ${
+                        auditFilterStatus === 'PAID'
+                          ? 'bg-white text-emerald-700 shadow-sm font-extrabold'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Lunas / Disetor
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 text-slate-700 font-extrabold uppercase border-b border-slate-200">
+                      <th className="p-3">No Invoice & Tanggal</th>
+                      <th className="p-3">Proyek & Klien</th>
+                      <th className="p-3 text-right">Subtotal (Rp)</th>
+                      <th className="p-3 text-right text-indigo-700">PPN 11% (Rp)</th>
+                      <th className="p-3 text-right text-emerald-700">Pot. PPh (Rp)</th>
+                      <th className="p-3 text-right text-amber-700">Retensi 5% (Rp)</th>
+                      <th className="p-3 text-right font-black">Net Tagihan (Rp)</th>
+                      <th className="p-3 text-center">Status Pembayaran</th>
+                      <th className="p-3 text-center">Status Audit Pajak</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 font-medium">
+                    {taxAndRetentionAudit.activeInvoices
+                      .filter((inv) => {
+                        if (auditFilterStatus === 'UNPAID') return inv.status !== 'Lunas';
+                        if (auditFilterStatus === 'PAID') return inv.status === 'Lunas';
+                        return true;
+                      })
+                      .map((inv) => {
+                        const pphVal = inv.pphAmount !== undefined
+                          ? inv.pphAmount
+                          : ((inv.subtotal || 0) * (inv.pphPct || 0)) / 100;
+                        const retVal = inv.retentionDeduction !== undefined
+                          ? inv.retentionDeduction
+                          : ((inv.subtotal || 0) * (inv.retentionPct ?? 5)) / 100;
+
+                        return (
+                          <tr key={inv.id} className="hover:bg-slate-50 transition">
+                            <td className="p-3">
+                              <div className="font-mono font-bold text-indigo-900">{inv.invoiceNumber}</div>
+                              <div className="text-[10px] text-slate-500 flex items-center gap-1">
+                                <Calendar className="w-3 h-3 text-slate-400" />
+                                {inv.issueDate}
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <div className="font-bold text-slate-900 max-w-xs truncate">{inv.projectName}</div>
+                              <div className="text-[10px] text-slate-500">{inv.clientName}</div>
+                            </td>
+                            <td className="p-3 text-right font-mono font-semibold">
+                              {formatRupiah(inv.subtotal || 0)}
+                            </td>
+                            <td className="p-3 text-right font-mono text-indigo-700 font-bold">
+                              {formatRupiah(inv.taxAmount || 0)}
+                            </td>
+                            <td className="p-3 text-right font-mono text-emerald-700 font-bold">
+                              {formatRupiah(pphVal)}
+                              {inv.pphPct ? (
+                                <span className="block text-[10px] text-slate-400 font-normal">
+                                  ({inv.pphPct}%)
+                                </span>
+                              ) : null}
+                            </td>
+                            <td className="p-3 text-right font-mono text-amber-700 font-bold">
+                              {formatRupiah(retVal)}
+                              <span className="block text-[10px] text-slate-400 font-normal">
+                                ({inv.retentionPct || 5}%)
+                              </span>
+                            </td>
+                            <td className="p-3 text-right font-mono font-black text-slate-900">
+                              {formatRupiah(inv.totalAmount || 0)}
+                            </td>
+                            <td className="p-3 text-center">
+                              <span
+                                className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold inline-block ${
+                                  inv.status === 'Lunas'
+                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                    : inv.status === 'Sebagian Dibayar'
+                                    ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                                    : 'bg-rose-100 text-rose-800 border border-rose-300'
+                                }`}
+                              >
+                                {inv.status}
+                              </span>
+                            </td>
+                            <td className="p-3 text-center">
+                              {inv.status === 'Lunas' ? (
+                                <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold text-[10px] border border-emerald-200 inline-flex items-center gap-1">
+                                  <CheckSquare className="w-3 h-3 text-emerald-600" />
+                                  Pajak Lunas & Disetor
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 font-bold text-[10px] border border-amber-200 inline-flex items-center gap-1">
+                                  <AlertCircle className="w-3 h-3 text-amber-600" />
+                                  Pajak Terutang / Pending
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-slate-900 text-white font-extrabold text-xs">
+                      <td colSpan={2} className="p-3 uppercase">
+                        TOTAL AKUMULASI AUDIT (INVOICES):
+                      </td>
+                      <td className="p-3 text-right font-mono">
+                        {formatRupiah(
+                          taxAndRetentionAudit.activeInvoices.reduce((acc, i) => acc + (i.subtotal || 0), 0)
+                        )}
+                      </td>
+                      <td className="p-3 text-right font-mono text-indigo-300">
+                        {formatRupiah(taxAndRetentionAudit.totalPpnAll)}
+                      </td>
+                      <td className="p-3 text-right font-mono text-emerald-300">
+                        {formatRupiah(taxAndRetentionAudit.totalPphAll)}
+                      </td>
+                      <td className="p-3 text-right font-mono text-amber-300">
+                        {formatRupiah(taxAndRetentionAudit.totalRetentionAll)}
+                      </td>
+                      <td className="p-3 text-right font-mono text-amber-400 font-black">
+                        {formatRupiah(
+                          taxAndRetentionAudit.activeInvoices.reduce((acc, i) => acc + (i.totalAmount || 0), 0)
+                        )}
+                      </td>
+                      <td colSpan={2} className="p-3 text-center text-slate-300">
+                        Audited by Accounting System
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+
+            {/* Regulation & Compliance Guidance */}
+            <div className="bg-amber-50 rounded-2xl p-5 border border-amber-200/80 text-xs text-amber-950 space-y-3">
+              <div className="flex items-center gap-2 font-black text-sm text-amber-900">
+                <ShieldCheck className="w-5 h-5 text-amber-600" />
+                Catatan Kepatuhan Perpajakan & Retensi Konstruksi Indonesia
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <div className="bg-white/80 p-3 rounded-xl border border-amber-200 space-y-1">
+                  <div className="font-extrabold text-indigo-900 flex items-center gap-1.5">
+                    <Receipt className="w-3.5 h-3.5 text-indigo-600" />
+                    PPN (Pajak Pertambahan Nilai 11%)
+                  </div>
+                  <p className="text-slate-600 leading-relaxed text-[11px]">
+                    Sesuai UU HPP No. 7/2021, PPN Keluaran wajib dibuatkan Faktur Pajak saat penerbitan Invoice Proyek dan dilaporkan dalam SPT Masa PPN sebelum akhir bulan berikutnya.
+                  </p>
+                </div>
+
+                <div className="bg-white/80 p-3 rounded-xl border border-amber-200 space-y-1">
+                  <div className="font-extrabold text-emerald-900 flex items-center gap-1.5">
+                    <Coins className="w-3.5 h-3.5 text-emerald-600" />
+                    PPh Final Jasa Konstruksi (PP No. 9/2022)
+                  </div>
+                  <p className="text-slate-600 leading-relaxed text-[11px]">
+                    Tarif PPh Final Pekerjaan Konstruksi: Kualifikasi Kecil (1.75%), Menengah/Besar (2.65%), Non-Kualifikasi (4.00%). Dipotong langsung oleh Klien / Bouwheer saat pencairan termijn.
+                  </p>
+                </div>
+
+                <div className="bg-white/80 p-3 rounded-xl border border-amber-200 space-y-1">
+                  <div className="font-extrabold text-amber-900 flex items-center gap-1.5">
+                    <Coins className="w-3.5 h-3.5 text-amber-600" />
+                    Retensi 5% (Jaminan Pemeliharaan)
+                  </div>
+                  <p className="text-slate-600 leading-relaxed text-[11px]">
+                    Dana retensi sebesar 5% dari nilai kontrak ditahan Klien sejak BAST-1 (PHO) selama masa pemeliharaan (biasanya 3-6 bulan) dan baru dicairkan setelah penandatanganan BAST-2 (FHO).
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

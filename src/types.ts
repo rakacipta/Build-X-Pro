@@ -56,6 +56,8 @@ export type LetterCategory =
   | 'SP'
   | 'UNDANGAN'
   | 'PERMOHONAN'
+  | 'BAST1'
+  | 'BAST2'
   | 'CUSTOM';
 
 export interface ScannedAttachment {
@@ -493,6 +495,12 @@ export interface InvoiceItem {
   unit: string;
   unitPrice: number;
   subtotal: number;
+  ppnPct?: number; // % PPN (default 11%)
+  ppnAmount?: number; // Rp PPN
+  pph21Pct?: number; // % PPh 21
+  pph21Amount?: number; // Rp PPh 21
+  customTaxPct?: number; // Field input persentase pajak kustom (%)
+  customTaxAmount?: number; // Rp pajak kustom
 }
 
 export interface ProjectInvoice {
@@ -508,7 +516,14 @@ export interface ProjectInvoice {
   subtotal: number;
   taxPct: number;
   taxAmount: number;
-  retentionDeduction?: number;
+  pph21Pct?: number;
+  pph21Amount?: number;
+  customTaxPct?: number;
+  customTaxAmount?: number;
+  retentionPct?: number; // e.g. 5 (%)
+  retentionDeduction?: number; // Potongan Retensi (Rp)
+  pphPct?: number; // e.g. 1.75, 2, 4 (%)
+  pphAmount?: number; // Potongan PPh (Rp)
   dpDeduction?: number;
   totalAmount: number;
   notes?: string;

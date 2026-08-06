@@ -57,6 +57,7 @@ import { saveAs } from 'file-saver';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import { generatePdfFromElement, triggerPrintFallback } from '../../utils/pdfGenerator';
 import { SubkonSpkSubmodule } from './SubkonSpkSubmodule';
+import { BastSubmodule } from './BastSubmodule';
 import {
   Document,
   Packer,
@@ -383,7 +384,7 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
     return INITIAL_TEMPLATES;
   });
 
-  const [activeTab, setActiveTab] = useState<'LIST' | 'SUBKON' | 'FORM' | 'PREVIEW' | 'TEMPLATES'>('LIST');
+  const [activeTab, setActiveTab] = useState<'LIST' | 'SUBKON' | 'BAST' | 'FORM' | 'PREVIEW' | 'TEMPLATES'>('LIST');
   const [templateSearchQuery, setTemplateSearchQuery] = useState('');
   const [templateCategoryFilter, setTemplateCategoryFilter] = useState<string>('ALL');
   const [templateToast, setTemplateToast] = useState<string | null>(null);
@@ -1185,6 +1186,17 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
             <ShieldCheck className="w-4 h-4 text-amber-500" /> Subkon & SPK Borongan ({subkonContracts.length})
           </button>
 
+          <button
+            onClick={() => setActiveTab('BAST')}
+            className={`pb-3 px-4 font-bold text-xs flex items-center gap-2 border-b-2 transition ${
+              activeTab === 'BAST'
+                ? 'border-indigo-600 text-indigo-700 font-extrabold'
+                : 'border-transparent text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <FileCheck2 className="w-4 h-4 text-indigo-600" /> Dokumen BAST 1 & 2
+          </button>
+
           {previewLetter && (
             <button
               onClick={() => setActiveTab('PREVIEW')}
@@ -1220,6 +1232,18 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
           onDeleteSubkonContract={onDeleteSubkonContract}
           onSaveSubkonOpname={onSaveSubkonOpname}
           onDeleteSubkonOpname={onDeleteSubkonOpname}
+          onTriggerNotification={onTriggerNotification}
+        />
+      )}
+
+      {/* TAB BAST 1 & BAST 2 */}
+      {activeTab === 'BAST' && (
+        <BastSubmodule
+          projects={projects}
+          companyProfile={companyProfile}
+          onSaveOfficialLetter={(letter) => {
+            setLetters((prev) => [letter, ...prev.filter((l) => l.id !== letter.id)]);
+          }}
           onTriggerNotification={onTriggerNotification}
         />
       )}

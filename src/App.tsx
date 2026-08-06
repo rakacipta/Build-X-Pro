@@ -865,6 +865,8 @@ export default function App() {
               approvals={approvals}
               materials={materials}
               purchaseOrders={purchases}
+              invoices={invoices}
+              coaList={coaList}
               onNavigate={setActiveModule}
             />
           )}
@@ -1004,6 +1006,7 @@ export default function App() {
               invoices={invoices}
               purchases={purchases}
               payrollSlips={payrollSlips}
+              projects={projects}
               onSaveJournal={handleSaveJournal}
               onSaveCoa={handleSaveCoa}
             />

@@ -26,6 +26,8 @@ import {
   ApprovalRequest,
   Material,
   PurchaseOrder,
+  ProjectInvoice,
+  ChartOfAccount,
 } from '../../types';
 import { ProjectedCashFlowChart } from './ProjectedCashFlowChart';
 import { formatRupiah, formatCompactNumber } from '../../utils/formatters';
@@ -52,6 +54,8 @@ interface DashboardModuleProps {
   approvals: ApprovalRequest[];
   materials: Material[];
   purchaseOrders?: PurchaseOrder[];
+  invoices?: ProjectInvoice[];
+  coaList?: ChartOfAccount[];
   onNavigate: (mod: any) => void;
 }
 
@@ -63,8 +67,46 @@ export const DashboardModule: React.FC<DashboardModuleProps> = ({
   approvals,
   materials,
   purchaseOrders = [],
+  invoices = [],
+  coaList = [],
   onNavigate,
 }) => {
+  // Dynamic calculation for Piutang Proyek & Hutang Supplier
+  const coaPiutang = coaList.find(
+    (c) => c.code === '103-001' || c.name.toLowerCase().includes('piutang')
+  )?.balance || 0;
+
+  const coaHutang = coaList.find(
+    (c) => c.code === '201-001' || c.name.toLowerCase().includes('hutang')
+  )?.balance || 0;
+
+  // Invoice Piutang: include active issued invoices that are NOT Paid, NOT Closed, NOT Cancelled, NOT Draft
+  const invoicesPiutang = invoices
+    .filter((inv) => {
+      const status = (inv.status || '').toString();
+      return status !== 'Paid' && status !== 'Closed' && status !== 'Cancelled' && status !== 'Draft';
+    })
+    .reduce((acc, inv) => {
+      const total = inv.totalAmount || inv.subtotal || 0;
+      const paid = (inv as any).paidAmount || (inv as any).amountPaid || 0;
+      return acc + Math.max(0, total - paid);
+    }, 0);
+
+  // PO Hutang: include active Purchase Orders that are NOT Paid, NOT Closed, NOT Rejected, NOT Draft
+  const poHutang = purchaseOrders
+    .filter((po) => {
+      const status = (po.status || '').toString();
+      return status !== 'Paid' && status !== 'Closed' && status !== 'Rejected' && status !== 'Draft';
+    })
+    .reduce((acc, po) => {
+      const total = po.totalAmount || 0;
+      const paid = (po as any).paidAmount || 0;
+      return acc + Math.max(0, total - paid);
+    }, 0);
+
+  const totalPiutang = coaPiutang > 0 ? coaPiutang : invoicesPiutang;
+  const totalHutang = coaHutang > 0 ? coaHutang : poHutang;
+
   // Calculated KPIs
   const activeProjects = projects.filter((p) => p.status === 'In Progress');
   const totalContractValue = projects.reduce((acc, p) => acc + p.contractValue, 0);
@@ -249,11 +291,15 @@ export const DashboardModule: React.FC<DashboardModuleProps> = ({
         </div>
         <div className="bg-white border border-slate-200 p-4 rounded-xl text-center shadow-sm">
           <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider">Piutang Proyek</span>
-          <span className="text-2xl font-bold text-blue-600 mt-1 block">Rp 8.2 M</span>
+          <span className="text-2xl font-bold text-blue-600 mt-1 block">
+            {totalPiutang > 0 ? `Rp ${formatCompactNumber(totalPiutang)}` : 'Rp 0'}
+          </span>
         </div>
         <div className="bg-white border border-slate-200 p-4 rounded-xl text-center shadow-sm">
           <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider">Hutang Supplier</span>
-          <span className="text-2xl font-bold text-amber-600 mt-1 block">Rp 3.1 M</span>
+          <span className="text-2xl font-bold text-amber-600 mt-1 block">
+            {totalHutang > 0 ? `Rp ${formatCompactNumber(totalHutang)}` : 'Rp 0'}
+          </span>
         </div>
         <div className="bg-white border border-slate-200 p-4 rounded-xl text-center shadow-sm">
           <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider">Absensi Karyawan</span>
