@@ -1330,11 +1330,19 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                           <div>
                             <div>{user.name}</div>
                             <div className="text-[10px] text-slate-500 font-normal">{user.email}</div>
-                            {(user.allowedModules || user.email.toLowerCase() === 'novia.rakaciptaseraya@gmail.com') && (
+                            {user.email.toLowerCase() === 'novia.rakaciptaseraya@gmail.com' ? (
                               <span className="inline-block mt-0.5 px-1.5 py-0.2 text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-200 rounded">
-                                Restricted: KPI, HR & Keuangan, Executive
+                                Akses Khusus: KPI, HR & Keuangan, Executive
                               </span>
-                            )}
+                            ) : user.email.toLowerCase() === 'siska.rakaciptaseraya@gmail.com' ? (
+                              <span className="inline-block mt-0.5 px-1.5 py-0.2 text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 rounded">
+                                Akses Khusus: Marketing, Konstruksi, Supply Chain
+                              </span>
+                            ) : user.allowedModules && user.allowedModules.length > 0 ? (
+                              <span className="inline-block mt-0.5 px-1.5 py-0.2 text-[9px] font-bold bg-slate-100 text-slate-700 border border-slate-200 rounded">
+                                Akses Terbatas ({user.allowedModules.length} Modul)
+                              </span>
+                            ) : null}
                           </div>
                         </div>
                       </td>

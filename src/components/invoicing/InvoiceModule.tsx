@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Receipt,
   Plus,
@@ -28,7 +28,22 @@ import {
   Info,
   RotateCcw,
   Percent,
+  TrendingUp,
+  BarChart3,
+  Layers,
 } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  Legend,
+  AreaChart,
+  Area,
+} from 'recharts';
 import {
   ProjectInvoice,
   InvoiceItem,
@@ -139,6 +154,149 @@ export const InvoiceModule: React.FC<InvoiceModuleProps> = ({
     .filter((inv) => inv.status === 'Overdue')
     .reduce((sum, inv) => sum + inv.totalAmount, 0);
   const countOverdue = invoices.filter((inv) => inv.status === 'Overdue').length;
+
+  // Chart Display Mode
+  const [chartType, setChartType] = useState<'bar' | 'area'>('bar');
+
+  // Compute monthly invoice aggregation
+  const monthlyChartData = useMemo(() => {
+    const monthMap: Record<
+      string,
+      {
+        key: string;
+        label: string;
+        total: number;
+        paid: number;
+        pending: number;
+        overdue: number;
+        count: number;
+      }
+    > = {};
+
+    invoices.forEach((inv) => {
+      if (!inv.issueDate) return;
+      const dateObj = new Date(inv.issueDate);
+      if (isNaN(dateObj.getTime())) return;
+
+      const year = dateObj.getFullYear();
+      const month = dateObj.getMonth();
+      const key = `${year}-${String(month + 1).padStart(2, '0')}`;
+
+      const monthNames = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'Mei',
+        'Jun',
+        'Jul',
+        'Agt',
+        'Sep',
+        'Okt',
+        'Nov',
+        'Des',
+      ];
+      const label = `${monthNames[month]} ${year}`;
+
+      if (!monthMap[key]) {
+        monthMap[key] = {
+          key,
+          label,
+          total: 0,
+          paid: 0,
+          pending: 0,
+          overdue: 0,
+          count: 0,
+        };
+      }
+
+      const amt = inv.totalAmount || 0;
+      monthMap[key].total += amt;
+      monthMap[key].count += 1;
+
+      if (inv.status === 'Paid') {
+        monthMap[key].paid += amt;
+      } else if (inv.status === 'Overdue') {
+        monthMap[key].overdue += amt;
+        monthMap[key].pending += amt;
+      } else if (inv.status === 'Sent' || inv.status === 'Draft') {
+        monthMap[key].pending += amt;
+      }
+    });
+
+    const sortedKeys = Object.keys(monthMap).sort();
+
+    // Ensure at least last 6 months are visible if fewer entries exist
+    if (sortedKeys.length < 6) {
+      const today = new Date();
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const year = d.getFullYear();
+        const month = d.getMonth();
+        const key = `${year}-${String(month + 1).padStart(2, '0')}`;
+        const monthNames = [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'Mei',
+          'Jun',
+          'Jul',
+          'Agt',
+          'Sep',
+          'Okt',
+          'Nov',
+          'Des',
+        ];
+        const label = `${monthNames[month]} ${year}`;
+        if (!monthMap[key]) {
+          monthMap[key] = {
+            key,
+            label,
+            total: 0,
+            paid: 0,
+            pending: 0,
+            overdue: 0,
+            count: 0,
+          };
+        }
+      }
+    }
+
+    return Object.values(monthMap).sort((a, b) => a.key.localeCompare(b.key));
+  }, [invoices]);
+
+  // Derived chart metrics
+  const collectionRate = totalInvoiced > 0 ? ((totalPaid / totalInvoiced) * 100).toFixed(1) : '0.0';
+  const peakMonthObj = useMemo(() => {
+    if (monthlyChartData.length === 0) return null;
+    return [...monthlyChartData].sort((a, b) => b.paid - a.paid)[0];
+  }, [monthlyChartData]);
+
+  const CustomChartTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-slate-900 border border-slate-700 text-white p-3.5 rounded-xl shadow-xl text-xs space-y-2 min-w-[200px]">
+          <div className="font-bold text-slate-200 border-b border-slate-800 pb-1.5 flex items-center justify-between">
+            <span>{label}</span>
+            <span className="text-[10px] text-slate-400 font-normal">Perkembangan Kas</span>
+          </div>
+          <div className="space-y-1.5">
+            {payload.map((entry: any, index: number) => (
+              <div key={`tooltip-${index}`} className="flex items-center justify-between gap-4">
+                <span className="flex items-center gap-1.5 text-slate-300">
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
+                  {entry.name}:
+                </span>
+                <span className="font-bold text-white tracking-tight">{formatRupiah(entry.value)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
 
   // Filtered List
   const filteredInvoices = invoices.filter((inv) => {
@@ -558,6 +716,164 @@ export const InvoiceModule: React.FC<InvoiceModuleProps> = ({
             {countOverdue} Invoice Perlu Follow-up
           </p>
           <div className="absolute top-0 right-0 w-2 h-full bg-rose-500 rounded-r-2xl" />
+        </div>
+      </div>
+
+      {/* Monthly Invoicing & Cash In Visual Chart Section */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">
+                Visualisasi Total Invoice & Arus Masuk Kas (Cash In) Per Bulan
+              </h2>
+              <p className="text-xs text-slate-500">
+                Monitoring realisasi pembayaran tagihan lunas vs tagihan diterbitkan untuk estimasi likuiditas perusahaan.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200/60">
+              <button
+                type="button"
+                onClick={() => setChartType('bar')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                  chartType === 'bar'
+                    ? 'bg-white text-indigo-600 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <BarChart3 className="w-3.5 h-3.5" />
+                <span>Bar Chart</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setChartType('area')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                  chartType === 'area'
+                    ? 'bg-white text-indigo-600 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Area Chart</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Chart Viewport */}
+        <div className="h-72 w-full pt-2">
+          <ResponsiveContainer width="100%" height="100%">
+            {chartType === 'bar' ? (
+              <BarChart data={monthlyChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis dataKey="label" tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 10, fill: '#64748b' }}
+                  tickFormatter={(val) => formatCompactNumber(val)}
+                />
+                <RechartsTooltip content={<CustomChartTooltip />} />
+                <Legend
+                  wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }}
+                  iconType="circle"
+                />
+                <Bar
+                  dataKey="total"
+                  name="Total Invoice Diterbitkan"
+                  fill="#6366f1"
+                  radius={[6, 6, 0, 0]}
+                  maxBarSize={40}
+                />
+                <Bar
+                  dataKey="paid"
+                  name="Realisasi Cash In (Paid)"
+                  fill="#10b981"
+                  radius={[6, 6, 0, 0]}
+                  maxBarSize={40}
+                />
+                <Bar
+                  dataKey="pending"
+                  name="Piutang / Pending"
+                  fill="#f59e0b"
+                  radius={[6, 6, 0, 0]}
+                  maxBarSize={40}
+                />
+              </BarChart>
+            ) : (
+              <AreaChart data={monthlyChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0.0} />
+                  </linearGradient>
+                  <linearGradient id="colorPaid" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis dataKey="label" tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 10, fill: '#64748b' }}
+                  tickFormatter={(val) => formatCompactNumber(val)}
+                />
+                <RechartsTooltip content={<CustomChartTooltip />} />
+                <Legend
+                  wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }}
+                  iconType="circle"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="total"
+                  name="Total Invoice Diterbitkan"
+                  stroke="#6366f1"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorTotal)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="paid"
+                  name="Realisasi Cash In (Paid)"
+                  stroke="#10b981"
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#colorPaid)"
+                />
+              </AreaChart>
+            )}
+          </ResponsiveContainer>
+        </div>
+
+        {/* Footer Metrics Highlights */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-slate-100 text-xs">
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center justify-between">
+            <span className="text-slate-500 font-medium">Tingkat Pelunasan (Collection Rate):</span>
+            <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+              {collectionRate}%
+            </span>
+          </div>
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center justify-between">
+            <span className="text-slate-500 font-medium">Rata-rata Tagihan / Bulan:</span>
+            <span className="font-bold text-indigo-600">
+              {formatRupiah(totalInvoiced / (monthlyChartData.length || 1))}
+            </span>
+          </div>
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center justify-between">
+            <span className="text-slate-500 font-medium">Puncak Cash In:</span>
+            <span className="font-bold text-slate-800">
+              {peakMonthObj ? `${peakMonthObj.label} (${formatRupiah(peakMonthObj.paid)})` : '-'}
+            </span>
+          </div>
         </div>
       </div>
 

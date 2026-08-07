@@ -52,7 +52,12 @@ import {
   SubkonOpname,
   ProjectInvoice,
 } from './types';
-import { isModuleAllowed } from './utils/permission';
+import {
+  isModuleAllowed,
+  getFirstAllowedModule,
+  NOVIA_EMAIL,
+  SISKA_EMAIL,
+} from './utils/permission';
 
 import {
   INITIAL_PROJECTS,
@@ -255,15 +260,23 @@ export default function App() {
   // Enforce module accessibility check when activeModule or currentUser changes
   useEffect(() => {
     if (currentUser && !isModuleAllowed(activeModule, currentUser)) {
-      setActiveModule('dashboard');
+      const fallbackModule = getFirstAllowedModule(currentUser);
+      setActiveModule(fallbackModule);
     }
   }, [activeModule, currentUser]);
 
   const handleSelectModule = (mod: ModuleType) => {
     if (!isModuleAllowed(mod, currentUser)) {
+      const cleanEmail = currentUser?.email.toLowerCase().trim() || '';
+      let msg = `Akun ${currentUser?.email || 'ini'} tidak memiliki akses ke modul ini.`;
+      if (cleanEmail === NOVIA_EMAIL.toLowerCase()) {
+        msg = `Akun Novia (${currentUser?.email}) hanya dapat mengakses KPI Dashboard, HR & Keuangan, dan Laporan Executive.`;
+      } else if (cleanEmail === SISKA_EMAIL.toLowerCase()) {
+        msg = `Akun Siska (${currentUser?.email}) hanya dapat mengakses Marketing & Tender, Konstruksi & Proyek, serta Trading & Supply Chain.`;
+      }
       setToastMessage({
         title: 'Akses Dibatasi',
-        message: `Akun ${currentUser?.email || 'ini'} hanya dapat mengakses KPI Dashboard, HR & Keuangan, dan Laporan Executive.`,
+        message: msg,
         type: 'alert',
       });
       setTimeout(() => setToastMessage(null), 4000);

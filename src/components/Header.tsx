@@ -510,6 +510,8 @@ export const Header: React.FC<HeaderProps> = ({
                     <span className="font-semibold text-slate-800 text-[11px] truncate max-w-[120px]">
                       {currentUser?.email.toLowerCase() === 'novia.rakaciptaseraya@gmail.com'
                         ? 'KPI, HR & Keuangan, Executive'
+                        : currentUser?.email.toLowerCase() === 'siska.rakaciptaseraya@gmail.com'
+                        ? 'Marketing, Proyek, Supply Chain'
                         : 'Akses Penuh'}
                     </span>
                   </div>

@@ -885,6 +885,26 @@ export const INITIAL_SYSTEM_USERS: SystemUser[] = [
       'reports',
     ],
   },
+  {
+    id: 'usr-008',
+    name: 'Siska (Marketing & Operations)',
+    email: 'siska.rakaciptaseraya@gmail.com',
+    role: 'Project Manager',
+    department: 'Marketing & Konstruksi ERP',
+    phone: '0813-9876-5432',
+    status: 'Active',
+    lastLogin: 'Hari ini, 10:15 WIB',
+    allowedModules: [
+      'crm',
+      'tender',
+      'estimator',
+      'project',
+      'equipment',
+      'trading',
+      'inventory',
+      'purchasing',
+    ],
+  },
 ];
 
 export const INITIAL_SYSTEM_SETTINGS: SystemSettings = {
