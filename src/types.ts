@@ -190,6 +190,7 @@ export interface SystemUser {
   phone: string;
   status: 'Active' | 'Inactive';
   lastLogin: string;
+  allowedModules?: ModuleType[];
 }
 
 export interface SystemSettings {

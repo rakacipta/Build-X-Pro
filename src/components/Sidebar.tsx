@@ -21,12 +21,14 @@ import {
   FileText,
   Receipt,
 } from 'lucide-react';
-import { ModuleType } from '../types';
+import { ModuleType, SystemUser } from '../types';
+import { isModuleAllowed } from '../utils/permission';
 
 interface SidebarProps {
   activeModule: ModuleType;
   onSelectModule: (mod: ModuleType) => void;
   pendingApprovalsCount: number;
+  currentUser?: SystemUser | null;
 }
 
 interface NavGroup {
@@ -43,8 +45,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeModule,
   onSelectModule,
   pendingApprovalsCount,
+  currentUser,
 }) => {
-  const navGroups: NavGroup[] = [
+  const rawNavGroups: NavGroup[] = [
     {
       label: 'Ringkasan',
       items: [
@@ -104,6 +107,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ],
     },
   ];
+
+  // Filter groups & items based on current logged in user's permissions
+  const navGroups = rawNavGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => isModuleAllowed(item.id, currentUser)),
+    }))
+    .filter((group) => group.items.length > 0);
 
   return (
     <aside className="sticky top-0 w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col h-full overflow-y-auto no-scrollbar shrink-0 select-none z-20">

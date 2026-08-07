@@ -27,6 +27,7 @@ import {
   ArrowUpRight,
   Info,
   RotateCcw,
+  Percent,
 } from 'lucide-react';
 import {
   ProjectInvoice,

@@ -866,6 +866,25 @@ export const INITIAL_SYSTEM_USERS: SystemUser[] = [
     status: 'Active',
     lastLogin: 'Hari ini, 08:00 WIB',
   },
+  {
+    id: 'usr-007',
+    name: 'Novia (HR & Keuangan)',
+    email: 'novia.rakaciptaseraya@gmail.com',
+    role: 'Finance',
+    department: 'HRD & Keuangan',
+    phone: '0812-3456-7890',
+    status: 'Active',
+    lastLogin: 'Hari ini, 09:30 WIB',
+    allowedModules: [
+      'dashboard',
+      'hr_payroll',
+      'finance',
+      'invoicing',
+      'bank_accounts',
+      'accounting',
+      'reports',
+    ],
+  },
 ];
 
 export const INITIAL_SYSTEM_SETTINGS: SystemSettings = {

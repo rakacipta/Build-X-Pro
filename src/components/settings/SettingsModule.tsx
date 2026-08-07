@@ -1330,6 +1330,11 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                           <div>
                             <div>{user.name}</div>
                             <div className="text-[10px] text-slate-500 font-normal">{user.email}</div>
+                            {(user.allowedModules || user.email.toLowerCase() === 'novia.rakaciptaseraya@gmail.com') && (
+                              <span className="inline-block mt-0.5 px-1.5 py-0.2 text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-200 rounded">
+                                Restricted: KPI, HR & Keuangan, Executive
+                              </span>
+                            )}
                           </div>
                         </div>
                       </td>

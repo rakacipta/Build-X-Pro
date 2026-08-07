@@ -50,21 +50,37 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
       if (matchedUser) {
         setIsLoading(false);
+        // Ensure Novia has allowedModules attached if matched
+        if (matchedUser.email.toLowerCase().trim() === 'novia.rakaciptaseraya@gmail.com' && !matchedUser.allowedModules) {
+          matchedUser.allowedModules = [
+            'dashboard',
+            'hr_payroll',
+            'finance',
+            'invoicing',
+            'bank_accounts',
+            'accounting',
+            'reports',
+          ];
+        }
         onLoginSuccess(matchedUser);
       } else {
         // Fallback: create dynamic user for testing if email is custom
         if (email.includes('@')) {
           const isTargetSuperAdmin = email.toLowerCase().trim() === 'sr.rcs88@gmail.com';
+          const isNovia = email.toLowerCase().trim() === 'novia.rakaciptaseraya@gmail.com';
           const username = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').toUpperCase();
           const dynamicUser: SystemUser = {
             id: 'usr-custom-' + Date.now(),
-            name: isTargetSuperAdmin ? 'Super Admin (RCS)' : (username || 'PENGGUNA ERP'),
+            name: isNovia ? 'Novia (HR & Keuangan)' : isTargetSuperAdmin ? 'Super Admin (RCS)' : (username || 'PENGGUNA ERP'),
             email: email.trim(),
-            role: isTargetSuperAdmin ? 'Super Admin' : 'Project Manager',
-            department: isTargetSuperAdmin ? 'Direksi & Super Admin' : 'Operasional ERP',
+            role: isNovia ? 'Finance' : isTargetSuperAdmin ? 'Super Admin' : 'Project Manager',
+            department: isNovia ? 'HRD & Keuangan' : isTargetSuperAdmin ? 'Direksi & Super Admin' : 'Operasional ERP',
             phone: '0812-0000-1111',
             status: 'Active',
             lastLogin: 'Baru saja',
+            allowedModules: isNovia
+              ? ['dashboard', 'hr_payroll', 'finance', 'invoicing', 'bank_accounts', 'accounting', 'reports']
+              : undefined,
           };
           setIsLoading(false);
           onLoginSuccess(dynamicUser);
@@ -303,6 +319,37 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   </>
                 )}
               </button>
+
+              {/* Quick Login Presets for Easy Demo/Testing */}
+              <div className="pt-3 border-t border-slate-800/80 mt-2 space-y-1.5">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Akses Cepat Pengguna (Demo System):
+                </span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail('novia.rakaciptaseraya@gmail.com');
+                      setPassword('123456');
+                    }}
+                    className="p-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg text-left text-[10px] transition text-amber-300 flex flex-col"
+                  >
+                    <span className="font-bold">Novia (HR & Keuangan)</span>
+                    <span className="text-slate-400 text-[9px] truncate">novia.rakaciptaseraya@gmail.com</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail('sr.rcs88@gmail.com');
+                      setPassword('123456');
+                    }}
+                    className="p-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg text-left text-[10px] transition text-blue-300 flex flex-col"
+                  >
+                    <span className="font-bold">Super Admin (RCS)</span>
+                    <span className="text-slate-400 text-[9px] truncate">sr.rcs88@gmail.com</span>
+                  </button>
+                </div>
+              </div>
             </form>
           </div>
         </div>

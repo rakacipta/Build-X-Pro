@@ -506,6 +506,14 @@ export const Header: React.FC<HeaderProps> = ({
                     </span>
                   </div>
                   <div className="flex items-center justify-between py-1 px-2 rounded-lg bg-slate-50">
+                    <span className="text-slate-400 text-[11px]">Akses Modul:</span>
+                    <span className="font-semibold text-slate-800 text-[11px] truncate max-w-[120px]">
+                      {currentUser?.email.toLowerCase() === 'novia.rakaciptaseraya@gmail.com'
+                        ? 'KPI, HR & Keuangan, Executive'
+                        : 'Akses Penuh'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between py-1 px-2 rounded-lg bg-slate-50">
                     <span className="text-slate-400 text-[11px]">Status Akun:</span>
                     <span className="font-semibold text-emerald-600 text-[11px] flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>

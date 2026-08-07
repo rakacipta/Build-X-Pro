@@ -52,6 +52,7 @@ import {
   SubkonOpname,
   ProjectInvoice,
 } from './types';
+import { isModuleAllowed } from './utils/permission';
 
 import {
   INITIAL_PROJECTS,
@@ -250,6 +251,26 @@ export default function App() {
       unsubInvoices();
     };
   }, []);
+
+  // Enforce module accessibility check when activeModule or currentUser changes
+  useEffect(() => {
+    if (currentUser && !isModuleAllowed(activeModule, currentUser)) {
+      setActiveModule('dashboard');
+    }
+  }, [activeModule, currentUser]);
+
+  const handleSelectModule = (mod: ModuleType) => {
+    if (!isModuleAllowed(mod, currentUser)) {
+      setToastMessage({
+        title: 'Akses Dibatasi',
+        message: `Akun ${currentUser?.email || 'ini'} hanya dapat mengakses KPI Dashboard, HR & Keuangan, dan Laporan Executive.`,
+        type: 'alert',
+      });
+      setTimeout(() => setToastMessage(null), 4000);
+      return;
+    }
+    setActiveModule(mod);
+  };
 
   const pendingApprovalsCount = approvals.filter((a) => a.status === 'Pending').length;
 
@@ -833,7 +854,7 @@ export default function App() {
         currentRole={currentRole}
         onRoleChange={setCurrentRole}
         pendingApprovalsCount={pendingApprovalsCount}
-        onOpenApprovals={() => setActiveModule('approvals')}
+        onOpenApprovals={() => handleSelectModule('approvals')}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         companyName={companyProfile.name}
@@ -841,7 +862,7 @@ export default function App() {
         notifications={notifications}
         onMarkNotificationRead={handleMarkNotificationRead}
         onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
-        onNavigateModule={(mod) => setActiveModule(mod as ModuleType)}
+        onNavigateModule={(mod) => handleSelectModule(mod as ModuleType)}
         currentUser={currentUser}
         onLogout={handleLogout}
       />
@@ -850,8 +871,9 @@ export default function App() {
         {/* Sidebar Navigation */}
         <Sidebar
           activeModule={activeModule}
-          onSelectModule={setActiveModule}
+          onSelectModule={handleSelectModule}
           pendingApprovalsCount={pendingApprovalsCount}
+          currentUser={currentUser}
         />
 
         {/* Main Content Module Screen */}
@@ -867,7 +889,7 @@ export default function App() {
               purchaseOrders={purchases}
               invoices={invoices}
               coaList={coaList}
-              onNavigate={setActiveModule}
+              onNavigate={handleSelectModule}
             />
           )}
 
