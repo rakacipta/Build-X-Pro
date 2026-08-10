@@ -26,6 +26,9 @@ import {
   SubkonContract,
   SubkonOpname,
   ProjectInvoice,
+  DeepAuditLog,
+  ActiveDocumentLock,
+  CloudLargeAttachment,
 } from '../types';
 
 export const INITIAL_PROJECTS: Project[] = [
@@ -1313,6 +1316,111 @@ export const INITIAL_INVOICES: ProjectInvoice[] = [
     updatedAt: '2026-07-01T10:00:00Z',
   }
 ];
+
+export const INITIAL_AUDIT_LOGS: DeepAuditLog[] = [
+  {
+    id: 'audit-001',
+    timestamp: '2026-08-10T08:15:22Z',
+    userEmail: 'siska.rakaciptaseraya@gmail.com',
+    userName: 'Siska (Mktg & Proyek)',
+    userRole: 'Project Manager',
+    module: 'tender',
+    entityName: 'Tender Estimasi',
+    itemId: 'tnd-001',
+    itemTitle: 'Tender Pembangunan Gedung Olahraga Kemenpora',
+    fieldName: 'nilai_penawaran',
+    oldValue: 'Rp 14.800.000.000',
+    newValue: 'Rp 15.250.000.000',
+    reason: 'Penyesuaian AHSP harga beton readymix K-350 terbaru dari supplier',
+    ipAddress: '180.252.91.14',
+    clientVersion: 'v1.4.2-cloud',
+  },
+  {
+    id: 'audit-002',
+    timestamp: '2026-08-10T09:30:11Z',
+    userEmail: 'novia.rakaciptaseraya@gmail.com',
+    userName: 'Novia (HR & Keuangan)',
+    userRole: 'Finance',
+    module: 'invoicing',
+    entityName: 'Invoice Termijn',
+    itemId: 'inv-001',
+    itemTitle: 'INV/2026/08/001 (Termijn 3 Wisma Utama)',
+    fieldName: 'status_pembayaran',
+    oldValue: 'Draft',
+    newValue: 'Sent',
+    reason: 'Verifikasi BAST fisik 68.5% disetujui oleh Direktur Utama',
+    ipAddress: '180.252.91.22',
+    clientVersion: 'v1.4.2-cloud',
+  },
+  {
+    id: 'audit-003',
+    timestamp: '2026-08-10T10:05:44Z',
+    userEmail: 'sr.rcs88@gmail.com',
+    userName: 'Super Admin (RCS)',
+    userRole: 'Super Admin',
+    module: 'approvals',
+    entityName: 'Persetujuan Direct PO',
+    itemId: 'appr-002',
+    itemTitle: 'PO-2026-089 (Besi Beton 16mm)',
+    fieldName: 'approval_status',
+    oldValue: 'Pending',
+    newValue: 'Approved',
+    reason: 'Memenuhi kuota harga borongan dan anggaran RAB proyek PRJ-001',
+    ipAddress: '110.138.45.101',
+    clientVersion: 'v1.4.2-cloud',
+  },
+];
+
+export const INITIAL_CLOUD_ATTACHMENTS: CloudLargeAttachment[] = [
+  {
+    id: 'att-001',
+    fileName: 'Dokumen_RAB_Detail_DED_Spesifikasi_Teknis_Gedung_2026.pdf',
+    fileSizeMb: 18.5,
+    fileType: 'pdf',
+    category: 'PDF Tender',
+    uploadedBy: 'Siska (Mktg & Proyek)',
+    uploadedAt: '2026-08-08 14:20',
+    downloadUrl: 'https://storage.googleapis.com/buildx-erp-vault/tenders/Dokumen_RAB_Detail_DED_2026.pdf',
+    storageProvider: 'Firebase Storage',
+    relatedModule: 'tender',
+    relatedEntityId: 'tnd-001',
+    relatedEntityName: 'Tender Pembangunan Gedung Olahraga Kemenpora',
+    isEncrypted: true,
+  },
+  {
+    id: 'att-002',
+    fileName: 'BAST_Kemajuan_Fisik_Struktur_Lantai_6_10_Signed.pdf',
+    fileSizeMb: 14.2,
+    fileType: 'pdf',
+    category: 'Dokumen Kontrak',
+    uploadedBy: 'Novia (HR & Keuangan)',
+    uploadedAt: '2026-08-09 11:10',
+    downloadUrl: 'https://storage.googleapis.com/buildx-erp-vault/invoices/BAST_Lantai_6_10.pdf',
+    storageProvider: 'Google Cloud Storage',
+    relatedModule: 'invoicing',
+    relatedEntityId: 'inv-001',
+    relatedEntityName: 'INV/2026/08/001 - Termijn 3 Wisma Utama',
+    isEncrypted: true,
+  },
+  {
+    id: 'att-003',
+    fileName: 'Gambar_Kerja_CAD_Detail_Precast_Jembatan_KM42.dwg',
+    fileSizeMb: 42.8,
+    fileType: 'dwg',
+    category: 'Gambar Kerja CAD',
+    uploadedBy: 'Ir. Budi Santoso, MT',
+    uploadedAt: '2026-08-05 16:45',
+    downloadUrl: 'https://storage.googleapis.com/buildx-erp-vault/cad/Precast_KM42.dwg',
+    storageProvider: 'Firebase Storage',
+    relatedModule: 'project',
+    relatedEntityId: 'prj-002',
+    relatedEntityName: 'Pekerjaan Jembatan Beton Precast & Akses Tol KM 42',
+    isEncrypted: true,
+  },
+];
+
+export const INITIAL_DOCUMENT_LOCKS: ActiveDocumentLock[] = [];
+
 
 
 

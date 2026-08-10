@@ -21,6 +21,8 @@ import { ReportsModule } from './components/reports/ReportsModule';
 import { SettingsModule } from './components/settings/SettingsModule';
 import { OfficialLettersModule } from './components/letters/OfficialLettersModule';
 import { LoginPage } from './components/auth/LoginPage';
+import { DeepAuditLogModal } from './components/common/DeepAuditLogModal';
+import { CloudStorageManagerModal } from './components/common/CloudStorageManagerModal';
 
 import {
   ModuleType,
@@ -51,6 +53,9 @@ import {
   SubkonContract,
   SubkonOpname,
   ProjectInvoice,
+  DeepAuditLog,
+  ActiveDocumentLock,
+  CloudLargeAttachment,
 } from './types';
 import {
   isModuleAllowed,
@@ -86,6 +91,9 @@ import {
   INITIAL_SUBKON_CONTRACTS,
   INITIAL_SUBKON_OPNAMES,
   INITIAL_INVOICES,
+  INITIAL_AUDIT_LOGS,
+  INITIAL_CLOUD_ATTACHMENTS,
+  INITIAL_DOCUMENT_LOCKS,
 } from './lib/seedData';
 import { formatRupiah } from './utils/formatters';
 
@@ -97,6 +105,7 @@ import {
   setStoredData,
   replaceAllDocuments,
   clearCollectionDocuments,
+  recordAuditLog,
 } from './services/firestoreService';
 import { testConnection } from './lib/firebase';
 
@@ -200,6 +209,19 @@ export default function App() {
     getStoredData('system_settings', INITIAL_SYSTEM_SETTINGS)
   );
 
+  // Deep Audit Trail & Storage Vault States
+  const [auditLogs, setAuditLogs] = useState<DeepAuditLog[]>(() =>
+    getStoredData('audit_logs', INITIAL_AUDIT_LOGS)
+  );
+  const [cloudAttachments, setCloudAttachments] = useState<CloudLargeAttachment[]>(() =>
+    getStoredData('cloud_attachments', INITIAL_CLOUD_ATTACHMENTS)
+  );
+  const [documentLocks, setDocumentLocks] = useState<ActiveDocumentLock[]>(() =>
+    getStoredData('document_locks', INITIAL_DOCUMENT_LOCKS)
+  );
+  const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
+  const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
+
   // Initialize Firestore Subscriptions
   useEffect(() => {
     testConnection();
@@ -230,6 +252,27 @@ export default function App() {
     const unsubSubkon = subscribeToCollection('subkon_contracts', INITIAL_SUBKON_CONTRACTS, setSubkonContracts);
     const unsubOpnames = subscribeToCollection('subkon_opnames', INITIAL_SUBKON_OPNAMES, setSubkonOpnames);
     const unsubInvoices = subscribeToCollection('invoices', INITIAL_INVOICES, setInvoices);
+    const unsubQuotations = subscribeToCollection('quotations', INITIAL_QUOTATIONS, setQuotations);
+    const unsubAuditLogs = subscribeToCollection('audit_logs', INITIAL_AUDIT_LOGS, setAuditLogs);
+    const unsubAttachments = subscribeToCollection('cloud_attachments', INITIAL_CLOUD_ATTACHMENTS, setCloudAttachments);
+    const unsubLocks = subscribeToCollection('document_locks', INITIAL_DOCUMENT_LOCKS, setDocumentLocks);
+    const unsubSettings = subscribeToCollection('settings_single', [], (items: any[]) => {
+      items.forEach((item) => {
+        if (item.id === 'company_profile') {
+          const { id, ...profile } = item;
+          setCompanyProfile(profile as CompanyProfile);
+          setStoredData('company_profile', profile);
+        } else if (item.id === 'letterhead') {
+          const { id, ...lh } = item;
+          setLetterhead(lh as LetterheadSettings);
+          setStoredData('letterhead', lh);
+        } else if (item.id === 'system_settings') {
+          const { id, ...s } = item;
+          setSystemSettings(s as SystemSettings);
+          setStoredData('system_settings', s);
+        }
+      });
+    });
 
     return () => {
       unsubProjects();
@@ -254,6 +297,11 @@ export default function App() {
       unsubSubkon();
       unsubOpnames();
       unsubInvoices();
+      unsubQuotations();
+      unsubAuditLogs();
+      unsubAttachments();
+      unsubLocks();
+      unsubSettings();
     };
   }, []);
 
@@ -286,6 +334,66 @@ export default function App() {
   };
 
   const pendingApprovalsCount = approvals.filter((a) => a.status === 'Pending').length;
+
+  // Deep Audit Log & Cloud Storage Handlers
+  const handleRecordAuditLog = async (logData: Omit<DeepAuditLog, 'id' | 'timestamp'>) => {
+    const log = await recordAuditLog(logData);
+    setAuditLogs((prev) => [log, ...prev]);
+  };
+
+  const handleUploadAttachment = async (
+    attData: Omit<CloudLargeAttachment, 'id' | 'uploadedAt'>
+  ) => {
+    const newAtt: CloudLargeAttachment = {
+      id: 'att-' + Date.now(),
+      uploadedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
+      ...attData,
+    };
+    const updated = await saveDocument('cloud_attachments', newAtt);
+    setCloudAttachments(updated);
+
+    // Also record an audit log entry for uploading attachment
+    await handleRecordAuditLog({
+      userEmail: currentUser?.email || 'user@company.com',
+      userName: currentUser?.name || 'Staf ERP',
+      userRole: currentRole,
+      module: attData.relatedModule,
+      entityName: attData.relatedEntityName,
+      itemId: attData.relatedEntityId,
+      fieldName: 'lampiran_berkas_cloud',
+      oldValue: '(tanpa lampiran)',
+      newValue: `${attData.fileName} (${attData.fileSizeMb} MB)`,
+      reason: `Pengunggahan dokumen berkas besar ${attData.category} ke ${attData.storageProvider}`,
+    });
+
+    setToastMessage({
+      title: 'Berkas Cloud Berhasil Diunggah',
+      message: `File ${newAtt.fileName} (${newAtt.fileSizeMb} MB) tersimpan terenkripsi di ${newAtt.storageProvider}.`,
+      type: 'success',
+    });
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleDeleteAttachment = async (id: string) => {
+    const target = cloudAttachments.find((a) => a.id === id);
+    const updated = await deleteDocument<CloudLargeAttachment>('cloud_attachments', id);
+    setCloudAttachments(updated);
+
+    if (target) {
+      await handleRecordAuditLog({
+        userEmail: currentUser?.email || 'user@company.com',
+        userName: currentUser?.name || 'Staf ERP',
+        userRole: currentRole,
+        module: target.relatedModule,
+        entityName: target.relatedEntityName,
+        itemId: target.relatedEntityId,
+        fieldName: 'penghapusan_lampiran_cloud',
+        oldValue: target.fileName,
+        newValue: '(dihapus)',
+        reason: 'Penghapusan manual berkas dari Cloud Media Vault',
+      });
+    }
+  };
 
   // Notification Action Handlers
   const handleMarkNotificationRead = async (id: string) => {
@@ -878,6 +986,8 @@ export default function App() {
         onNavigateModule={(mod) => handleSelectModule(mod as ModuleType)}
         currentUser={currentUser}
         onLogout={handleLogout}
+        onOpenAuditLogs={() => setIsAuditModalOpen(true)}
+        onOpenCloudStorage={() => setIsCloudModalOpen(true)}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -902,6 +1012,7 @@ export default function App() {
               purchaseOrders={purchases}
               invoices={invoices}
               coaList={coaList}
+              tenders={tenders}
               onNavigate={handleSelectModule}
             />
           )}
@@ -1159,6 +1270,24 @@ export default function App() {
           </div>
         </div>
       )}
+      {/* Deep Audit Log Modal */}
+      <DeepAuditLogModal
+        isOpen={isAuditModalOpen}
+        onClose={() => setIsAuditModalOpen(false)}
+        auditLogs={auditLogs}
+        onRecordLog={handleRecordAuditLog}
+      />
+
+      {/* Cloud Storage Vault Modal */}
+      <CloudStorageManagerModal
+        isOpen={isCloudModalOpen}
+        onClose={() => setIsCloudModalOpen(false)}
+        attachments={cloudAttachments}
+        onUploadAttachment={handleUploadAttachment}
+        onDeleteAttachment={handleDeleteAttachment}
+        currentUserName={currentUser?.name || 'Siska (Mktg & Proyek)'}
+        defaultModule={activeModule}
+      />
     </div>
   );
 }

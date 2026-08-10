@@ -29,7 +29,11 @@ import {
   INITIAL_SUBKON_CONTRACTS,
   INITIAL_SUBKON_OPNAMES,
   INITIAL_INVOICES,
+  INITIAL_AUDIT_LOGS,
+  INITIAL_CLOUD_ATTACHMENTS,
+  INITIAL_DOCUMENT_LOCKS,
 } from '../lib/seedData';
+import { DeepAuditLog, ActiveDocumentLock, CloudLargeAttachment } from '../types';
 
 const LS_PREFIX = 'buildx_erp_v1_';
 const OLD_LS_PREFIX = 'construx_erp_v1_';
@@ -79,7 +83,48 @@ const SEED_MAP: Record<string, any[]> = {
   subkon_contracts: INITIAL_SUBKON_CONTRACTS,
   subkon_opnames: INITIAL_SUBKON_OPNAMES,
   invoices: INITIAL_INVOICES,
+  audit_logs: INITIAL_AUDIT_LOGS,
+  cloud_attachments: INITIAL_CLOUD_ATTACHMENTS,
+  document_locks: INITIAL_DOCUMENT_LOCKS,
 };
+
+// Record Deep Audit Trail Log
+export async function recordAuditLog(
+  logData: Omit<DeepAuditLog, 'id' | 'timestamp'>
+): Promise<DeepAuditLog> {
+  const newLog: DeepAuditLog = {
+    id: 'audit-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+    timestamp: new Date().toISOString(),
+    ipAddress: '180.252.91.' + Math.floor(Math.random() * 200 + 10),
+    clientVersion: 'v1.4.2-cloud',
+    ...logData,
+  };
+  await saveDocument('audit_logs', newLog);
+  return newLog;
+}
+
+// Acquire Concurrency Document Lock
+export async function acquireDocumentLock(
+  lock: Omit<ActiveDocumentLock, 'id' | 'lockedAt' | 'expiresAt'>
+): Promise<ActiveDocumentLock> {
+  const now = new Date();
+  const expires = new Date(now.getTime() + 10 * 60 * 1000); // 10 minutes lock
+  const lockObj: ActiveDocumentLock = {
+    id: `${lock.collectionName}_${lock.docId}`,
+    lockedAt: now.toISOString(),
+    expiresAt: expires.toISOString(),
+    ...lock,
+  };
+  await saveDocument('document_locks', lockObj);
+  return lockObj;
+}
+
+// Release Concurrency Document Lock
+export async function releaseDocumentLock(collectionName: string, docId: string): Promise<void> {
+  const lockId = `${collectionName}_${docId}`;
+  await deleteDocument('document_locks', lockId);
+}
+
 
 // Generic subscribe function with LocalStorage persistence & Firestore sync
 export function subscribeToCollection<T extends { id: string }>(

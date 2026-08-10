@@ -28,8 +28,11 @@ import {
   PurchaseOrder,
   ProjectInvoice,
   ChartOfAccount,
+  Tender,
 } from '../../types';
 import { ProjectedCashFlowChart } from './ProjectedCashFlowChart';
+import { TenderVsProjectChart } from './TenderVsProjectChart';
+import { MonthlyCashFlowChart } from './MonthlyCashFlowChart';
 import { formatRupiah, formatCompactNumber } from '../../utils/formatters';
 import {
   BarChart,
@@ -56,6 +59,7 @@ interface DashboardModuleProps {
   purchaseOrders?: PurchaseOrder[];
   invoices?: ProjectInvoice[];
   coaList?: ChartOfAccount[];
+  tenders?: Tender[];
   onNavigate: (mod: any) => void;
 }
 
@@ -69,6 +73,7 @@ export const DashboardModule: React.FC<DashboardModuleProps> = ({
   purchaseOrders = [],
   invoices = [],
   coaList = [],
+  tenders = [],
   onNavigate,
 }) => {
   // Dynamic calculation for Piutang Proyek & Hutang Supplier
@@ -373,6 +378,21 @@ export const DashboardModule: React.FC<DashboardModuleProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Real-time Target Tender vs Project Achievement Visualization */}
+      <TenderVsProjectChart
+        tenders={tenders}
+        projects={projects}
+        onNavigate={onNavigate}
+      />
+
+      {/* Monthly Cash Flow In vs Out Visualization */}
+      <MonthlyCashFlowChart
+        financeTransactions={financeTransactions}
+        invoices={invoices}
+        purchaseOrders={purchaseOrders}
+        onNavigate={onNavigate}
+      />
 
       {/* Projected Cash Flow Visualization Component (Recharts) */}
       <ProjectedCashFlowChart

@@ -92,6 +92,46 @@
       "properties": {
         "id": { "type": "string" }
       }
+    },
+    "audit_logs": {
+      "title": "Deep Audit Logs",
+      "description": "Logging Perubahan Field Per-Kolom ERP",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" }
+      }
+    },
+    "cloud_attachments": {
+      "title": "Cloud Attachments",
+      "description": "Penyimpanan Berkas Besar & Lampiran Dokumen",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" }
+      }
+    },
+    "document_locks": {
+      "title": "Active Document Locks",
+      "description": "Kunci Penyuntingan Serentak & Concurrency Control",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" }
+      }
     }
+  },
+  "firestore": {
+    "/projects/{id}": { "schema": "projects", "description": "Koleksi proyek" },
+    "/tenders/{id}": { "schema": "tenders", "description": "Koleksi tender" },
+    "/finance_transactions/{id}": { "schema": "finance_transactions", "description": "Koleksi transaksi keuangan" },
+    "/purchases/{id}": { "schema": "purchases", "description": "Koleksi purchase order" },
+    "/materials/{id}": { "schema": "materials", "description": "Koleksi bahan material" },
+    "/equipment/{id}": { "schema": "equipment", "description": "Koleksi alat berat" },
+    "/employees/{id}": { "schema": "employees", "description": "Koleksi karyawan" },
+    "/rab_items/{id}": { "schema": "rab_items", "description": "Koleksi RAB" },
+    "/invoices/{id}": { "schema": "invoices", "description": "Koleksi invoice" },
+    "/subkon_contracts/{id}": { "schema": "subkon_contracts", "description": "Koleksi kontrak subkon" },
+    "/subkon_opnames/{id}": { "schema": "subkon_opnames", "description": "Koleksi opname subkon" },
+    "/audit_logs/{id}": { "schema": "audit_logs", "description": "Koleksi deep audit log" },
+    "/cloud_attachments/{id}": { "schema": "cloud_attachments", "description": "Koleksi lampiran berkas cloud" },
+    "/document_locks/{id}": { "schema": "document_locks", "description": "Koleksi kunci penyuntingan serentak" }
   }
 }

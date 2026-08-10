@@ -651,3 +651,64 @@ export interface SubkonRetentionRelease {
   notes?: string;
 }
 
+// --- DEEP AUDIT TRAIL LOGGING ---
+export interface DeepAuditLog {
+  id: string;
+  timestamp: string;
+  userEmail: string;
+  userName: string;
+  userRole: UserRole;
+  module: ModuleType;
+  entityName: string; // e.g. "Tender", "Invoice", "Kontrak Subkon", "Jurnal"
+  itemId: string;
+  itemTitle?: string;
+  fieldName: string; // e.g. "nilai_kontrak", "status", "lampiran_pdf"
+  oldValue: string;
+  newValue: string;
+  reason?: string;
+  ipAddress?: string;
+  clientVersion?: string;
+}
+
+// --- CONCURRENCY & REAL-TIME LOCKING ---
+export interface ActiveDocumentLock {
+  id: string; // collection:documentId
+  collectionName: string;
+  docId: string;
+  docTitle: string;
+  lockedByEmail: string;
+  lockedByName: string;
+  lockedByRole: UserRole;
+  lockedAt: string;
+  expiresAt: string;
+  versionNumber: number;
+}
+
+// --- LARGE FILE CLOUD STORAGE ---
+export interface CloudLargeAttachment {
+  id: string;
+  fileName: string;
+  fileSizeMb: number;
+  fileType: 'pdf' | 'dwg' | 'xlsx' | 'jpg' | 'png' | 'zip' | 'doc';
+  category: 'PDF Tender' | 'Bukti Pembayaran' | 'Foto Opname Fisik' | 'Gambar Kerja CAD' | 'Dokumen Kontrak' | 'Lainnya';
+  uploadedBy: string;
+  uploadedAt: string;
+  downloadUrl: string;
+  storageProvider: 'Firebase Storage' | 'Google Cloud Storage' | 'Direct Encrypted Link';
+  relatedModule: ModuleType;
+  relatedEntityId: string;
+  relatedEntityName: string;
+  isEncrypted: boolean;
+}
+
+// --- ENTERPRISE AUTH SESSION ---
+export interface AuthSessionConfig {
+  authMethod: 'Firebase Auth' | 'Google SSO Enterprise' | 'Role System';
+  mfaEnabled: boolean;
+  mfaVerified: boolean;
+  sessionExpiry: string;
+  ipAddress: string;
+  tokenHash: string;
+}
+
+

@@ -20,6 +20,8 @@ import {
   LogOut,
   RotateCcw,
   User as UserIcon,
+  ShieldAlert,
+  HardDrive,
 } from 'lucide-react';
 import { UserRole, AppNotification, ModuleType, SystemUser } from '../types';
 import { formatRupiah } from '../utils/formatters';
@@ -45,6 +47,8 @@ interface HeaderProps {
   onSendTestReminder?: () => void;
   currentUser?: SystemUser | null;
   onLogout?: () => void;
+  onOpenAuditLogs?: () => void;
+  onOpenCloudStorage?: () => void;
 }
 
 const ROLES: UserRole[] = [
@@ -81,6 +85,8 @@ export const Header: React.FC<HeaderProps> = ({
   onSendTestReminder,
   currentUser,
   onLogout,
+  onOpenAuditLogs,
+  onOpenCloudStorage,
 }) => {
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
@@ -184,6 +190,32 @@ export const Header: React.FC<HeaderProps> = ({
             <Clock className="w-3.5 h-3.5 text-blue-600" />
             <span>{currentTime} WIB</span>
           </div>
+
+          {/* Cloud Storage Vault Button */}
+          {onOpenCloudStorage && (
+            <button
+              type="button"
+              onClick={onOpenCloudStorage}
+              className="p-2 text-slate-600 hover:text-cyan-600 hover:bg-cyan-50 rounded-lg transition border border-transparent hover:border-cyan-200 flex items-center gap-1.5 text-xs font-bold"
+              title="Cloud Storage & Media Vault (>10MB)"
+            >
+              <HardDrive className="w-4 h-4 text-cyan-600" />
+              <span className="hidden xl:inline text-cyan-800">Media Vault</span>
+            </button>
+          )}
+
+          {/* Deep Audit Log Button */}
+          {onOpenAuditLogs && (
+            <button
+              type="button"
+              onClick={onOpenAuditLogs}
+              className="p-2 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition border border-transparent hover:border-indigo-200 flex items-center gap-1.5 text-xs font-bold"
+              title="Deep System Audit Log"
+            >
+              <ShieldAlert className="w-4 h-4 text-indigo-600" />
+              <span className="hidden xl:inline text-indigo-800">Audit Trail</span>
+            </button>
+          )}
 
           {/* Interactive Notification Bell Center */}
           <div className="relative" ref={notifRef}>
