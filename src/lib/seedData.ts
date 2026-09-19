@@ -1421,6 +1421,8 @@ export const INITIAL_CLOUD_ATTACHMENTS: CloudLargeAttachment[] = [
 
 export const INITIAL_DOCUMENT_LOCKS: ActiveDocumentLock[] = [];
 
+export { INITIAL_CUSTOM_FORMS, INITIAL_FORM_SUBMISSIONS } from './formSeedData';
+
 
 
 

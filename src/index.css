@@ -37,7 +37,7 @@
   }
 
   /* Hide fixed background overlays unless they contain a printable document */
-  .fixed:not(.print-visible):not(:has(#quotation-printable-document)):not(:has(#printable-letter-area)):not(:has(.print-container)) {
+  .fixed:not(.print-visible):not(:has(#quotation-printable-document)):not(:has(#printable-letter-area)):not(:has(#printable-form-area)):not(:has(#printable-blank-form)):not(:has(#printable-submissions-recap)):not(:has(.print-container)) {
     display: none !important;
   }
 
@@ -45,6 +45,9 @@
   .fixed.print-visible,
   .fixed:has(#quotation-printable-document),
   .fixed:has(#printable-letter-area),
+  .fixed:has(#printable-form-area),
+  .fixed:has(#printable-blank-form),
+  .fixed:has(#printable-submissions-recap),
   .fixed:has(.print-container) {
     display: block !important;
     position: static !important;
@@ -77,6 +80,9 @@
   /* Target printable area elements container */
   #printable-letter-area,
   #quotation-printable-document,
+  #printable-form-area,
+  #printable-blank-form,
+  #printable-submissions-recap,
   .print-container {
     visibility: visible !important;
     width: 100% !important;

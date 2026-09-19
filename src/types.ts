@@ -43,6 +43,7 @@ export type ModuleType =
   | 'reports'
   | 'settings'
   | 'official_letters'
+  | 'forms'
   | 'master_data';
 
 // --- SURAT & DOKUMEN RESMI ---
@@ -710,5 +711,103 @@ export interface AuthSessionConfig {
   ipAddress: string;
   tokenHash: string;
 }
+
+// --- FORMULIR DINAMIS & FORM BUILDER ---
+export type FormCategory =
+  | 'K3 & Keselamatan Kerja'
+  | 'Mutu & Quality Control'
+  | 'Operasional & Laporan Lapangan'
+  | 'Logistik & Material'
+  | 'Alat Berat & Fleet'
+  | 'HRD & Personalia'
+  | 'Keuangan & Kas Bon'
+  | 'Umum & Administrasi';
+
+export type FormFieldType =
+  | 'text'
+  | 'textarea'
+  | 'number'
+  | 'currency'
+  | 'date'
+  | 'time'
+  | 'select'
+  | 'radio'
+  | 'checkbox'
+  | 'condition' // Baik / Cukup / Rusak or Pass / Fail
+  | 'rating' // 1-5 bintang
+  | 'photo' // Upload foto bukti lapangan
+  | 'signature' // Tanda tangan digital
+  | 'heading'; // Header bagian / seksi
+
+export interface CustomFormField {
+  id: string;
+  label: string;
+  type: FormFieldType;
+  placeholder?: string;
+  defaultValue?: any;
+  required: boolean;
+  options?: string[]; // for select, radio, condition
+  helpText?: string;
+  unit?: string; // e.g. m3, zak, kg, titik, jam, orang
+  section?: string;
+}
+
+export interface CustomForm {
+  id: string;
+  code: string;
+  title: string;
+  category: FormCategory;
+  description: string;
+  icon?: string;
+  projectId?: string; // Optional: specific to a project, or generic
+  version: number;
+  status: 'Active' | 'Draft' | 'Archived';
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  fields: CustomFormField[];
+  requireSignature?: boolean;
+  requirePhoto?: boolean;
+  targetApproverRole?: string;
+}
+
+export interface FormSubmissionSignature {
+  role: string;
+  name: string;
+  title?: string;
+  signatureDataUrl?: string;
+  signedAt: string;
+}
+
+export interface FormSubmissionPhoto {
+  id: string;
+  caption?: string;
+  dataUrl: string;
+  timestamp: string;
+}
+
+export interface FormSubmission {
+  id: string;
+  submissionNumber: string;
+  formId: string;
+  formCode: string;
+  formTitle: string;
+  formCategory: FormCategory;
+  projectId?: string;
+  projectName?: string;
+  location?: string;
+  submittedBy: string;
+  submittedByRole: string;
+  submittedByEmail?: string;
+  submittedAt: string;
+  values: Record<string, any>;
+  signatures: FormSubmissionSignature[];
+  photos: FormSubmissionPhoto[];
+  status: 'Draft' | 'Submitted' | 'In Review' | 'Approved' | 'Rejected';
+  reviewNotes?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+}
+
 
 

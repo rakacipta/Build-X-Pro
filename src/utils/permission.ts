@@ -15,6 +15,8 @@ export const NOVIA_ALLOWED_MODULES: ModuleType[] = [
   'bank_accounts',
   'accounting',
   'reports',
+  'forms',
+  'official_letters',
 ];
 
 // Modules explicitly permitted for Siska:
@@ -30,6 +32,8 @@ export const SISKA_ALLOWED_MODULES: ModuleType[] = [
   'trading',
   'inventory',
   'purchasing',
+  'forms',
+  'official_letters',
 ];
 
 /**

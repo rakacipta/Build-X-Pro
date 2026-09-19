@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   FileText,
   Receipt,
+  ClipboardList,
 } from 'lucide-react';
 import { ModuleType, SystemUser } from '../types';
 import { isModuleAllowed } from '../utils/permission';
@@ -98,6 +99,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       items: [
         { id: 'reports', label: 'Laporan Executive', icon: BarChart3 },
         { id: 'official_letters', label: 'Surat & Dokumen Resmi', icon: FileText },
+        { id: 'forms', label: 'Formulir & Form Builder', icon: ClipboardList },
       ],
     },
     {

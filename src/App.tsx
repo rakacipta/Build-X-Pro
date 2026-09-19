@@ -20,6 +20,7 @@ import { ApprovalsModule } from './components/approvals/ApprovalsModule';
 import { ReportsModule } from './components/reports/ReportsModule';
 import { SettingsModule } from './components/settings/SettingsModule';
 import { OfficialLettersModule } from './components/letters/OfficialLettersModule';
+import { FormModule } from './components/forms/FormModule';
 import { LoginPage } from './components/auth/LoginPage';
 import { DeepAuditLogModal } from './components/common/DeepAuditLogModal';
 import { CloudStorageManagerModal } from './components/common/CloudStorageManagerModal';
@@ -56,6 +57,8 @@ import {
   DeepAuditLog,
   ActiveDocumentLock,
   CloudLargeAttachment,
+  CustomForm,
+  FormSubmission,
 } from './types';
 import {
   isModuleAllowed,
@@ -94,6 +97,8 @@ import {
   INITIAL_AUDIT_LOGS,
   INITIAL_CLOUD_ATTACHMENTS,
   INITIAL_DOCUMENT_LOCKS,
+  INITIAL_CUSTOM_FORMS,
+  INITIAL_FORM_SUBMISSIONS,
 } from './lib/seedData';
 import { formatRupiah } from './utils/formatters';
 
@@ -219,8 +224,22 @@ export default function App() {
   const [documentLocks, setDocumentLocks] = useState<ActiveDocumentLock[]>(() =>
     getStoredData('document_locks', INITIAL_DOCUMENT_LOCKS)
   );
+  const [customForms, setCustomForms] = useState<CustomForm[]>(() =>
+    getStoredData('custom_forms', INITIAL_CUSTOM_FORMS)
+  );
+  const [formSubmissions, setFormSubmissions] = useState<FormSubmission[]>(() =>
+    getStoredData('form_submissions', INITIAL_FORM_SUBMISSIONS)
+  );
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
+
+  useEffect(() => {
+    setStoredData('custom_forms', customForms);
+  }, [customForms]);
+
+  useEffect(() => {
+    setStoredData('form_submissions', formSubmissions);
+  }, [formSubmissions]);
 
   // Initialize Firestore Subscriptions
   useEffect(() => {
@@ -1192,6 +1211,19 @@ export default function App() {
               onSaveSubkonOpname={handleSaveSubkonOpname}
               onDeleteSubkonOpname={handleDeleteSubkonOpname}
               onTriggerNotification={handleTriggerNotification}
+            />
+          )}
+
+          {activeModule === 'forms' && (
+            <FormModule
+              projects={projects}
+              currentUser={currentUser}
+              companyProfile={companyProfile}
+              letterhead={letterhead}
+              customForms={customForms}
+              setCustomForms={setCustomForms}
+              formSubmissions={formSubmissions}
+              setFormSubmissions={setFormSubmissions}
             />
           )}
 
