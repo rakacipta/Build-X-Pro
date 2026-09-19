@@ -30,6 +30,8 @@ import {
   generatePdfFromElement,
   triggerPrintFallback,
 } from '../../utils/pdfGenerator';
+import { getStoredData } from '../../services/firestoreService';
+import { INITIAL_COMPANY_PROFILE, INITIAL_LETTERHEAD } from '../../lib/seedData';
 
 interface FormSubmissionDetailModalProps {
   submission: FormSubmission;
@@ -50,11 +52,36 @@ export const FormSubmissionDetailModal: React.FC<
 > = ({
   submission,
   formTemplate,
-  companyProfile,
+  companyProfile: companyProfileProp,
+  letterhead: letterheadProp,
   currentUser,
   onClose,
   onUpdateStatus,
 }) => {
+  const profile =
+    companyProfileProp ||
+    getStoredData<CompanyProfile>('company_profile', INITIAL_COMPANY_PROFILE);
+  const letterheadSettings =
+    letterheadProp ||
+    getStoredData<LetterheadSettings>('letterhead', INITIAL_LETTERHEAD) ||
+    getStoredData<LetterheadSettings>('letterhead_settings', INITIAL_LETTERHEAD);
+
+  const effectiveLogo = letterheadSettings?.logoUrl || profile?.logoUrl;
+  const headerTitle =
+    letterheadSettings?.headerTitle || profile?.name || 'PT RAKA CIPTA SERAYA';
+  const headerSubtitle =
+    letterheadSettings?.headerSubtitle ||
+    profile?.tagline ||
+    'General Contractor & Infrastructure Specialist';
+  const addressLine1 =
+    letterheadSettings?.addressLine1 ||
+    (profile?.address
+      ? `${profile.address}${profile.city ? `, ${profile.city}` : ''}`
+      : 'Gedung Raka Cipta Tower Lt. 8, Jl. Jend. Sudirman No. 88, Jakarta Selatan');
+  const addressLine2 = letterheadSettings?.addressLine2 || '';
+  const contactLine =
+    letterheadSettings?.contactLine ||
+    `Telp: ${profile?.phone || '(021) 5790-1234'} | Email: ${profile?.email || 'admin@rakaciptaseraya.co.id'}`;
   const [reviewNotes, setReviewNotes] = useState<string>(
     submission.reviewNotes || ''
   );
@@ -191,7 +218,7 @@ export const FormSubmissionDetailModal: React.FC<
           {/* Approved Official Stamp Overlay (Print & Screen) */}
           {submission.status === 'Approved' && (
             <div className="hidden sm:block absolute right-8 top-28 pointer-events-none opacity-85 rotate-[-10deg] border-4 border-emerald-600 text-emerald-700 rounded-2xl px-4 py-2 text-center uppercase tracking-widest bg-white/90 print:bg-transparent print:opacity-100 shadow-sm z-10">
-              <p className="text-[9px] font-black tracking-widest text-emerald-800">PT RAKA CIPTA SERAYA</p>
+              <p className="text-[9px] font-black tracking-widest text-emerald-800">{headerTitle}</p>
               <p className="text-sm font-black tracking-tight text-emerald-700">VERIFIED & APPROVED</p>
               <p className="text-[9px] font-bold text-emerald-800">
                 {submission.reviewedAt ? `TGL: ${submission.reviewedAt}` : 'SISTEM ERP TERVALIDASI'}
@@ -199,36 +226,59 @@ export const FormSubmissionDetailModal: React.FC<
             </div>
           )}
           {/* Official Company Letterhead / Header */}
-          <div className="border-b-2 border-slate-900 pb-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-xl tracking-tight shadow-sm">
-                BX
+          <div className="border-b-2 border-slate-900 pb-4">
+            {letterheadSettings?.showDivider !== false && (
+              <div className="h-1.5 w-full bg-gradient-to-r from-blue-700 via-indigo-600 to-amber-500 rounded-full mb-3"></div>
+            )}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                {letterheadSettings?.showLogo !== false && (
+                  effectiveLogo ? (
+                    <img
+                      src={effectiveLogo}
+                      alt={headerTitle}
+                      className="w-14 h-14 sm:w-16 sm:h-16 object-contain rounded-lg shrink-0"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div
+                      className="w-14 h-14 sm:w-16 sm:h-16 text-white rounded-xl flex items-center justify-center font-black text-xl tracking-tight shadow-sm shrink-0"
+                      style={{ backgroundColor: letterheadSettings?.logoBgColor || '#1e293b' }}
+                    >
+                      {letterheadSettings?.logoText || profile?.shortName?.slice(0, 3)?.toUpperCase() || 'RCS'}
+                    </div>
+                  )
+                )}
+                <div>
+                  <h1 className="text-base sm:text-lg font-black uppercase text-slate-900 tracking-tight leading-tight">
+                    {headerTitle}
+                  </h1>
+                  {headerSubtitle && (
+                    <p className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider mt-0.5">
+                      {headerSubtitle}
+                    </p>
+                  )}
+                  <p className="text-[11px] text-slate-600 font-medium mt-0.5">
+                    {addressLine1}
+                    {addressLine2 ? ` • ${addressLine2}` : ''}
+                  </p>
+                  <p className="text-[10px] text-slate-500">
+                    {contactLine}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-base font-black uppercase text-slate-900 tracking-tight">
-                  {companyProfile?.name || 'PT RAKA CIPTA SERAYA'}
-                </h1>
-                <p className="text-[11px] text-slate-500 font-medium">
-                  {companyProfile?.address ||
-                    'Graha Pratama Lt. 8, Jl. M.T. Haryono Kav. 15, Jakarta Selatan'}
-                </p>
-                <p className="text-[10px] text-slate-400">
-                  Telp: {companyProfile?.phone || '(021) 7919-8800'} | Email:{' '}
-                  {companyProfile?.email || 'admin@rakaciptaseraya.co.id'}
-                </p>
-              </div>
-            </div>
 
-            <div className="text-right border-l border-slate-200 pl-4">
-              <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200 inline-block mb-1">
-                KODE: {submission.formCode}
-              </span>
-              <p className="text-xs font-bold text-slate-800 font-mono">
-                No: {submission.submissionNumber}
-              </p>
-              <p className="text-[10px] text-slate-500">
-                Diajukan: {submission.submittedAt}
-              </p>
+              <div className="text-right border-l-2 border-slate-200 pl-4 shrink-0">
+                <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200 inline-block mb-1">
+                  KODE: {submission.formCode}
+                </span>
+                <p className="text-xs font-bold text-slate-800 font-mono">
+                  No: {submission.submissionNumber}
+                </p>
+                <p className="text-[10px] text-slate-500">
+                  Diajukan: {submission.submittedAt}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -509,6 +559,12 @@ export const FormSubmissionDetailModal: React.FC<
                 {submission.reviewNotes}
               </div>
             )}
+
+            {/* Document Footer Note */}
+            <div className="mt-8 pt-3 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-1 text-[10px] text-slate-400">
+              <span>{letterheadSettings?.footerText || `Sistem Informasi Manajemen Terintegrasi Build X Pro • ${headerTitle}`}</span>
+              <span className="font-mono">ID: {submission.id}</span>
+            </div>
           </div>
         </div>
 
