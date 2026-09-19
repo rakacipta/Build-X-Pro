@@ -141,6 +141,9 @@ export async function generatePdfFromElement({
           clonedElement.style.width = '794px'; // Standard A4 pixel width at 96 DPI
           clonedElement.style.maxWidth = '794px';
           clonedElement.style.minHeight = 'auto'; // Prevent trailing blank page caused by min-h-[297mm]
+          clonedElement.style.maxHeight = 'none';
+          clonedElement.style.height = 'auto';
+          clonedElement.style.overflow = 'visible';
           clonedElement.style.margin = '0 auto';
           clonedElement.style.backgroundColor = '#ffffff';
         }
@@ -297,7 +300,7 @@ export function triggerPrintFallback(title: string, element?: HTMLElement | null
             body { background: #ffffff !important; color: #0f172a !important; margin: 0; padding: 20px; font-family: sans-serif; }
             .print\\:hidden, button, input[type="file"], select { display: none !important; }
             .print\\:block { display: block !important; }
-            #quotation-printable-document, #printable-letter-area, .print-container {
+            #quotation-printable-document, #printable-letter-area, #printable-form-area, #printable-blank-form, #printable-submissions-recap, .print-container {
               display: block !important;
               visibility: visible !important;
               width: 100% !important;

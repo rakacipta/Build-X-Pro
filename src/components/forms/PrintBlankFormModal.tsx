@@ -1,6 +1,21 @@
-import React from 'react';
-import { X, Printer, FileText, Building2, MapPin, Calendar, PenTool } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  X,
+  Printer,
+  FileText,
+  Building2,
+  MapPin,
+  Calendar,
+  PenTool,
+  Download,
+  CheckCircle2,
+  Loader2,
+} from 'lucide-react';
 import { CustomForm, CompanyProfile, LetterheadSettings } from '../../types';
+import {
+  generatePdfFromElement,
+  triggerPrintFallback,
+} from '../../utils/pdfGenerator';
 
 interface PrintBlankFormModalProps {
   form: CustomForm;
@@ -14,8 +29,39 @@ export const PrintBlankFormModal: React.FC<PrintBlankFormModalProps> = ({
   companyProfile,
   onClose,
 }) => {
-  const handlePrint = () => {
-    window.print();
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState<boolean>(false);
+  const [pdfDownloaded, setPdfDownloaded] = useState<boolean>(false);
+
+  // Generate real PDF file download
+  const handleDownloadPdf = async () => {
+    if (isDownloadingPdf) return;
+    setIsDownloadingPdf(true);
+    try {
+      const sanitizedCode = form.code.replace(/[/\\?%*:|"<>]/g, '_');
+      const sanitizedTitle = form.title.replace(/[/\\?%*:|"<>]/g, '_');
+      const filename = `Blanko_Formulir_${sanitizedCode}_${sanitizedTitle}.pdf`;
+
+      const isSuccess = await generatePdfFromElement({
+        elementId: 'printable-blank-form',
+        filename,
+        title: `Blanko Lapangan - ${form.title} (${form.code})`,
+      });
+
+      if (isSuccess) {
+        setPdfDownloaded(true);
+        setTimeout(() => setPdfDownloaded(false), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to generate blank form PDF:', err);
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
+
+  // Browser print with fallback
+  const handleBrowserPrint = () => {
+    const el = document.getElementById('printable-blank-form');
+    triggerPrintFallback(`Blanko Lapangan - ${form.title} (${form.code})`, el);
   };
 
   const currentDateStr = new Date().toLocaleDateString('id-ID', {
@@ -28,7 +74,7 @@ export const PrintBlankFormModal: React.FC<PrintBlankFormModalProps> = ({
     <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto print-visible">
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl overflow-hidden flex flex-col max-h-[92vh] print:max-h-none print:h-auto print:border-none print:shadow-none print:rounded-none print:w-full">
         {/* Top Control Bar (Hidden on Print) */}
-        <div className="print:hidden px-6 py-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800 shrink-0">
+        <div className="print:hidden px-6 py-4 bg-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md">
               <Printer className="w-5 h-5" />
@@ -51,12 +97,39 @@ export const PrintBlankFormModal: React.FC<PrintBlankFormModalProps> = ({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={handlePrint}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm"
-              title="Cetak via browser atau simpan ke PDF"
+              onClick={handleDownloadPdf}
+              disabled={isDownloadingPdf}
+              className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm border border-emerald-500/30 disabled:opacity-60"
+              title="Unduh berkas PDF resmi lembar blanko ini"
             >
-              <Printer className="w-4 h-4" /> Cetak / Simpan PDF (Ctrl+P)
+              {isDownloadingPdf ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <span>Membuat PDF...</span>
+                </>
+              ) : pdfDownloaded ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                  <span>PDF Berhasil!</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  <span>Unduh PDF</span>
+                </>
+              )}
             </button>
+
+            <button
+              type="button"
+              onClick={handleBrowserPrint}
+              className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-slate-700 shadow-sm"
+              title="Cetak via dialog printer browser"
+            >
+              <Printer className="w-4 h-4 text-indigo-400" />
+              <span>Cetak Printer</span>
+            </button>
+
             <button
               type="button"
               onClick={onClose}
@@ -293,22 +366,38 @@ export const PrintBlankFormModal: React.FC<PrintBlankFormModalProps> = ({
         </div>
 
         {/* Bottom Bar (Hidden on Print) */}
-        <div className="print:hidden px-6 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0">
+        <div className="print:hidden px-6 py-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
           <p className="text-xs text-slate-500">
-            Gunakan opsi cetak peramban / browser (Ctrl+P / Simpan sebagai PDF) untuk mencetak lembar blanko ini.
+            Unduh file PDF resmi atau kirim ke printer untuk lembar pemeriksaan fisik lapangan.
           </p>
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={handlePrint}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm"
+              onClick={handleDownloadPdf}
+              disabled={isDownloadingPdf}
+              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm disabled:opacity-60"
+              title="Unduh berkas PDF blanko"
             >
-              <Printer className="w-4 h-4" /> Cetak Blanko (PDF / Browser)
+              {isDownloadingPdf ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : pdfDownloaded ? (
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-200" />
+              ) : (
+                <Download className="w-3.5 h-3.5" />
+              )}
+              <span>{isDownloadingPdf ? 'Membuat PDF...' : pdfDownloaded ? 'Tersimpan!' : 'Unduh PDF'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleBrowserPrint}
+              className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm border border-slate-700"
+            >
+              <Printer className="w-3.5 h-3.5 text-indigo-400" /> Cetak Printer
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-bold transition"
+              className="px-3.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-bold transition"
             >
               Tutup
             </button>

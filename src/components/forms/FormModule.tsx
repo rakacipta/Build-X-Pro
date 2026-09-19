@@ -774,14 +774,11 @@ export const FormModule: React.FC<FormModuleProps> = ({
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
-                              setViewingSubmission(sub);
-                              setTimeout(() => window.print(), 350);
-                            }}
+                            onClick={() => setViewingSubmission(sub)}
                             className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-bold transition flex items-center gap-1 border border-slate-200"
-                            title="Cetak Lembar Dokumen / Simpan PDF"
+                            title="Buka Dokumen Resmi & Cetak / Unduh PDF"
                           >
-                            <Printer className="w-3.5 h-3.5 text-indigo-600" /> Cetak PDF
+                            <Printer className="w-3.5 h-3.5 text-indigo-600" /> Cetak / PDF
                           </button>
                           <button
                             type="button"

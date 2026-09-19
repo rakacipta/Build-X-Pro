@@ -16,6 +16,7 @@ import {
   Download,
   ShieldCheck,
   MessageSquare,
+  Loader2,
 } from 'lucide-react';
 import {
   CustomForm,
@@ -25,6 +26,10 @@ import {
   SystemUser,
 } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
+import {
+  generatePdfFromElement,
+  triggerPrintFallback,
+} from '../../utils/pdfGenerator';
 
 interface FormSubmissionDetailModalProps {
   submission: FormSubmission;
@@ -54,9 +59,42 @@ export const FormSubmissionDetailModal: React.FC<
     submission.reviewNotes || ''
   );
   const [showReviewBox, setShowReviewBox] = useState<boolean>(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState<boolean>(false);
+  const [pdfDownloaded, setPdfDownloaded] = useState<boolean>(false);
 
-  const handlePrint = () => {
-    window.print();
+  // Generate & Download real PDF file
+  const handleDownloadPdf = async () => {
+    if (isDownloadingPdf) return;
+    setIsDownloadingPdf(true);
+    try {
+      const sanitizedTitle = submission.formTitle.replace(/[/\\?%*:|"<>]/g, '_');
+      const sanitizedNum = submission.submissionNumber.replace(/[/\\?%*:|"<>]/g, '_');
+      const filename = `Formulir_${sanitizedTitle}_${sanitizedNum}.pdf`;
+
+      const isSuccess = await generatePdfFromElement({
+        elementId: 'printable-form-area',
+        filename,
+        title: `Dokumen Formulir - ${submission.formTitle} (${submission.submissionNumber})`,
+      });
+
+      if (isSuccess) {
+        setPdfDownloaded(true);
+        setTimeout(() => setPdfDownloaded(false), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to generate form PDF:', err);
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
+
+  // Browser print with iframe sandbox fallback
+  const handleBrowserPrint = () => {
+    const el = document.getElementById('printable-form-area');
+    triggerPrintFallback(
+      `Dokumen Formulir - ${submission.formTitle} (${submission.submissionNumber})`,
+      el
+    );
   };
 
   const handleStatusChange = (status: 'Approved' | 'Rejected' | 'In Review') => {
@@ -68,7 +106,7 @@ export const FormSubmissionDetailModal: React.FC<
     <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto print-visible">
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl overflow-hidden flex flex-col max-h-[92vh] print:max-h-none print:h-auto print:border-none print:shadow-none print:rounded-none print:w-full animate-in fade-in zoom-in-95 duration-200">
         {/* Modal Top Bar (Hidden on Print) */}
-        <div className="print:hidden px-6 py-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800 shrink-0">
+        <div className="print:hidden px-6 py-4 bg-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md">
               <FileCheck2 className="w-5 h-5" />
@@ -97,14 +135,45 @@ export const FormSubmissionDetailModal: React.FC<
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Download Real PDF Button */}
             <button
-              onClick={handlePrint}
-              className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm border border-indigo-500"
-              title="Cetak via browser atau simpan sebagai PDF"
+              type="button"
+              onClick={handleDownloadPdf}
+              disabled={isDownloadingPdf}
+              className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm border border-emerald-500/30 disabled:opacity-60"
+              title="Generate dan unduh berkas dokumen PDF resmi"
             >
-              <Printer className="w-4 h-4" /> Cetak / PDF (Ctrl+P)
+              {isDownloadingPdf ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <span>Membuat PDF...</span>
+                </>
+              ) : pdfDownloaded ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                  <span>PDF Berhasil!</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  <span>Unduh PDF</span>
+                </>
+              )}
             </button>
+
+            {/* Browser Print / Fallback */}
             <button
+              type="button"
+              onClick={handleBrowserPrint}
+              className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-slate-700 shadow-sm"
+              title="Cetak melalui dialog printer browser / pop-up cetak"
+            >
+              <Printer className="w-4 h-4 text-indigo-400" />
+              <span>Cetak Printer</span>
+            </button>
+
+            <button
+              type="button"
               onClick={onClose}
               className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
               title="Tutup"
@@ -452,14 +521,30 @@ export const FormSubmissionDetailModal: React.FC<
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <button
               type="button"
-              onClick={handlePrint}
-              className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
-              title="Cetak formulir atau simpan ke PDF"
+              onClick={handleDownloadPdf}
+              disabled={isDownloadingPdf}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm disabled:opacity-60"
+              title="Generate dan unduh berkas dokumen PDF resmi"
             >
-              <Printer className="w-3.5 h-3.5 text-indigo-400" /> Cetak / PDF
+              {isDownloadingPdf ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : pdfDownloaded ? (
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-200" />
+              ) : (
+                <Download className="w-3.5 h-3.5" />
+              )}
+              <span>{isDownloadingPdf ? 'Proses...' : pdfDownloaded ? 'Tersimpan!' : 'Unduh PDF'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleBrowserPrint}
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm border border-slate-700"
+              title="Cetak formulir via printer browser"
+            >
+              <Printer className="w-3.5 h-3.5 text-indigo-400" /> Cetak Printer
             </button>
             {!showReviewBox ? (
               <>
