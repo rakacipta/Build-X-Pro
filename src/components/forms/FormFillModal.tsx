@@ -24,13 +24,19 @@ import {
   FormSubmission,
   Project,
   SystemUser,
+  CompanyProfile,
+  LetterheadSettings,
 } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
+import { getStoredData } from '../../services/firestoreService';
+import { INITIAL_COMPANY_PROFILE, INITIAL_LETTERHEAD } from '../../lib/seedData';
 
 interface FormFillModalProps {
   form: CustomForm;
   projects: Project[];
   currentUser?: SystemUser | null;
+  companyProfile?: CompanyProfile;
+  letterhead?: LetterheadSettings;
   onClose: () => void;
   onSubmit: (submission: FormSubmission) => void;
 }
@@ -39,9 +45,36 @@ export const FormFillModal: React.FC<FormFillModalProps> = ({
   form,
   projects,
   currentUser,
+  companyProfile: companyProfileProp,
+  letterhead: letterheadProp,
   onClose,
   onSubmit,
 }) => {
+  const profile =
+    companyProfileProp ||
+    getStoredData<CompanyProfile>('company_profile', INITIAL_COMPANY_PROFILE);
+  const letterheadSettings =
+    letterheadProp ||
+    getStoredData<LetterheadSettings>('letterhead', INITIAL_LETTERHEAD) ||
+    getStoredData<LetterheadSettings>('letterhead_settings', INITIAL_LETTERHEAD);
+
+  const effectiveLogo = letterheadSettings?.logoUrl || profile?.logoUrl || '/logo-rcs.svg';
+  const headerTitle =
+    letterheadSettings?.headerTitle || profile?.name || 'PT RAKA CIPTA SERAYA';
+  const headerSubtitle =
+    letterheadSettings?.headerSubtitle ||
+    profile?.tagline ||
+    'General Contractor, Infrastructure Specialist & Trading Material';
+  const addressLine1 =
+    letterheadSettings?.addressLine1 ||
+    (profile?.address
+      ? `${profile.address}${profile.city ? `, ${profile.city}` : ''}`
+      : 'Gedung Raka Cipta Tower Lt. 8, Jl. Jend. Sudirman No. 88, Jakarta Selatan');
+  const addressLine2 = letterheadSettings?.addressLine2 || '';
+  const contactLine =
+    letterheadSettings?.contactLine ||
+    `Telp: ${profile?.phone || '(021) 5790-1234'} | Email: ${profile?.email || 'corporate@rakaciptaseraya.co.id'}`;
+
   // Selected project
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
     form.projectId || (projects.length > 0 ? projects[0].id : '')
@@ -336,6 +369,60 @@ export const FormFillModal: React.FC<FormFillModalProps> = ({
 
         {/* Form Body Scrollable */}
         <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-50/50">
+          {/* Official Company Letterhead / Kop Surat */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            {letterheadSettings?.showDivider !== false && (
+              <div className="h-1.5 w-full bg-gradient-to-r from-blue-700 via-indigo-600 to-amber-500 rounded-full mb-3.5"></div>
+            )}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                {letterheadSettings?.showLogo !== false && (
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl border border-slate-200 p-1 bg-white flex items-center justify-center shrink-0 shadow-sm">
+                    <img
+                      src={effectiveLogo}
+                      alt={headerTitle}
+                      className="w-full h-full object-contain"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        // Fallback to svg icon if error
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+                <div>
+                  <h1 className="text-sm sm:text-base font-black uppercase text-slate-900 tracking-tight leading-tight">
+                    {headerTitle}
+                  </h1>
+                  {headerSubtitle && (
+                    <p className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider mt-0.5">
+                      {headerSubtitle}
+                    </p>
+                  )}
+                  <p className="text-[11px] text-slate-600 font-medium mt-0.5">
+                    {addressLine1}
+                    {addressLine2 ? ` • ${addressLine2}` : ''}
+                  </p>
+                  <p className="text-[10px] text-slate-500">
+                    {contactLine}
+                  </p>
+                </div>
+              </div>
+
+              <div className="sm:text-right border-t sm:border-t-0 sm:border-l-2 border-slate-200 pt-2 sm:pt-0 sm:pl-4 shrink-0">
+                <span className="text-[10px] font-mono font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-200 inline-block mb-1">
+                  KODE FORM: {form.code}
+                </span>
+                <p className="text-xs font-bold text-slate-800">
+                  {form.title}
+                </p>
+                <p className="text-[10px] text-slate-500">
+                  Kategori: {form.category}
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Form Description & Project Assignment Bar */}
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
             {form.description && (

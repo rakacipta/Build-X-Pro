@@ -757,7 +757,7 @@ export const INITIAL_COMPANY_PROFILE: CompanyProfile = {
   name: 'PT RAKA CIPTA SERAYA',
   shortName: 'RCS Build X Pro',
   tagline: 'General Contractor, Infrastructure Specialist & Trading Material',
-  logoUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj48cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgcng9IjI0IiBmaWxsPSIjMWUyOTNiIi8+PHBhdGggZD0iTTYwIDE2IEw5NSAzMiBWNjQgQzYwIDg1DYAgMTA0IDYwIDEwNCBDNxAgMTA0IDI1IDg1IDI1IDY0IFYzMiBaIiBmaWxsPSIjMjU2M2ViIiBzdHJva2U9IiMzOGJkZjgiIHN0cm9rZS13aWR0aD0iMyIvPjxwYXRoIGQ9Ik00MiA3NSBWNDggTDYwIDM4IEw3OCA0OCBWNzUgSDY2IFY1OCBINTQgVjc1IFoiIGZpbGw9IiNmYmJmMjQiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjMwIiByPSI0IiBmaWxsPSIjZmZmZmZmIi8+PC9zdmc+',
+  logoUrl: '/logo-rcs.svg',
   npwp: '01.345.678.9-012.000',
   nib: '9120003482193',
   address: 'Gedung Raka Cipta Tower Lantai 8, Jl. Jend. Sudirman No. 88',
@@ -798,7 +798,7 @@ export const INITIAL_LETTERHEAD: LetterheadSettings = {
   contactLine: 'Telp: (021) 5790-1234 | Email: info@rakaciptaseraya.co.id | Web: www.rakaciptaseraya.co.id',
   logoText: 'RCS',
   logoBgColor: '#2563eb',
-  logoUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj48cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgcng9IjI0IiBmaWxsPSIjMWUyOTNiIi8+PHBhdGggZD0iTTYwIDE2IEw5NSAzMiBWNjQgQzYwIDg1DYAgMTA0IDYwIDEwNCBDNxAgMTA0IDI1IDg1IDI1IDY0IFYzMiBaIiBmaWxsPSIjMjU2M2ViIiBzdHJva2U9IiMzOGJkZjgiIHN0cm9rZS13aWR0aD0iMyIvPjxwYXRoIGQ9Ik00MiA3NSBWNDggTDYwIDM4IEw3OCA0OCBWNzUgSDY2IFY1OCBINTQgVjc1IFoiIGZpbGw9IiNmYmJmMjQiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjMwIiByPSI0IiBmaWxsPSIjZmZmZmZmIi8+PC9zdmc+',
+  logoUrl: '/logo-rcs.svg',
   showLogo: true,
   showDivider: true,
   dividerColor: '#2563eb',
@@ -1422,6 +1422,11 @@ export const INITIAL_CLOUD_ATTACHMENTS: CloudLargeAttachment[] = [
 export const INITIAL_DOCUMENT_LOCKS: ActiveDocumentLock[] = [];
 
 export { INITIAL_CUSTOM_FORMS, INITIAL_FORM_SUBMISSIONS } from './formSeedData';
+export {
+  INITIAL_OFFICIAL_LETTERS,
+  INITIAL_LETTER_TEMPLATES,
+  INITIAL_BAST_DOCS,
+} from './letterSeedData';
 
 
 

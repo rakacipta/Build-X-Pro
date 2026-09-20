@@ -2,8 +2,8 @@ import {
   collection,
   doc,
   getDocs,
+  getDoc,
   setDoc,
-  updateDoc,
   deleteDoc,
   onSnapshot,
   query,
@@ -32,8 +32,13 @@ import {
   INITIAL_AUDIT_LOGS,
   INITIAL_CLOUD_ATTACHMENTS,
   INITIAL_DOCUMENT_LOCKS,
+  INITIAL_CUSTOM_FORMS,
+  INITIAL_FORM_SUBMISSIONS,
+  INITIAL_OFFICIAL_LETTERS,
+  INITIAL_LETTER_TEMPLATES,
+  INITIAL_BAST_DOCS,
 } from '../lib/seedData';
-import { DeepAuditLog, ActiveDocumentLock, CloudLargeAttachment } from '../types';
+import { DeepAuditLog, ActiveDocumentLock } from '../types';
 
 const LS_PREFIX = 'buildx_erp_v1_';
 const OLD_LS_PREFIX = 'construx_erp_v1_';
@@ -63,7 +68,7 @@ export function setStoredData<T>(key: string, data: T): void {
   }
 }
 
-const SEED_MAP: Record<string, any[]> = {
+export const SEED_MAP: Record<string, any[]> = {
   projects: INITIAL_PROJECTS,
   tenders: INITIAL_TENDERS,
   materials: INITIAL_MATERIALS,
@@ -86,7 +91,49 @@ const SEED_MAP: Record<string, any[]> = {
   audit_logs: INITIAL_AUDIT_LOGS,
   cloud_attachments: INITIAL_CLOUD_ATTACHMENTS,
   document_locks: INITIAL_DOCUMENT_LOCKS,
+  custom_forms: INITIAL_CUSTOM_FORMS,
+  form_submissions: INITIAL_FORM_SUBMISSIONS,
+  official_letters: INITIAL_OFFICIAL_LETTERS,
+  letter_templates: INITIAL_LETTER_TEMPLATES,
+  bast_documents: INITIAL_BAST_DOCS,
 };
+
+// Cached flag for cloud database initialization
+let isCloudDatabaseInitializedCache: boolean | null = null;
+
+export async function checkCloudDatabaseInitialized(): Promise<boolean> {
+  if (isCloudDatabaseInitializedCache !== null) {
+    return isCloudDatabaseInitializedCache;
+  }
+  try {
+    const metaSnap = await getDoc(doc(db, 'settings_single', 'system_metadata'));
+    if (metaSnap.exists()) {
+      isCloudDatabaseInitializedCache = true;
+      return true;
+    }
+    // Check if any core collection has documents
+    const projSnap = await getDocs(collection(db, 'projects'));
+    if (!projSnap.empty) {
+      isCloudDatabaseInitializedCache = true;
+      await setDoc(
+        doc(db, 'settings_single', 'system_metadata'),
+        {
+          id: 'system_metadata',
+          isCloudInitialized: true,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+      return true;
+    }
+    isCloudDatabaseInitializedCache = false;
+    return false;
+  } catch (err) {
+    console.warn('Error checking cloud database status:', err);
+    // In case of network check failure, assume initialized to avoid re-seeding wiped collections
+    return true;
+  }
+}
 
 // Record Deep Audit Trail Log
 export async function recordAuditLog(
@@ -96,7 +143,7 @@ export async function recordAuditLog(
     id: 'audit-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
     timestamp: new Date().toISOString(),
     ipAddress: '180.252.91.' + Math.floor(Math.random() * 200 + 10),
-    clientVersion: 'v1.4.2-cloud',
+    clientVersion: 'v2.5-cloud',
     ...logData,
   };
   await saveDocument('audit_logs', newLog);
@@ -125,20 +172,19 @@ export async function releaseDocumentLock(collectionName: string, docId: string)
   await deleteDocument('document_locks', lockId);
 }
 
-
-// Generic subscribe function with LocalStorage persistence & Firestore sync
+// Generic subscribe function with LocalStorage persistence & Cloud Firestore sync
 export function subscribeToCollection<T extends { id: string }>(
   collectionName: string,
   initialSeed: T[],
   onUpdate: (data: T[]) => void
 ): () => void {
-  // Always trigger with local cached data first
+  // 1. Instantly trigger with local cache for immediate UI rendering
   const currentLocal = getStoredData<T[]>(collectionName, initialSeed);
-  setStoredData(collectionName, currentLocal);
   onUpdate(currentLocal);
 
   const colRef = collection(db, collectionName);
 
+  // 2. Attach real-time cloud listener
   const unsubscribe = onSnapshot(
     query(colRef),
     async (snapshot) => {
@@ -147,34 +193,53 @@ export function subscribeToCollection<T extends { id: string }>(
         snapshot.forEach((docSnap) => {
           items.push({ id: docSnap.id, ...docSnap.data() } as T);
         });
-        localStorage.setItem(LS_PREFIX + collectionName + '_has_been_seeded', 'true');
         setStoredData(collectionName, items);
         onUpdate(items);
       } else {
-        const isAlreadySeeded =
-          localStorage.getItem(LS_PREFIX + collectionName + '_has_been_seeded') === 'true';
-        if (!isAlreadySeeded && currentLocal && currentLocal.length > 0) {
-          // First-time app initialization only: seed remote database once
-          try {
-            await Promise.all(
-              currentLocal.map((item) =>
-                setDoc(doc(db, collectionName, item.id), item, { merge: true })
-              )
-            );
-            localStorage.setItem(LS_PREFIX + collectionName + '_has_been_seeded', 'true');
-          } catch (e) {
-            console.warn(`Could not seed empty Firestore collection ${collectionName}:`, e);
-          }
-        } else {
-          // The collection is intentionally empty (e.g. after zeroing out / clearing)
+        // Firestore snapshot is empty.
+        // Check if cloud database is already running (multi-device active)
+        const isCloudInit = await checkCloudDatabaseInitialized();
+        if (isCloudInit) {
+          // Cloud database is already initialized; an empty collection means
+          // data has been deleted/cleared intentionally.
+          // NEVER resurrect deleted data from local initial seed!
           setStoredData(collectionName, []);
           onUpdate([]);
+        } else {
+          // Brand new virgin database setup across the whole system
+          if (initialSeed && initialSeed.length > 0) {
+            try {
+              await Promise.all(
+                initialSeed.map((item) =>
+                  setDoc(doc(db, collectionName, item.id), item, { merge: true })
+                )
+              );
+              await setDoc(
+                doc(db, 'settings_single', 'system_metadata'),
+                {
+                  id: 'system_metadata',
+                  isCloudInitialized: true,
+                  updatedAt: new Date().toISOString(),
+                },
+                { merge: true }
+              );
+              setStoredData(collectionName, initialSeed);
+              onUpdate(initialSeed);
+            } catch (e) {
+              console.warn(`Could not seed initial data to ${collectionName}:`, e);
+              setStoredData(collectionName, []);
+              onUpdate([]);
+            }
+          } else {
+            setStoredData(collectionName, []);
+            onUpdate([]);
+          }
         }
       }
     },
     (error) => {
-      console.warn(`Firestore subscription fallback for ${collectionName}:`, error);
-      // Keep cached local storage data on network/permission error
+      console.warn(`Firestore subscription error for ${collectionName}:`, error);
+      // Retain latest local storage state
       onUpdate(getStoredData<T[]>(collectionName, initialSeed));
     }
   );
@@ -224,24 +289,44 @@ export async function deleteDocument<T extends { id: string }>(
   try {
     await deleteDoc(doc(db, collectionName, id));
   } catch (err) {
-    console.warn(`Error deleting from Firestore collection ${collectionName}:`, err);
+    console.warn(`Error deleting document ${id} from Firestore collection ${collectionName}:`, err);
   }
 
   return updatedList;
 }
 
 // Overwrite all documents in a collection (LocalStorage & Firestore)
+// Accurately deletes removed documents from Firestore so they never resurrect!
 export async function replaceAllDocuments<T extends { id: string }>(
   collectionName: string,
   newList: T[]
 ): Promise<T[]> {
   setStoredData(collectionName, newList);
   try {
-    for (const item of newList) {
-      await setDoc(doc(db, collectionName, item.id), item, { merge: true });
+    const colRef = collection(db, collectionName);
+    const existingSnap = await getDocs(colRef);
+    const newIdSet = new Set(newList.map((x) => x.id));
+
+    // Delete documents that are no longer present in newList
+    const deleteOps: Promise<void>[] = [];
+    existingSnap.forEach((docSnap) => {
+      if (!newIdSet.has(docSnap.id)) {
+        deleteOps.push(deleteDoc(docSnap.ref));
+      }
+    });
+    if (deleteOps.length > 0) {
+      await Promise.all(deleteOps);
+    }
+
+    // Upsert all items in newList
+    const writeOps = newList.map((item) =>
+      setDoc(doc(db, collectionName, item.id), item, { merge: true })
+    );
+    if (writeOps.length > 0) {
+      await Promise.all(writeOps);
     }
   } catch (err) {
-    console.warn(`Error writing to Firestore collection ${collectionName}:`, err);
+    console.warn(`Error replacing documents in Firestore collection ${collectionName}:`, err);
   }
   return newList;
 }
@@ -249,10 +334,8 @@ export async function replaceAllDocuments<T extends { id: string }>(
 // Clear all documents in a collection (LocalStorage & Firestore)
 export async function clearCollectionDocuments<T extends { id: string }>(
   collectionName: string,
-  currentList: T[]
+  _currentList?: T[]
 ): Promise<T[]> {
-  localStorage.setItem(LS_PREFIX + collectionName + '_has_been_seeded', 'true');
-  localStorage.setItem(OLD_LS_PREFIX + collectionName + '_has_been_seeded', 'true');
   setStoredData(collectionName, []);
   try {
     const colRef = collection(db, collectionName);
@@ -265,32 +348,35 @@ export async function clearCollectionDocuments<T extends { id: string }>(
   }
   return [];
 }
-export async function seedAllCollections(): Promise<void> {
-  const seeds: [string, any[]][] = [
-    ['projects', INITIAL_PROJECTS],
-    ['tenders', INITIAL_TENDERS],
-    ['materials', INITIAL_MATERIALS],
-    ['purchases', INITIAL_PURCHASES],
-    ['sales', INITIAL_SALES],
-    ['crm_leads', INITIAL_LEADS],
-    ['equipment', INITIAL_EQUIPMENT],
-    ['employees', INITIAL_EMPLOYEES],
-    ['payroll', INITIAL_PAYROLL],
-    ['finance_transactions', INITIAL_FINANCE],
-    ['coa', INITIAL_COA],
-    ['journals', INITIAL_JOURNALS],
-    ['approvals', INITIAL_APPROVALS],
-    ['ahsp', INITIAL_AHSP],
-    ['rab_items', INITIAL_RAB_ITEMS],
-    ['notifications', INITIAL_NOTIFICATIONS],
-    ['subkon_contracts', INITIAL_SUBKON_CONTRACTS],
-    ['subkon_opnames', INITIAL_SUBKON_OPNAMES],
-  ];
 
-  for (const [colName, data] of seeds) {
-    setStoredData(colName, data);
-    for (const item of data) {
-      await setDoc(doc(db, colName, item.id || item.code), item, { merge: true });
-    }
+// Force re-fetch a collection from Firestore
+export async function fetchCollectionFromCloud<T extends { id: string }>(
+  collectionName: string
+): Promise<T[]> {
+  try {
+    const colRef = collection(db, collectionName);
+    const snapshot = await getDocs(colRef);
+    const items: T[] = [];
+    snapshot.forEach((d) => items.push({ id: d.id, ...d.data() } as T));
+    setStoredData(collectionName, items);
+    return items;
+  } catch (e) {
+    console.warn(`Error fetching ${collectionName} from cloud:`, e);
+    return getStoredData<T[]>(collectionName, []);
   }
 }
+
+// Force re-fetch all specified collections from Firestore
+export async function forceRefreshAllCollections(
+  collections: string[]
+): Promise<Record<string, any[]>> {
+  const results: Record<string, any[]> = {};
+  await Promise.all(
+    collections.map(async (col) => {
+      const items = await fetchCollectionFromCloud(col);
+      results[col] = items;
+    })
+  );
+  return results;
+}
+

@@ -123,6 +123,37 @@ export interface LetterTemplate {
   createdAt: string;
 }
 
+export interface BastDocument {
+  id: string;
+  type: 'BAST1' | 'BAST2';
+  bastNumber: string;
+  refBast1Number?: string;
+  projectId: string;
+  projectName: string;
+  clientName: string;
+  clientAddress?: string;
+  clientRepresentative?: string;
+  contractNumber: string;
+  contractDate: string;
+  contractValue: number;
+  retentionPct: number;
+  retentionAmount: number;
+  bastDate: string;
+  bastCity: string;
+  maintenanceDays: number;
+  maintenanceEndDate: string;
+  inspectionNotes: string;
+  status: 'Draft' | 'Disetujui' | 'Ditandatangani' | 'Retensi Dicairkan';
+  contractorSignatory: string;
+  contractorTitle: string;
+  clientSignatory: string;
+  clientTitle: string;
+  consultantSignatory?: string;
+  consultantTitle?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // --- SYSTEM & SETTINGS ---
 export interface CompanyBank {
   id: string;

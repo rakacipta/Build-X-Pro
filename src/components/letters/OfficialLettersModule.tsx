@@ -57,7 +57,7 @@ import { saveAs } from 'file-saver';
 import { CetakPdfButton } from '../common/CetakPdfButton';
 import { generatePdfFromElement, triggerPrintFallback } from '../../utils/pdfGenerator';
 import { SubkonSpkSubmodule } from './SubkonSpkSubmodule';
-import { BastSubmodule } from './BastSubmodule';
+import { BastSubmodule, BastDocument } from './BastSubmodule';
 import {
   Document,
   Packer,
@@ -82,6 +82,15 @@ interface OfficialLettersModuleProps {
   onDeleteSubkonContract?: (id: string) => void;
   onSaveSubkonOpname?: (opname: SubkonOpname) => void;
   onDeleteSubkonOpname?: (id: string) => void;
+  letters?: OfficialLetter[];
+  onSaveLetter?: (letter: OfficialLetter) => void;
+  onDeleteLetter?: (id: string) => void;
+  bastList?: BastDocument[];
+  onSaveBast?: (bast: BastDocument) => void;
+  onDeleteBast?: (id: string) => void;
+  templates?: LetterTemplate[];
+  onSaveTemplate?: (template: LetterTemplate) => void;
+  onDeleteTemplate?: (id: string) => void;
   onTriggerNotification?: (notif: Partial<AppNotification>) => void;
 }
 
@@ -363,13 +372,32 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
   onDeleteSubkonContract = () => {},
   onSaveSubkonOpname = () => {},
   onDeleteSubkonOpname = () => {},
+  letters: externalLetters,
+  onSaveLetter,
+  onDeleteLetter,
+  bastList: externalBastList,
+  onSaveBast,
+  onDeleteBast,
+  templates: externalTemplates,
+  onSaveTemplate,
+  onDeleteTemplate,
   onTriggerNotification,
 }) => {
-  const [letters, setLetters] = useState<OfficialLetter[]>(initialLetters);
+  const [internalLetters, setInternalLetters] = useState<OfficialLetter[]>(initialLetters);
+  const letters = externalLetters !== undefined ? externalLetters : internalLetters;
+
+  const setLetters = (updater: OfficialLetter[] | ((prev: OfficialLetter[]) => OfficialLetter[])) => {
+    if (typeof updater === 'function') {
+      setInternalLetters((prev) => updater(prev));
+    } else {
+      setInternalLetters(updater);
+    }
+  };
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   // Templates State with localStorage persistence
-  const [templates, setTemplates] = useState<LetterTemplate[]>(() => {
+  const [internalTemplates, setInternalTemplates] = useState<LetterTemplate[]>(() => {
     try {
       const saved = localStorage.getItem('rcs_official_letter_templates');
       if (saved) {
@@ -383,6 +411,7 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
     }
     return INITIAL_TEMPLATES;
   });
+  const templates = externalTemplates !== undefined ? externalTemplates : internalTemplates;
 
   const [activeTab, setActiveTab] = useState<'LIST' | 'SUBKON' | 'BAST' | 'FORM' | 'PREVIEW' | 'TEMPLATES'>('LIST');
   const [templateSearchQuery, setTemplateSearchQuery] = useState('');
@@ -777,6 +806,10 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
       setLetters((prev) => [updatedLetter, ...prev]);
     }
 
+    if (onSaveLetter) {
+      onSaveLetter(updatedLetter);
+    }
+
     setPreviewLetter(updatedLetter);
 
     setTimeout(() => {
@@ -791,8 +824,11 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
   const handleDeleteLetter = (id: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus arsip surat ini?')) {
       setLetters(letters.filter((l) => l.id !== id));
+      if (onDeleteLetter) {
+        onDeleteLetter(id);
+      }
       if (previewLetter?.id === id) {
-        setPreviewLetter(letters[0] || null);
+        setPreviewLetter(letters.filter((l) => l.id !== id)[0] || null);
       }
     }
   };
@@ -809,6 +845,9 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
       updatedAt: new Date().toISOString(),
     };
     setLetters([dup, ...letters]);
+    if (onSaveLetter) {
+      onSaveLetter(dup);
+    }
     alert('Surat berhasil diduplikasi menjadi Draft baru!');
   };
 
@@ -1241,8 +1280,15 @@ export const OfficialLettersModule: React.FC<OfficialLettersModuleProps> = ({
         <BastSubmodule
           projects={projects}
           companyProfile={companyProfile}
+          letterhead={letterhead}
+          bastList={externalBastList}
+          onSaveBast={onSaveBast}
+          onDeleteBast={onDeleteBast}
           onSaveOfficialLetter={(letter) => {
             setLetters((prev) => [letter, ...prev.filter((l) => l.id !== letter.id)]);
+            if (onSaveLetter) {
+              onSaveLetter(letter);
+            }
           }}
           onTriggerNotification={onTriggerNotification}
         />

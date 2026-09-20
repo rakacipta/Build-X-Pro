@@ -47,7 +47,7 @@ export const PrintSubmissionsRecapModal: React.FC<PrintSubmissionsRecapModalProp
     getStoredData<LetterheadSettings>('letterhead', INITIAL_LETTERHEAD) ||
     getStoredData<LetterheadSettings>('letterhead_settings', INITIAL_LETTERHEAD);
 
-  const effectiveLogo = letterheadSettings?.logoUrl || profile?.logoUrl;
+  const effectiveLogo = letterheadSettings?.logoUrl || profile?.logoUrl || '/logo-rcs.svg';
   const headerTitle =
     letterheadSettings?.headerTitle || profile?.name || 'PT RAKA CIPTA SERAYA';
   const headerSubtitle =
@@ -207,21 +207,26 @@ export const PrintSubmissionsRecapModal: React.FC<PrintSubmissionsRecapModalProp
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3.5">
                 {letterheadSettings?.showLogo !== false && (
-                  effectiveLogo ? (
-                    <img
-                      src={effectiveLogo}
-                      alt={headerTitle}
-                      className="w-14 h-14 sm:w-16 sm:h-16 object-contain rounded-lg shrink-0"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <div
-                      className="w-14 h-14 sm:w-16 sm:h-16 text-white rounded-xl flex items-center justify-center font-black text-2xl tracking-tight shadow-sm border border-slate-800 shrink-0"
-                      style={{ backgroundColor: letterheadSettings?.logoBgColor || '#1e293b' }}
-                    >
-                      {letterheadSettings?.logoText || profile?.shortName?.slice(0, 3)?.toUpperCase() || 'RCS'}
-                    </div>
-                  )
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl border border-slate-200 p-1 bg-white flex items-center justify-center shrink-0 shadow-sm">
+                    {effectiveLogo ? (
+                      <img
+                        src={effectiveLogo}
+                        alt={headerTitle}
+                        className="w-full h-full object-contain"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/logo-rcs.svg';
+                        }}
+                      />
+                    ) : (
+                      <div
+                        className="w-full h-full text-white rounded-lg flex items-center justify-center font-black text-2xl tracking-tight shadow-sm shrink-0"
+                        style={{ backgroundColor: letterheadSettings?.logoBgColor || '#1e293b' }}
+                      >
+                        {letterheadSettings?.logoText || profile?.shortName?.slice(0, 3)?.toUpperCase() || 'RCS'}
+                      </div>
+                    )}
+                  </div>
                 )}
                 <div>
                   <h1 className="text-base sm:text-lg font-black uppercase text-slate-900 tracking-tight leading-tight">

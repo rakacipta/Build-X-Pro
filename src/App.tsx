@@ -59,7 +59,10 @@ import {
   CloudLargeAttachment,
   CustomForm,
   FormSubmission,
+  OfficialLetter,
+  LetterTemplate,
 } from './types';
+import { BastDocument } from './components/letters/BastSubmodule';
 import {
   isModuleAllowed,
   getFirstAllowedModule,
@@ -99,6 +102,9 @@ import {
   INITIAL_DOCUMENT_LOCKS,
   INITIAL_CUSTOM_FORMS,
   INITIAL_FORM_SUBMISSIONS,
+  INITIAL_OFFICIAL_LETTERS,
+  INITIAL_LETTER_TEMPLATES,
+  INITIAL_BAST_DOCS,
 } from './lib/seedData';
 import { formatRupiah } from './utils/formatters';
 
@@ -111,6 +117,7 @@ import {
   replaceAllDocuments,
   clearCollectionDocuments,
   recordAuditLog,
+  forceRefreshAllCollections,
 } from './services/firestoreService';
 import { testConnection } from './lib/firebase';
 
@@ -230,6 +237,16 @@ export default function App() {
   const [formSubmissions, setFormSubmissions] = useState<FormSubmission[]>(() =>
     getStoredData('form_submissions', INITIAL_FORM_SUBMISSIONS)
   );
+  const [officialLetters, setOfficialLetters] = useState<OfficialLetter[]>(() =>
+    getStoredData('official_letters', INITIAL_OFFICIAL_LETTERS)
+  );
+  const [bastDocuments, setBastDocuments] = useState<BastDocument[]>(() =>
+    getStoredData('bast_documents', INITIAL_BAST_DOCS)
+  );
+  const [letterTemplates, setLetterTemplates] = useState<LetterTemplate[]>(() =>
+    getStoredData('letter_templates', INITIAL_LETTER_TEMPLATES)
+  );
+  const [isCloudSyncing, setIsCloudSyncing] = useState(false);
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
 
@@ -240,6 +257,18 @@ export default function App() {
   useEffect(() => {
     setStoredData('form_submissions', formSubmissions);
   }, [formSubmissions]);
+
+  useEffect(() => {
+    setStoredData('official_letters', officialLetters);
+  }, [officialLetters]);
+
+  useEffect(() => {
+    setStoredData('bast_documents', bastDocuments);
+  }, [bastDocuments]);
+
+  useEffect(() => {
+    setStoredData('letter_templates', letterTemplates);
+  }, [letterTemplates]);
 
   // Initialize Firestore Subscriptions
   useEffect(() => {
@@ -275,6 +304,11 @@ export default function App() {
     const unsubAuditLogs = subscribeToCollection('audit_logs', INITIAL_AUDIT_LOGS, setAuditLogs);
     const unsubAttachments = subscribeToCollection('cloud_attachments', INITIAL_CLOUD_ATTACHMENTS, setCloudAttachments);
     const unsubLocks = subscribeToCollection('document_locks', INITIAL_DOCUMENT_LOCKS, setDocumentLocks);
+    const unsubCustomForms = subscribeToCollection('custom_forms', INITIAL_CUSTOM_FORMS, setCustomForms);
+    const unsubFormSubmissions = subscribeToCollection('form_submissions', INITIAL_FORM_SUBMISSIONS, setFormSubmissions);
+    const unsubOfficialLetters = subscribeToCollection('official_letters', INITIAL_OFFICIAL_LETTERS, setOfficialLetters);
+    const unsubBast = subscribeToCollection('bast_documents', INITIAL_BAST_DOCS, setBastDocuments);
+    const unsubTemplates = subscribeToCollection('letter_templates', INITIAL_LETTER_TEMPLATES, setLetterTemplates);
     const unsubSettings = subscribeToCollection('settings_single', [], (items: any[]) => {
       items.forEach((item) => {
         if (item.id === 'company_profile') {
@@ -320,6 +354,11 @@ export default function App() {
       unsubAuditLogs();
       unsubAttachments();
       unsubLocks();
+      unsubCustomForms();
+      unsubFormSubmissions();
+      unsubOfficialLetters();
+      unsubBast();
+      unsubTemplates();
       unsubSettings();
     };
   }, []);
@@ -907,6 +946,139 @@ export default function App() {
     saveDocument('settings_single', { id: 'system_settings', ...s });
   };
 
+  // Custom Forms & Submissions Handlers
+  const handleSaveCustomForm = async (f: CustomForm) => {
+    const updated = await saveDocument('custom_forms', f);
+    setCustomForms(updated);
+  };
+  const handleDeleteCustomForm = async (id: string) => {
+    const updated = await deleteDocument<CustomForm>('custom_forms', id);
+    setCustomForms(updated);
+  };
+  const handleSaveFormSubmission = async (s: FormSubmission) => {
+    const updated = await saveDocument('form_submissions', s);
+    setFormSubmissions(updated);
+  };
+  const handleDeleteFormSubmission = async (id: string) => {
+    const updated = await deleteDocument<FormSubmission>('form_submissions', id);
+    setFormSubmissions(updated);
+  };
+
+  // Official Letters & BAST Handlers
+  const handleSaveOfficialLetter = async (l: OfficialLetter) => {
+    const updated = await saveDocument('official_letters', l);
+    setOfficialLetters(updated);
+  };
+  const handleDeleteOfficialLetter = async (id: string) => {
+    const updated = await deleteDocument<OfficialLetter>('official_letters', id);
+    setOfficialLetters(updated);
+  };
+  const handleSaveBastDocument = async (b: BastDocument) => {
+    const updated = await saveDocument('bast_documents', b);
+    setBastDocuments(updated);
+  };
+  const handleDeleteBastDocument = async (id: string) => {
+    const updated = await deleteDocument<BastDocument>('bast_documents', id);
+    setBastDocuments(updated);
+  };
+  const handleSaveLetterTemplate = async (t: LetterTemplate) => {
+    const updated = await saveDocument('letter_templates', t);
+    setLetterTemplates(updated);
+  };
+  const handleDeleteLetterTemplate = async (id: string) => {
+    const updated = await deleteDocument<LetterTemplate>('letter_templates', id);
+    setLetterTemplates(updated);
+  };
+
+  // Comprehensive Cloud Sync Across Devices
+  const handleRefreshAllFromCloud = async () => {
+    setIsCloudSyncing(true);
+    try {
+      const refreshed = await forceRefreshAllCollections([
+        'projects',
+        'tenders',
+        'quotations',
+        'materials',
+        'purchases',
+        'sales',
+        'crm_leads',
+        'equipment',
+        'employees',
+        'attendance',
+        'overtime',
+        'payroll',
+        'finance_transactions',
+        'coa',
+        'journals',
+        'approvals',
+        'ahsp',
+        'rab_items',
+        'system_users',
+        'notifications',
+        'subkon_contracts',
+        'subkon_opnames',
+        'invoices',
+        'audit_logs',
+        'cloud_attachments',
+        'document_locks',
+        'custom_forms',
+        'form_submissions',
+        'official_letters',
+        'bast_documents',
+        'letter_templates',
+      ]);
+
+      if (refreshed['projects']) setProjects(refreshed['projects']);
+      if (refreshed['tenders']) setTenders(refreshed['tenders']);
+      if (refreshed['quotations']) setQuotations(refreshed['quotations']);
+      if (refreshed['materials']) setMaterials(refreshed['materials']);
+      if (refreshed['purchases']) setPurchases(refreshed['purchases']);
+      if (refreshed['sales']) setSalesOrders(refreshed['sales']);
+      if (refreshed['crm_leads']) setCrmLeads(refreshed['crm_leads']);
+      if (refreshed['equipment']) setEquipment(refreshed['equipment']);
+      if (refreshed['employees']) setEmployees(refreshed['employees']);
+      if (refreshed['attendance']) setAttendanceRecords(refreshed['attendance']);
+      if (refreshed['overtime']) setOvertimeRecords(refreshed['overtime']);
+      if (refreshed['payroll']) setPayrollSlips(refreshed['payroll']);
+      if (refreshed['finance_transactions']) setFinanceTransactions(refreshed['finance_transactions']);
+      if (refreshed['coa']) setCoaList(refreshed['coa']);
+      if (refreshed['journals']) setJournals(refreshed['journals']);
+      if (refreshed['approvals']) setApprovals(refreshed['approvals']);
+      if (refreshed['ahsp']) setAhspList(refreshed['ahsp']);
+      if (refreshed['rab_items']) setRabItems(refreshed['rab_items']);
+      if (refreshed['system_users']) setSystemUsers(refreshed['system_users']);
+      if (refreshed['notifications']) setNotifications(refreshed['notifications']);
+      if (refreshed['subkon_contracts']) setSubkonContracts(refreshed['subkon_contracts']);
+      if (refreshed['subkon_opnames']) setSubkonOpnames(refreshed['subkon_opnames']);
+      if (refreshed['invoices']) setInvoices(refreshed['invoices']);
+      if (refreshed['audit_logs']) setAuditLogs(refreshed['audit_logs']);
+      if (refreshed['cloud_attachments']) setCloudAttachments(refreshed['cloud_attachments']);
+      if (refreshed['document_locks']) setDocumentLocks(refreshed['document_locks']);
+      if (refreshed['custom_forms']) setCustomForms(refreshed['custom_forms']);
+      if (refreshed['form_submissions']) setFormSubmissions(refreshed['form_submissions']);
+      if (refreshed['official_letters']) setOfficialLetters(refreshed['official_letters']);
+      if (refreshed['bast_documents']) setBastDocuments(refreshed['bast_documents']);
+      if (refreshed['letter_templates']) setLetterTemplates(refreshed['letter_templates']);
+
+      setToastMessage({
+        title: 'Sinkronisasi Cloud Selesai',
+        message: 'Seluruh data multi-perangkat telah disinkronkan langsung dengan Firestore Cloud Database.',
+        type: 'success',
+      });
+      setTimeout(() => setToastMessage(null), 3500);
+    } catch (e) {
+      console.warn('Cloud sync error:', e);
+      setToastMessage({
+        title: 'Sinkronisasi Cloud Gagal',
+        message: 'Tidak dapat memperbarui data dari cloud. Silakan periksa koneksi.',
+        type: 'alert',
+      });
+      setTimeout(() => setToastMessage(null), 4000);
+    } finally {
+      setIsCloudSyncing(false);
+    }
+  };
+
   // Approval Handlers
   const handleApprove = async (id: string, notes: string) => {
     const existing = approvals.find((a) => a.id === id);
@@ -947,6 +1119,8 @@ export default function App() {
     } catch (e) {
       console.error(e);
     }
+    // Auto sync from cloud on login so device 2 immediately sees latest deletions & additions
+    handleRefreshAllFromCloud();
   };
 
   const handleLogout = () => {
@@ -1007,6 +1181,8 @@ export default function App() {
         onLogout={handleLogout}
         onOpenAuditLogs={() => setIsAuditModalOpen(true)}
         onOpenCloudStorage={() => setIsCloudModalOpen(true)}
+        onRefreshCloudSync={handleRefreshAllFromCloud}
+        isCloudSyncing={isCloudSyncing}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -1210,6 +1386,15 @@ export default function App() {
               onDeleteSubkonContract={handleDeleteSubkonContract}
               onSaveSubkonOpname={handleSaveSubkonOpname}
               onDeleteSubkonOpname={handleDeleteSubkonOpname}
+              letters={officialLetters}
+              onSaveLetter={handleSaveOfficialLetter}
+              onDeleteLetter={handleDeleteOfficialLetter}
+              bastList={bastDocuments}
+              onSaveBast={handleSaveBastDocument}
+              onDeleteBast={handleDeleteBastDocument}
+              templates={letterTemplates}
+              onSaveTemplate={handleSaveLetterTemplate}
+              onDeleteTemplate={handleDeleteLetterTemplate}
               onTriggerNotification={handleTriggerNotification}
             />
           )}
@@ -1224,6 +1409,10 @@ export default function App() {
               setCustomForms={setCustomForms}
               formSubmissions={formSubmissions}
               setFormSubmissions={setFormSubmissions}
+              onSaveForm={handleSaveCustomForm}
+              onDeleteForm={handleDeleteCustomForm}
+              onSaveSubmission={handleSaveFormSubmission}
+              onDeleteSubmission={handleDeleteFormSubmission}
             />
           )}
 

@@ -53,6 +53,10 @@ interface FormModuleProps {
   setCustomForms?: React.Dispatch<React.SetStateAction<CustomForm[]>>;
   formSubmissions?: FormSubmission[];
   setFormSubmissions?: React.Dispatch<React.SetStateAction<FormSubmission[]>>;
+  onSaveForm?: (form: CustomForm) => void;
+  onDeleteForm?: (id: string) => void;
+  onSaveSubmission?: (submission: FormSubmission) => void;
+  onDeleteSubmission?: (id: string) => void;
 }
 
 export const FormModule: React.FC<FormModuleProps> = ({
@@ -64,6 +68,10 @@ export const FormModule: React.FC<FormModuleProps> = ({
   setCustomForms: externalSetForms,
   formSubmissions: externalSubmissions,
   setFormSubmissions: externalSetSubmissions,
+  onSaveForm,
+  onDeleteForm,
+  onSaveSubmission,
+  onDeleteSubmission,
 }) => {
   // Local or external state
   const [internalForms, setInternalForms] = useState<CustomForm[]>(
@@ -191,6 +199,9 @@ export const FormModule: React.FC<FormModuleProps> = ({
       }
       return [savedForm, ...prev];
     });
+    if (onSaveForm) {
+      onSaveForm(savedForm);
+    }
     setIsBuilderOpen(false);
     setEditingForm(null);
     showToast(`Template formulir '${savedForm.title}' berhasil disimpan!`);
@@ -207,6 +218,9 @@ export const FormModule: React.FC<FormModuleProps> = ({
       version: 1,
     };
     setForms((prev) => [duplicate, ...prev]);
+    if (onSaveForm) {
+      onSaveForm(duplicate);
+    }
     showToast(`Template '${form.title}' berhasil diduplikasi.`);
   };
 
@@ -217,12 +231,18 @@ export const FormModule: React.FC<FormModuleProps> = ({
       )
     ) {
       setForms((prev) => prev.filter((f) => f.id !== formId));
+      if (onDeleteForm) {
+        onDeleteForm(formId);
+      }
       showToast(`Template '${formTitle}' telah dihapus.`);
     }
   };
 
   const handleFormSubmit = (newSubmission: FormSubmission) => {
     setSubmissions((prev) => [newSubmission, ...prev]);
+    if (onSaveSubmission) {
+      onSaveSubmission(newSubmission);
+    }
     setActiveFillForm(null);
     showToast(
       `Formulir '${newSubmission.formTitle}' (${newSubmission.submissionNumber}) berhasil dikirim!`
@@ -239,10 +259,11 @@ export const FormModule: React.FC<FormModuleProps> = ({
       .toTimeString()
       .slice(0, 5)}`;
 
+    let updatedSubmission: FormSubmission | undefined;
     setSubmissions((prev) =>
       prev.map((s) => {
         if (s.id === subId) {
-          return {
+          updatedSubmission = {
             ...s,
             status: newStatus,
             reviewNotes: notes || s.reviewNotes,
@@ -250,10 +271,15 @@ export const FormModule: React.FC<FormModuleProps> = ({
               currentUser?.name || 'Hendra Setiawan, ST (Site Manager)',
             reviewedAt: formattedDate,
           };
+          return updatedSubmission;
         }
         return s;
       })
     );
+
+    if (updatedSubmission && onSaveSubmission) {
+      onSaveSubmission(updatedSubmission);
+    }
 
     if (viewingSubmission && viewingSubmission.id === subId) {
       setViewingSubmission((prev) =>
@@ -276,6 +302,9 @@ export const FormModule: React.FC<FormModuleProps> = ({
   const handleDeleteSubmission = (subId: string, num: string) => {
     if (window.confirm(`Hapus pengajuan formulir ${num}?`)) {
       setSubmissions((prev) => prev.filter((s) => s.id !== subId));
+      if (onDeleteSubmission) {
+        onDeleteSubmission(subId);
+      }
       showToast(`Pengajuan ${num} telah dihapus.`);
     }
   };
@@ -925,6 +954,8 @@ export const FormModule: React.FC<FormModuleProps> = ({
           form={activeFillForm}
           projects={projects}
           currentUser={currentUser}
+          companyProfile={companyProfile}
+          letterhead={letterhead}
           onClose={() => setActiveFillForm(null)}
           onSubmit={handleFormSubmit}
         />

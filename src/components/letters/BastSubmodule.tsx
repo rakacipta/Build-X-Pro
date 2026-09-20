@@ -23,10 +23,10 @@ import {
   Clock,
   Send,
 } from 'lucide-react';
-import { Project, CompanyProfile, OfficialLetter } from '../../types';
+import { Project, CompanyProfile, OfficialLetter, LetterheadSettings } from '../../types';
 import { Document, Paragraph, TextRun, Packer, AlignmentType } from 'docx';
 
-interface BastDocument {
+export interface BastDocument {
   id: string;
   type: 'BAST1' | 'BAST2';
   bastNumber: string;
@@ -60,6 +60,10 @@ interface BastDocument {
 interface BastSubmoduleProps {
   projects: Project[];
   companyProfile: CompanyProfile;
+  letterhead?: LetterheadSettings;
+  bastList?: BastDocument[];
+  onSaveBast?: (bast: BastDocument) => void;
+  onDeleteBast?: (id: string) => void;
   onSaveOfficialLetter?: (letter: OfficialLetter) => void;
   onTriggerNotification?: (notif: any) => void;
 }
@@ -130,10 +134,14 @@ const INITIAL_BAST_DOCS: BastDocument[] = [
 export const BastSubmodule: React.FC<BastSubmoduleProps> = ({
   projects,
   companyProfile,
+  letterhead,
+  bastList: externalBastList,
+  onSaveBast,
+  onDeleteBast,
   onSaveOfficialLetter,
   onTriggerNotification,
 }) => {
-  const [bastList, setBastList] = useState<BastDocument[]>(() => {
+  const [internalBastList, setInternalBastList] = useState<BastDocument[]>(() => {
     try {
       const saved = localStorage.getItem('rcs_bast_documents');
       if (saved) {
@@ -145,6 +153,18 @@ export const BastSubmodule: React.FC<BastSubmoduleProps> = ({
     }
     return INITIAL_BAST_DOCS;
   });
+
+  const bastList = externalBastList !== undefined ? externalBastList : internalBastList;
+
+  const setBastList = (updater: BastDocument[] | ((prev: BastDocument[]) => BastDocument[])) => {
+    if (typeof updater === 'function') {
+      setInternalBastList((prev) => updater(prev));
+    } else {
+      setInternalBastList(updater);
+    }
+  };
+
+  const effectiveLogo = letterhead?.logoUrl || companyProfile?.logoUrl || '/logo-rcs.svg';
 
   const [activeTab, setActiveTab] = useState<'LIST' | 'FORM' | 'PREVIEW'>('LIST');
   const [filterType, setFilterType] = useState<'ALL' | 'BAST1' | 'BAST2'>('ALL');
@@ -305,8 +325,13 @@ export const BastSubmodule: React.FC<BastSubmoduleProps> = ({
       updatedList = [docToSave, ...bastList];
     }
 
+    setBastList(updatedList);
     saveBastListToStorage(updatedList);
     setSelectedBast(docToSave);
+
+    if (onSaveBast) {
+      onSaveBast(docToSave);
+    }
 
     // Sync to Official Letter Archive if callback provided
     if (onSaveOfficialLetter) {
@@ -371,7 +396,11 @@ export const BastSubmodule: React.FC<BastSubmoduleProps> = ({
   const handleDeleteBast = (id: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus dokumen BAST ini?')) {
       const updated = bastList.filter((b) => b.id !== id);
+      setBastList(updated);
       saveBastListToStorage(updated);
+      if (onDeleteBast) {
+        onDeleteBast(id);
+      }
       if (selectedBast?.id === id) {
         setSelectedBast(updated[0] || null);
       }
@@ -1113,8 +1142,22 @@ export const BastSubmodule: React.FC<BastSubmoduleProps> = ({
             {/* Kop Surat */}
             <div className="flex items-center justify-between border-b-2 border-slate-900 pb-4">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-slate-900 text-white font-black text-xl flex items-center justify-center shrink-0">
-                  RCS
+                <div className="w-14 h-14 rounded-xl border border-slate-200 p-1 bg-white flex items-center justify-center shrink-0 shadow-xs">
+                  {effectiveLogo ? (
+                    <img
+                      src={effectiveLogo}
+                      alt="Logo Perusahaan"
+                      className="w-full h-full object-contain"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/logo-rcs.svg';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full rounded-lg bg-slate-900 text-white font-black text-xl flex items-center justify-center">
+                      {companyProfile.shortName?.slice(0, 3)?.toUpperCase() || 'RCS'}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <h1 className="text-lg font-black uppercase tracking-wider text-slate-900">

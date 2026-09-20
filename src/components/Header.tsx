@@ -22,6 +22,7 @@ import {
   User as UserIcon,
   ShieldAlert,
   HardDrive,
+  RefreshCw,
 } from 'lucide-react';
 import { UserRole, AppNotification, ModuleType, SystemUser } from '../types';
 import { formatRupiah } from '../utils/formatters';
@@ -49,6 +50,8 @@ interface HeaderProps {
   onLogout?: () => void;
   onOpenAuditLogs?: () => void;
   onOpenCloudStorage?: () => void;
+  onRefreshCloudSync?: () => void;
+  isCloudSyncing?: boolean;
 }
 
 const ROLES: UserRole[] = [
@@ -87,6 +90,8 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
   onOpenAuditLogs,
   onOpenCloudStorage,
+  onRefreshCloudSync,
+  isCloudSyncing = false,
 }) => {
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
@@ -144,15 +149,17 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="px-6 py-3 flex items-center justify-between gap-4">
         {/* Company Identity */}
         <div className="flex items-center gap-3">
-          {companyLogoUrl ? (
-            <div className="w-10 h-10 rounded-lg border border-slate-200 p-0.5 bg-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
-              <img src={companyLogoUrl} alt="Logo" className="max-w-full max-h-full object-contain" referrerPolicy="no-referrer" />
-            </div>
-          ) : (
-            <div className="bg-blue-600 text-white p-2 rounded-lg shadow-sm font-black flex items-center justify-center">
-              <Building2 className="w-5 h-5" />
-            </div>
-          )}
+          <div className="w-10 h-10 rounded-lg border border-slate-200 p-0.5 bg-white shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+            <img
+              src={companyLogoUrl || '/logo-rcs.svg'}
+              alt={companyName}
+              className="max-w-full max-h-full object-contain"
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/logo-rcs.svg';
+              }}
+            />
+          </div>
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-bold text-sm tracking-tight text-slate-900 uppercase">
@@ -214,6 +221,26 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <ShieldAlert className="w-4 h-4 text-indigo-600" />
               <span className="hidden xl:inline text-indigo-800">Audit Trail</span>
+            </button>
+          )}
+
+          {/* Cloud Sync Refresh Button */}
+          {onRefreshCloudSync && (
+            <button
+              type="button"
+              onClick={onRefreshCloudSync}
+              disabled={isCloudSyncing}
+              className={`p-2 rounded-lg transition border flex items-center gap-1.5 text-xs font-bold ${
+                isCloudSyncing
+                  ? 'bg-blue-50 text-blue-700 border-blue-200 cursor-wait'
+                  : 'text-slate-600 hover:text-blue-600 hover:bg-blue-50 border-transparent hover:border-blue-200'
+              }`}
+              title="Sinkronkan Data Cloud (Firestore Database) antar Perangkat"
+            >
+              <RefreshCw className={`w-4 h-4 text-blue-600 ${isCloudSyncing ? 'animate-spin' : ''}`} />
+              <span className="hidden xl:inline text-blue-800">
+                {isCloudSyncing ? 'Sinkronisasi...' : 'Sinkron Cloud'}
+              </span>
             </button>
           )}
 
