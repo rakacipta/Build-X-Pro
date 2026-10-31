@@ -40,6 +40,7 @@ import {
   SystemUser,
 } from '../../types';
 import { INITIAL_CUSTOM_FORMS, INITIAL_FORM_SUBMISSIONS } from '../../lib/formSeedData';
+import { formatRupiah } from '../../utils/formatters';
 import { FormFillModal } from './FormFillModal';
 import { FormBuilderModal } from './FormBuilderModal';
 import { FormSubmissionDetailModal } from './FormSubmissionDetailModal';
@@ -89,10 +90,10 @@ export const FormModule: React.FC<FormModuleProps> = ({
   const submissions = externalSubmissions || internalSubmissions;
   const setSubmissions = externalSetSubmissions || setInternalSubmissions;
 
-  // Active Tab: 'catalog' | 'submissions' | 'analytics'
+  // Active Tab: 'reimburse' | 'catalog' | 'submissions' | 'analytics'
   const [activeTab, setActiveTab] = useState<
-    'catalog' | 'submissions' | 'analytics'
-  >('catalog');
+    'reimburse' | 'catalog' | 'submissions' | 'analytics'
+  >('reimburse');
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -192,6 +193,27 @@ export const FormModule: React.FC<FormModuleProps> = ({
     });
     return counts;
   }, [forms, submissions]);
+
+  // Dedicated Reimburse Form & Submissions
+  const reimburseForm = useMemo(() => {
+    return (
+      forms.find(
+        (f) =>
+          f.id === 'frm-007' ||
+          f.category === 'Keuangan & Reimbursement' ||
+          f.title.toLowerCase().includes('reimb')
+      ) || INITIAL_CUSTOM_FORMS.find((f) => f.id === 'frm-007')
+    );
+  }, [forms]);
+
+  const reimburseSubmissions = useMemo(() => {
+    return submissions.filter(
+      (s) =>
+        s.formId === 'frm-007' ||
+        s.formCategory === 'Keuangan & Reimbursement' ||
+        s.formTitle.toLowerCase().includes('reimb')
+    );
+  }, [submissions]);
 
   // Handlers
   const handleSaveNewForm = (savedForm: CustomForm) => {
@@ -434,8 +456,21 @@ export const FormModule: React.FC<FormModuleProps> = ({
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-4">
         {/* Navigation Tabs */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl flex-wrap">
             <button
+              type="button"
+              onClick={() => setActiveTab('reimburse')}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
+                activeTab === 'reimburse'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-emerald-700 hover:text-emerald-950 hover:bg-emerald-50'
+              }`}
+            >
+              <Receipt className="w-4 h-4" /> Form Reimbush ({reimburseSubmissions.length})
+            </button>
+
+            <button
+              type="button"
               onClick={() => setActiveTab('catalog')}
               className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
                 activeTab === 'catalog'
@@ -443,7 +478,7 @@ export const FormModule: React.FC<FormModuleProps> = ({
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Layers className="w-4 h-4" /> Katalog & Isi Formulir ({forms.length})
+              <Layers className="w-4 h-4" /> Katalog Master Formulir ({forms.length})
             </button>
 
             <button
@@ -541,6 +576,301 @@ export const FormModule: React.FC<FormModuleProps> = ({
           )}
         </div>
       </div>
+
+      {/* TAB 0: FORM REIMBUSH (KLAIM BIAYA OPERASIONAL) */}
+      {activeTab === 'reimburse' && (
+        <div className="space-y-6">
+          {/* Banner Hero Reimbush */}
+          <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 text-white p-6 sm:p-7 rounded-2xl border border-emerald-700/40 shadow-lg relative overflow-hidden">
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="space-y-2 max-w-2xl">
+                <div className="flex items-center gap-2 text-xs font-bold text-emerald-300 uppercase tracking-wider flex-wrap">
+                  <span className="bg-emerald-500/20 px-2.5 py-0.5 rounded-full border border-emerald-400/30 flex items-center gap-1.5">
+                    <Receipt className="w-3.5 h-3.5 text-emerald-400" />
+                    Formulir Resmi: FRM-FIN-007
+                  </span>
+                  <span>• Departemen Finance & Operasional Proyek</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  Formulir Klaim Reimbursement (Reimbush Biaya)
+                </h2>
+                <p className="text-xs sm:text-sm text-emerald-100/90 leading-relaxed">
+                  Pengajuan klaim penggantian dana pribadi karyawan atas pengeluaran dinas operasional proyek,
+                  pembelian material/alat kerja darurat, BBM, tol & parkir, tiket perjalanan, hotel/akomodasi,
+                  dan konsumsi lembur dengan tanda tangan digital serta bukti foto struk/nota asli terlampir.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+                {reimburseForm && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setBlankFormToPrint(reimburseForm)}
+                      className="px-4 py-3 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl border border-white/20 transition flex items-center justify-center gap-2"
+                      title="Cetak formulir blanko kosong untuk diisi fisik di lapangan"
+                    >
+                      <Printer className="w-4 h-4 text-emerald-300" /> Cetak Blanko (PDF)
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveFillForm(reimburseForm)}
+                      className="px-5 py-3 bg-emerald-400 hover:bg-emerald-300 text-slate-950 text-xs font-black rounded-xl shadow-lg shadow-emerald-950/40 transition flex items-center justify-center gap-2"
+                    >
+                      <PenTool className="w-4 h-4 text-slate-950" /> Isi Form Reimbush Sekarang
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Reimbush Metrics */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                <Receipt className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  Total Pengajuan
+                </p>
+                <p className="text-lg font-black text-slate-900">{reimburseSubmissions.length}</p>
+              </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  Total Dicairkan (Approved)
+                </p>
+                <p className="text-sm font-black text-emerald-600">
+                  {formatRupiah(
+                    reimburseSubmissions
+                      .filter((s) => s.status === 'Approved')
+                      .reduce((sum, s) => sum + (Number(s.values?.total_klaim) || 0), 0)
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  Menunggu Review
+                </p>
+                <p className="text-lg font-black text-amber-600">
+                  {reimburseSubmissions.filter((s) => s.status === 'Submitted' || s.status === 'In Review').length}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                <Layers className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  Nominal Pending
+                </p>
+                <p className="text-sm font-black text-indigo-600">
+                  {formatRupiah(
+                    reimburseSubmissions
+                      .filter((s) => s.status === 'Submitted' || s.status === 'In Review')
+                      .reduce((sum, s) => sum + (Number(s.values?.total_klaim) || 0), 0)
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Step Guide */}
+          <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs text-slate-600">
+            <div className="flex items-center gap-2 font-bold text-slate-800 shrink-0">
+              <Sparkles className="w-4 h-4 text-emerald-600" />
+              <span>Alur Pengajuan Reimbush:</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1">
+              <div className="bg-white p-2.5 rounded-lg border border-slate-200 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-[10px] shrink-0">1</span>
+                <span>Foto bukti struk/nota fisik asli yang terbaca jelas</span>
+              </div>
+              <div className="bg-white p-2.5 rounded-lg border border-slate-200 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-[10px] shrink-0">2</span>
+                <span>Isi nominal, data bank, dan TTD digital pemohon</span>
+              </div>
+              <div className="bg-white p-2.5 rounded-lg border border-slate-200 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-[10px] shrink-0">3</span>
+                <span>Verifikasi tim Finance & pencairan dana transfer</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Submissions List Table */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">
+                  Riwayat & Status Pengajuan Klaim Reimbush
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Daftar seluruh klaim reimbursement biaya operasional yang masuk ke sistem
+                </p>
+              </div>
+              {reimburseForm && (
+                <button
+                  type="button"
+                  onClick={() => setActiveFillForm(reimburseForm)}
+                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+                >
+                  <Plus className="w-4 h-4" /> Ajukan Reimbush Baru
+                </button>
+              )}
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
+                  <tr>
+                    <th className="py-3 px-4">No. Pengajuan</th>
+                    <th className="py-3 px-4">Tanggal & Pemohon</th>
+                    <th className="py-3 px-4">Keperluan & Kategori</th>
+                    <th className="py-3 px-4">Proyek Terkait</th>
+                    <th className="py-3 px-4 text-right">Nominal Klaim</th>
+                    <th className="py-3 px-4 text-center">Bukti Struk</th>
+                    <th className="py-3 px-4 text-center">Status</th>
+                    <th className="py-3 px-4 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {reimburseSubmissions.map((sub) => {
+                    const receiptPhoto = sub.photos?.[0]?.dataUrl || sub.values?.foto_struk_reimburse;
+                    return (
+                      <tr key={sub.id} className="hover:bg-slate-50/80 transition">
+                        <td className="py-3.5 px-4 font-mono font-bold text-indigo-700 whitespace-nowrap">
+                          {sub.submissionNumber}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <p className="font-bold text-slate-900">{sub.submittedBy}</p>
+                          <p className="text-[11px] text-slate-500">{sub.submittedByRole}</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">{sub.submittedAt}</p>
+                        </td>
+                        <td className="py-3.5 px-4 max-w-xs">
+                          <p className="font-semibold text-slate-800 line-clamp-1">
+                            {sub.values?.judul_keperluan || sub.formTitle}
+                          </p>
+                          <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-medium inline-block mt-0.5">
+                            {sub.values?.kategori_reimburse || 'Operasional Lapangan'}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <p className="font-medium text-slate-800 line-clamp-1">
+                            {sub.projectName || 'Non-Proyek (Kantor/Umum)'}
+                          </p>
+                          {sub.location && (
+                            <p className="text-[10px] text-slate-400">{sub.location}</p>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-bold text-slate-900 font-mono text-sm whitespace-nowrap">
+                          {formatRupiah(Number(sub.values?.total_klaim) || 0)}
+                        </td>
+                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                          {receiptPhoto ? (
+                            <button
+                              type="button"
+                              onClick={() => setViewingSubmission(sub)}
+                              className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 inline-block hover:ring-2 hover:ring-emerald-500 transition shadow-sm"
+                              title="Klik untuk melihat bukti foto struk"
+                            >
+                              <img
+                                src={receiptPhoto}
+                                alt="Struk"
+                                className="w-full h-full object-cover"
+                                referrerPolicy="no-referrer"
+                              />
+                            </button>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 italic">Tanpa Foto</span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                              sub.status === 'Approved'
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                : sub.status === 'Rejected'
+                                ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                                : sub.status === 'In Review'
+                                ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                                : 'bg-amber-100 text-amber-800 border border-amber-300'
+                            }`}
+                          >
+                            {sub.status}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setViewingSubmission(sub)}
+                              className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold transition flex items-center gap-1 border border-emerald-200"
+                              title="Buka Lembar Detail Formulir & Bukti Kwitansi"
+                            >
+                              <Eye className="w-3.5 h-3.5" /> Detail
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setViewingSubmission(sub)}
+                              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-bold transition flex items-center gap-1 border border-slate-200"
+                              title="Cetak Dokumen Resmi / Unduh PDF"
+                            >
+                              <Printer className="w-3.5 h-3.5 text-indigo-600" /> Cetak
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteSubmission(sub.id, sub.submissionNumber)}
+                              className="p-1 text-slate-400 hover:text-rose-600 rounded"
+                              title="Hapus Respon"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {reimburseSubmissions.length === 0 && (
+              <div className="p-12 text-center text-slate-500 space-y-3">
+                <Receipt className="w-10 h-10 text-slate-300 mx-auto" />
+                <h4 className="font-bold text-slate-800 text-sm">Belum Ada Pengajuan Reimbush</h4>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  Karyawan dan tim lapangan dapat mengajukan klaim pengeluaran pribadi menggunakan tombol di bawah ini.
+                </p>
+                {reimburseForm && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveFillForm(reimburseForm)}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition"
+                  >
+                    Ajukan Reimbush Pertama Sekarang
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* TAB 1: FORM TEMPLATES CATALOG */}
       {activeTab === 'catalog' && (

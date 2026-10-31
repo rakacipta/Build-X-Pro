@@ -99,7 +99,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       items: [
         { id: 'reports', label: 'Laporan Executive', icon: BarChart3 },
         { id: 'official_letters', label: 'Surat & Dokumen Resmi', icon: FileText },
-        { id: 'forms', label: 'Formulir & Form Builder', icon: ClipboardList },
+        { id: 'forms', label: 'Formulir & Reimbush', icon: ClipboardList },
       ],
     },
     {

@@ -193,6 +193,20 @@ export function subscribeToCollection<T extends { id: string }>(
         snapshot.forEach((docSnap) => {
           items.push({ id: docSnap.id, ...docSnap.data() } as T);
         });
+
+        // Ensure newly introduced system templates/seeds (e.g. frm-007 reimbush in custom_forms or sub-005 in form_submissions)
+        // are not stripped away if older cloud snapshot doesn't have them yet:
+        if (collectionName === 'custom_forms' || collectionName === 'form_submissions') {
+          const itemIds = new Set(items.map((i) => i.id));
+          const missingSeeds = (initialSeed || []).filter((s) => !itemIds.has(s.id));
+          if (missingSeeds.length > 0) {
+            missingSeeds.forEach((mItem) => {
+              setDoc(doc(db, collectionName, mItem.id), mItem, { merge: true }).catch(console.warn);
+              items.push(mItem);
+            });
+          }
+        }
+
         setStoredData(collectionName, items);
         onUpdate(items);
       } else {
