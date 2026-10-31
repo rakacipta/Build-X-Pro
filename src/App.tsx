@@ -231,12 +231,28 @@ export default function App() {
   const [documentLocks, setDocumentLocks] = useState<ActiveDocumentLock[]>(() =>
     getStoredData('document_locks', INITIAL_DOCUMENT_LOCKS)
   );
-  const [customForms, setCustomForms] = useState<CustomForm[]>(() =>
-    getStoredData('custom_forms', INITIAL_CUSTOM_FORMS)
-  );
-  const [formSubmissions, setFormSubmissions] = useState<FormSubmission[]>(() =>
-    getStoredData('form_submissions', INITIAL_FORM_SUBMISSIONS)
-  );
+  const [customForms, setCustomForms] = useState<CustomForm[]>(() => {
+    const stored = getStoredData('custom_forms', INITIAL_CUSTOM_FORMS);
+    const existingIds = new Set((stored || []).map((f: CustomForm) => f.id));
+    const missingDefaults = INITIAL_CUSTOM_FORMS.filter((f) => !existingIds.has(f.id));
+    if (missingDefaults.length > 0) {
+      const merged = [...stored, ...missingDefaults];
+      setStoredData('custom_forms', merged);
+      return merged;
+    }
+    return stored;
+  });
+  const [formSubmissions, setFormSubmissions] = useState<FormSubmission[]>(() => {
+    const stored = getStoredData('form_submissions', INITIAL_FORM_SUBMISSIONS);
+    const existingIds = new Set((stored || []).map((s: FormSubmission) => s.id));
+    const missingDefaults = INITIAL_FORM_SUBMISSIONS.filter((s) => !existingIds.has(s.id));
+    if (missingDefaults.length > 0) {
+      const merged = [...stored, ...missingDefaults];
+      setStoredData('form_submissions', merged);
+      return merged;
+    }
+    return stored;
+  });
   const [officialLetters, setOfficialLetters] = useState<OfficialLetter[]>(() =>
     getStoredData('official_letters', INITIAL_OFFICIAL_LETTERS)
   );

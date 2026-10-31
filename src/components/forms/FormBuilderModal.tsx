@@ -404,6 +404,7 @@ export const FormBuilderModal: React.FC<FormBuilderModalProps> = ({
                   <option value="Alat Berat & Fleet">Alat Berat & Fleet</option>
                   <option value="HRD & Personalia">HRD & Personalia</option>
                   <option value="Keuangan & Kas Bon">Keuangan & Kas Bon</option>
+                  <option value="Keuangan & Reimbursement">Keuangan & Reimbursement (Klaim Reimbush)</option>
                   <option value="Umum & Administrasi">Umum & Administrasi</option>
                 </select>
               </div>

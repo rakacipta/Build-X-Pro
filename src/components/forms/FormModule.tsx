@@ -27,6 +27,8 @@ import {
   FileText,
   User,
   Printer,
+  Receipt,
+  Wallet,
 } from 'lucide-react';
 import {
   CustomForm,
@@ -124,6 +126,7 @@ export const FormModule: React.FC<FormModuleProps> = ({
     'Logistik & Material',
     'Alat Berat & Fleet',
     'Keuangan & Kas Bon',
+    'Keuangan & Reimbursement',
     'HRD & Personalia',
     'Umum & Administrasi',
   ];
@@ -330,14 +333,37 @@ export const FormModule: React.FC<FormModuleProps> = ({
             Formulir Lapangan & Audit Proyek
           </h1>
           <p className="text-xs text-slate-500 mt-1 max-w-2xl">
-            Buat berbagai macam formulir kustom (K3, Mutu/QC, Laporan Harian,
-            Logistik, Kas Bon, Alat Berat) dengan tanda tangan digital, foto
-            bukti, dan alur persetujuan terintegrasi.
+            Buat dan kelola formulir kustom perusahaan (K3, Mutu/QC, Laporan Harian,
+            Reimbursement / Reimbush Biaya, Kas Bon, Logistik, Alat Berat) dengan tanda tangan digital, foto
+            bukti struk nota, dan alur persetujuan terintegrasi.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
           <button
+            type="button"
+            onClick={() => {
+              const reimbForm = forms.find(
+                (f) =>
+                  f.id === 'frm-007' ||
+                  f.category === 'Keuangan & Reimbursement' ||
+                  f.title.toLowerCase().includes('reimb')
+              );
+              if (reimbForm) {
+                setActiveFillForm(reimbForm);
+              } else {
+                setActiveTab('catalog');
+                setSelectedCategory('Keuangan & Reimbursement');
+              }
+            }}
+            className="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-2"
+            title="Buka & Isi Formulir Pengajuan Reimbursement (Klaim Reimbush Biaya Operasional)"
+          >
+            <Receipt className="w-4 h-4" /> Form Reimbush
+          </button>
+
+          <button
+            type="button"
             onClick={() => {
               setEditingForm(null);
               setIsBuilderOpen(true);
@@ -533,30 +559,65 @@ export const FormModule: React.FC<FormModuleProps> = ({
                 (s) => s.formId === form.id
               ).length;
 
+              const isReimburse =
+                form.id === 'frm-007' ||
+                form.category === 'Keuangan & Reimbursement' ||
+                form.title.toLowerCase().includes('reimb');
+
               return (
                 <div
                   key={form.id}
-                  className="bg-white rounded-2xl border border-slate-200 hover:border-indigo-300 hover:shadow-md transition p-5 flex flex-col justify-between group"
+                  className={`bg-white rounded-2xl border transition p-5 flex flex-col justify-between group ${
+                    isReimburse
+                      ? 'border-emerald-300 ring-1 ring-emerald-400/20 hover:border-emerald-400 hover:shadow-lg'
+                      : 'border-slate-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
                 >
                   <div className="space-y-3">
                     {/* Top Badges */}
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
-                        {form.code}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          {form.code}
+                        </span>
+                        {isReimburse && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                            <Receipt className="w-3 h-3 text-emerald-700" /> Klaim Reimbush
+                          </span>
+                        )}
+                      </div>
                       <span className="text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
                         v{form.version}.0
                       </span>
                     </div>
 
-                    {/* Title & Category */}
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                        {form.category}
-                      </span>
-                      <h3 className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition leading-snug mt-0.5">
-                        {form.title}
-                      </h3>
+                    {/* Title & Category with Icon */}
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                          isReimburse
+                            ? 'bg-emerald-100/80 text-emerald-700 border border-emerald-200'
+                            : form.category === 'Keuangan & Kas Bon'
+                            ? 'bg-amber-100/80 text-amber-700 border border-amber-200'
+                            : 'bg-slate-100 text-slate-600 border border-slate-200'
+                        }`}
+                      >
+                        {isReimburse ? (
+                          <Receipt className="w-5 h-5 text-emerald-600" />
+                        ) : form.category === 'Keuangan & Kas Bon' ? (
+                          <Wallet className="w-5 h-5 text-amber-600" />
+                        ) : (
+                          <FileText className="w-5 h-5" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                          {form.category}
+                        </span>
+                        <h3 className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition leading-snug mt-0.5">
+                          {form.title}
+                        </h3>
+                      </div>
                     </div>
 
                     {/* Description */}

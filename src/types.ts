@@ -752,6 +752,7 @@ export type FormCategory =
   | 'Alat Berat & Fleet'
   | 'HRD & Personalia'
   | 'Keuangan & Kas Bon'
+  | 'Keuangan & Reimbursement'
   | 'Umum & Administrasi';
 
 export type FormFieldType =
