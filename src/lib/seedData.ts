@@ -1427,6 +1427,7 @@ export {
   INITIAL_LETTER_TEMPLATES,
   INITIAL_BAST_DOCS,
 } from './letterSeedData';
+export { INITIAL_FIXED_ASSETS } from './fixedAssetSeedData';
 
 
 

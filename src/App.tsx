@@ -21,6 +21,7 @@ import { ReportsModule } from './components/reports/ReportsModule';
 import { SettingsModule } from './components/settings/SettingsModule';
 import { OfficialLettersModule } from './components/letters/OfficialLettersModule';
 import { FormModule } from './components/forms/FormModule';
+import { FixedAssetsModule } from './components/assets/FixedAssetsModule';
 import { LoginPage } from './components/auth/LoginPage';
 import { DeepAuditLogModal } from './components/common/DeepAuditLogModal';
 import { CloudStorageManagerModal } from './components/common/CloudStorageManagerModal';
@@ -61,6 +62,7 @@ import {
   FormSubmission,
   OfficialLetter,
   LetterTemplate,
+  FixedAsset,
 } from './types';
 import { BastDocument } from './components/letters/BastSubmodule';
 import {
@@ -105,6 +107,7 @@ import {
   INITIAL_OFFICIAL_LETTERS,
   INITIAL_LETTER_TEMPLATES,
   INITIAL_BAST_DOCS,
+  INITIAL_FIXED_ASSETS,
 } from './lib/seedData';
 import { formatRupiah } from './utils/formatters';
 
@@ -262,6 +265,17 @@ export default function App() {
   const [letterTemplates, setLetterTemplates] = useState<LetterTemplate[]>(() =>
     getStoredData('letter_templates', INITIAL_LETTER_TEMPLATES)
   );
+  const [fixedAssets, setFixedAssets] = useState<FixedAsset[]>(() => {
+    const stored = getStoredData('fixed_assets', INITIAL_FIXED_ASSETS);
+    const existingIds = new Set((stored || []).map((a: FixedAsset) => a.id));
+    const missingDefaults = INITIAL_FIXED_ASSETS.filter((a) => !existingIds.has(a.id));
+    if (missingDefaults.length > 0) {
+      const merged = [...stored, ...missingDefaults];
+      setStoredData('fixed_assets', merged);
+      return merged;
+    }
+    return stored;
+  });
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
@@ -285,6 +299,10 @@ export default function App() {
   useEffect(() => {
     setStoredData('letter_templates', letterTemplates);
   }, [letterTemplates]);
+
+  useEffect(() => {
+    setStoredData('fixed_assets', fixedAssets);
+  }, [fixedAssets]);
 
   // Initialize Firestore Subscriptions
   useEffect(() => {
@@ -325,6 +343,7 @@ export default function App() {
     const unsubOfficialLetters = subscribeToCollection('official_letters', INITIAL_OFFICIAL_LETTERS, setOfficialLetters);
     const unsubBast = subscribeToCollection('bast_documents', INITIAL_BAST_DOCS, setBastDocuments);
     const unsubTemplates = subscribeToCollection('letter_templates', INITIAL_LETTER_TEMPLATES, setLetterTemplates);
+    const unsubFixedAssets = subscribeToCollection('fixed_assets', INITIAL_FIXED_ASSETS, setFixedAssets);
     const unsubSettings = subscribeToCollection('settings_single', [], (items: any[]) => {
       items.forEach((item) => {
         if (item.id === 'company_profile') {
@@ -375,6 +394,7 @@ export default function App() {
       unsubOfficialLetters();
       unsubBast();
       unsubTemplates();
+      unsubFixedAssets();
       unsubSettings();
     };
   }, []);
@@ -1006,6 +1026,16 @@ export default function App() {
     setLetterTemplates(updated);
   };
 
+  // Fixed Assets Handlers
+  const handleSaveFixedAsset = async (asset: FixedAsset) => {
+    const updated = await saveDocument('fixed_assets', asset);
+    setFixedAssets(updated);
+  };
+  const handleDeleteFixedAsset = async (id: string) => {
+    const updated = await deleteDocument<FixedAsset>('fixed_assets', id);
+    setFixedAssets(updated);
+  };
+
   // Comprehensive Cloud Sync Across Devices
   const handleRefreshAllFromCloud = async () => {
     setIsCloudSyncing(true);
@@ -1042,6 +1072,7 @@ export default function App() {
         'official_letters',
         'bast_documents',
         'letter_templates',
+        'fixed_assets',
       ]);
 
       if (refreshed['projects']) setProjects(refreshed['projects']);
@@ -1075,6 +1106,7 @@ export default function App() {
       if (refreshed['official_letters']) setOfficialLetters(refreshed['official_letters']);
       if (refreshed['bast_documents']) setBastDocuments(refreshed['bast_documents']);
       if (refreshed['letter_templates']) setLetterTemplates(refreshed['letter_templates']);
+      if (refreshed['fixed_assets']) setFixedAssets(refreshed['fixed_assets']);
 
       setToastMessage({
         title: 'Sinkronisasi Cloud Selesai',
@@ -1366,6 +1398,17 @@ export default function App() {
               projects={projects}
               onSaveJournal={handleSaveJournal}
               onSaveCoa={handleSaveCoa}
+            />
+          )}
+
+          {activeModule === 'fixed_assets' && (
+            <FixedAssetsModule
+              assets={fixedAssets}
+              projects={projects}
+              companyProfile={companyProfile}
+              letterhead={letterhead}
+              onSaveAsset={handleSaveFixedAsset}
+              onDeleteAsset={handleDeleteFixedAsset}
             />
           )}
 

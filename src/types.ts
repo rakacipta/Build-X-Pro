@@ -34,6 +34,7 @@ export type ModuleType =
   | 'purchasing'
   | 'sales'
   | 'equipment'
+  | 'fixed_assets'
   | 'hr_payroll'
   | 'finance'
   | 'invoicing'
@@ -841,5 +842,92 @@ export interface FormSubmission {
   reviewedAt?: string;
 }
 
+// --- FIXED ASSETS (AKTIVA TETAP PERUSAHAAN) ---
+export type FixedAssetCategory =
+  | 'Peralatan Kantor & IT'
+  | 'Peralatan Proyek & Lapangan'
+  | 'Kendaraan & Transportasi'
+  | 'Fasilitas & Bangunan Site'
+  | 'Mesin & Workshop'
+  | 'Lainnya';
 
+export type FixedAssetStatus =
+  | 'Aktif Digunakan'
+  | 'Tersedia di Gudang'
+  | 'Dalam Perbaikan'
+  | 'Dipinjam / Mutasi Proyek'
+  | 'Rusak / Afkir';
 
+export type FixedAssetCondition =
+  | 'Sangat Baik'
+  | 'Baik / Normal'
+  | 'Perlu Servis Minor'
+  | 'Rusak Ringan'
+  | 'Rusak Berat';
+
+export type DepreciationMethod =
+  | 'Garis Lurus (Straight Line)'
+  | 'Saldo Menurun (Declining Balance)'
+  | 'Tanpa Penyusutan (Non-Depreciable)';
+
+export interface AssetMaintenanceLog {
+  id: string;
+  assetId: string;
+  date: string;
+  type: 'Servis Rutin' | 'Perbaikan Kerusakan' | 'Kalibrasi Uji' | 'Penggantian Suku Cadang';
+  description: string;
+  cost: number;
+  performedBy: string;
+  nextDueDate?: string;
+  notes?: string;
+}
+
+export interface AssetTransferLog {
+  id: string;
+  assetId: string;
+  transferDate: string;
+  fromLocation: string;
+  toLocation: string;
+  toProjectId?: string;
+  toProjectName?: string;
+  handoverBy: string;
+  receivedBy: string;
+  bastDocNo?: string;
+  notes?: string;
+}
+
+export interface FixedAsset {
+  id: string;
+  assetCode: string;
+  name: string;
+  category: FixedAssetCategory;
+  brand: string;
+  modelNumber?: string;
+  serialNumber?: string;
+  locationType: 'Kantor Pusat' | 'Proyek' | 'Gudang Utama' | 'Workshop Fabrikasi';
+  projectId?: string;
+  projectName?: string;
+  specificLocation?: string;
+  personInCharge: string;
+  picRole?: string;
+  purchaseDate: string;
+  purchasePrice: number;
+  usefulLifeYears: number;
+  salvageValue: number;
+  depreciationMethod: DepreciationMethod;
+  accumulatedDepreciation?: number;
+  currentBookValue?: number;
+  coaAccount?: string;
+  status: FixedAssetStatus;
+  condition: FixedAssetCondition;
+  lastMaintenanceDate?: string;
+  nextCalibrationDate?: string;
+  warrantyExpiry?: string;
+  photoUrl?: string;
+  qrCodeValue?: string;
+  notes?: string;
+  maintenanceHistory?: AssetMaintenanceLog[];
+  transferHistory?: AssetTransferLog[];
+  createdAt: string;
+  updatedAt: string;
+}

@@ -37,6 +37,7 @@ import {
   INITIAL_OFFICIAL_LETTERS,
   INITIAL_LETTER_TEMPLATES,
   INITIAL_BAST_DOCS,
+  INITIAL_FIXED_ASSETS,
 } from '../lib/seedData';
 import { DeepAuditLog, ActiveDocumentLock } from '../types';
 
@@ -96,6 +97,7 @@ export const SEED_MAP: Record<string, any[]> = {
   official_letters: INITIAL_OFFICIAL_LETTERS,
   letter_templates: INITIAL_LETTER_TEMPLATES,
   bast_documents: INITIAL_BAST_DOCS,
+  fixed_assets: INITIAL_FIXED_ASSETS,
 };
 
 // Cached flag for cloud database initialization
@@ -196,7 +198,11 @@ export function subscribeToCollection<T extends { id: string }>(
 
         // Ensure newly introduced system templates/seeds (e.g. frm-007 reimbush in custom_forms or sub-005 in form_submissions)
         // are not stripped away if older cloud snapshot doesn't have them yet:
-        if (collectionName === 'custom_forms' || collectionName === 'form_submissions') {
+        if (
+          collectionName === 'custom_forms' ||
+          collectionName === 'form_submissions' ||
+          collectionName === 'fixed_assets'
+        ) {
           const itemIds = new Set(items.map((i) => i.id));
           const missingSeeds = (initialSeed || []).filter((s) => !itemIds.has(s.id));
           if (missingSeeds.length > 0) {

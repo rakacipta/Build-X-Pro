@@ -21,6 +21,7 @@ import {
   FileText,
   Receipt,
   ClipboardList,
+  MonitorCheck,
 } from 'lucide-react';
 import { ModuleType, SystemUser } from '../types';
 import { isModuleAllowed } from '../utils/permission';
@@ -92,6 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'invoicing', label: 'Invoicing & Tagihan', icon: Receipt },
         { id: 'bank_accounts', label: 'Akun Bank Perusahaan', icon: Landmark },
         { id: 'accounting', label: 'Accounting & COA', icon: BookOpenCheck },
+        { id: 'fixed_assets', label: 'Fixed Assets', icon: MonitorCheck },
       ],
     },
     {
