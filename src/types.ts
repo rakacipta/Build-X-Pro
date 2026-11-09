@@ -324,11 +324,12 @@ export interface Quotation {
   status: 'Draft' | 'Sent' | 'Accepted' | 'Declined' | 'Expired';
   items: QuotationItem[];
   taxPercent: number;
+  taxAmount?: number;
   subtotal: number;
-  taxAmount: number;
   pphPercent?: number; // % PPh (default 2% PPh 23 / Jasa Konstruksi)
-  pphAmount?: number; // Nilai potongan PPh (Rp)
-  isPphDeducted?: boolean; // Apakah PPh memotong Grand Total (default: true)
+  pphAmount?: number; // Nilai PPh (Rp)
+  isPphAdded?: boolean; // Apakah PPh ditambahkan ke Grand Total (default: true)
+  isPphDeducted?: boolean; // Legacy/opsional jika ingin dipotong
   grandTotal: number;
   notes: string;
   preparedBy?: string;
