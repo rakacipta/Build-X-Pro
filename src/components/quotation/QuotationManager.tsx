@@ -72,6 +72,12 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
   const pendingQuotationsCount = quotations.filter(
     (q) => q.status === 'Draft' || q.status === 'Sent'
   ).length;
+  const totalPphVal = quotations.reduce((acc, curr) => {
+    const pph = curr.pphAmount !== undefined
+      ? curr.pphAmount
+      : Math.round(((curr.subtotal || 0) * (curr.pphPercent ?? 2)) / 100);
+    return acc + pph;
+  }, 0);
 
   const handleOpenAddModal = () => {
     const year = new Date().getFullYear();
@@ -81,6 +87,14 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
 
     const defaultPrepared = signatories.find((s) => s.roleType === 'Disiapkan' && s.isDefault) || signatories.find((s) => s.roleType === 'Disiapkan');
     const defaultApproved = signatories.find((s) => s.roleType === 'Disetujui' && s.isDefault) || signatories.find((s) => s.roleType === 'Disetujui');
+
+    const initialSubtotal = 50000000;
+    const initialTaxPercent = 11;
+    const initialTaxAmount = Math.round((initialSubtotal * initialTaxPercent) / 100);
+    const initialPphPercent = 2; // PPh 2% Default
+    const initialPphAmount = Math.round((initialSubtotal * initialPphPercent) / 100);
+    const initialIsPphDeducted = true;
+    const initialGrandTotal = initialSubtotal + initialTaxAmount - initialPphAmount;
 
     setEditingQuotation({
       id: 'quo-' + Date.now(),
@@ -92,11 +106,14 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
       date: new Date().toISOString().split('T')[0],
       validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       status: 'Draft',
-      taxPercent: 11,
-      subtotal: 0,
-      taxAmount: 0,
-      grandTotal: 0,
-      notes: '1. Harga sudah termasuk PPN 11% & Jasa Pelaksanaan Pekerjaan.\n2. Jadwal Pembayaran Termijn: DP 20%, Progress 30%, 30%, 15%, Retensi 5%.\n3. Masa berlaku Surat Penawaran Harga ini adalah 30 hari kalender.',
+      taxPercent: initialTaxPercent,
+      subtotal: initialSubtotal,
+      taxAmount: initialTaxAmount,
+      pphPercent: initialPphPercent,
+      pphAmount: initialPphAmount,
+      isPphDeducted: initialIsPphDeducted,
+      grandTotal: initialGrandTotal,
+      notes: '1. Harga sudah termasuk PPN 11% & memperhitungkan potongan PPh 2% (Jasa Konstruksi / PPh 23).\n2. Pihak Klien wajib menerbitkan Bukti Pemotongan Pajak PPh (Bupot) resmi saat pencairan pembayaran.\n3. Jadwal Pembayaran Termijn: DP 20%, Progress 30%, 30%, 15%, Retensi 5%.\n4. Masa berlaku Surat Penawaran Harga ini adalah 30 hari kalender.',
       preparedBy: defaultPrepared?.name || 'Ir. Budi Santoso, MT',
       approvedBy: defaultApproved?.name || companyProfile.directorName || 'Ir. Hendra Wijaya, MM',
       signatoryTitle: defaultApproved?.title || companyProfile.directorTitle || 'Direktur Utama',
@@ -115,8 +132,33 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
   };
 
   const handleEdit = (q: Quotation) => {
-    setEditingQuotation({ ...q });
+    const pphPercent = q.pphPercent !== undefined ? q.pphPercent : 2;
+    const isPphDeducted = q.isPphDeducted !== undefined ? q.isPphDeducted : true;
+    const pphAmount = q.pphAmount !== undefined
+      ? q.pphAmount
+      : Math.round(((q.subtotal || 0) * pphPercent) / 100);
+    setEditingQuotation({
+      ...q,
+      pphPercent,
+      pphAmount,
+      isPphDeducted,
+    });
     setIsFormModalOpen(true);
+  };
+
+  const recalculateTotals = (
+    items: QuotationItem[],
+    taxPercent: number,
+    pphPercent: number,
+    isPphDeducted: boolean
+  ) => {
+    const subtotal = items.reduce((acc, item) => acc + (item.totalPrice || 0), 0);
+    const taxAmount = Math.round((subtotal * taxPercent) / 100);
+    const pphAmount = Math.round((subtotal * pphPercent) / 100);
+    const grandTotal = isPphDeducted
+      ? Math.max(0, subtotal + taxAmount - pphAmount)
+      : subtotal + taxAmount;
+    return { subtotal, taxAmount, pphAmount, grandTotal };
   };
 
   const handleAddItem = () => {
@@ -130,9 +172,17 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
       unitPrice: 0,
       totalPrice: 0,
     };
+    const newItems = [...items, newItem];
+    const totals = recalculateTotals(
+      newItems,
+      editingQuotation.taxPercent ?? 11,
+      editingQuotation.pphPercent ?? 2,
+      editingQuotation.isPphDeducted ?? true
+    );
     setEditingQuotation({
       ...editingQuotation,
-      items: [...items, newItem],
+      items: newItems,
+      ...totals,
     });
   };
 
@@ -149,49 +199,82 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
 
     newItems[index] = currentItem;
 
-    // Recalculate Subtotal, Tax, Grand Total
-    const subtotal = newItems.reduce((acc, item) => acc + (item.totalPrice || 0), 0);
-    const taxPercent = editingQuotation.taxPercent ?? 11;
-    const taxAmount = Math.round((subtotal * taxPercent) / 100);
-    const grandTotal = subtotal + taxAmount;
+    const totals = recalculateTotals(
+      newItems,
+      editingQuotation.taxPercent ?? 11,
+      editingQuotation.pphPercent ?? 2,
+      editingQuotation.isPphDeducted ?? true
+    );
 
     setEditingQuotation({
       ...editingQuotation,
       items: newItems,
-      subtotal,
-      taxAmount,
-      grandTotal,
+      ...totals,
     });
   };
 
   const handleRemoveItem = (index: number) => {
     if (!editingQuotation || !editingQuotation.items) return;
     const newItems = editingQuotation.items.filter((_, i) => i !== index);
-    const subtotal = newItems.reduce((acc, item) => acc + (item.totalPrice || 0), 0);
-    const taxPercent = editingQuotation.taxPercent ?? 11;
-    const taxAmount = Math.round((subtotal * taxPercent) / 100);
-    const grandTotal = subtotal + taxAmount;
+    const totals = recalculateTotals(
+      newItems,
+      editingQuotation.taxPercent ?? 11,
+      editingQuotation.pphPercent ?? 2,
+      editingQuotation.isPphDeducted ?? true
+    );
 
     setEditingQuotation({
       ...editingQuotation,
       items: newItems,
-      subtotal,
-      taxAmount,
-      grandTotal,
+      ...totals,
     });
   };
 
   const handleTaxChange = (taxPercent: number) => {
     if (!editingQuotation) return;
-    const subtotal = editingQuotation.subtotal || 0;
-    const taxAmount = Math.round((subtotal * taxPercent) / 100);
-    const grandTotal = subtotal + taxAmount;
+    const totals = recalculateTotals(
+      editingQuotation.items || [],
+      taxPercent,
+      editingQuotation.pphPercent ?? 2,
+      editingQuotation.isPphDeducted ?? true
+    );
 
     setEditingQuotation({
       ...editingQuotation,
       taxPercent,
-      taxAmount,
-      grandTotal,
+      ...totals,
+    });
+  };
+
+  const handlePphChange = (pphPercent: number) => {
+    if (!editingQuotation) return;
+    const totals = recalculateTotals(
+      editingQuotation.items || [],
+      editingQuotation.taxPercent ?? 11,
+      pphPercent,
+      editingQuotation.isPphDeducted ?? true
+    );
+
+    setEditingQuotation({
+      ...editingQuotation,
+      pphPercent,
+      ...totals,
+    });
+  };
+
+  const handleTogglePphDeducted = (isPphDeducted: boolean) => {
+    if (!editingQuotation) return;
+    const totals = recalculateTotals(
+      editingQuotation.items || [],
+      editingQuotation.taxPercent ?? 11,
+      editingQuotation.pphPercent ?? 2,
+      isPphDeducted
+    );
+
+    setEditingQuotation({
+      ...editingQuotation,
+      isPphDeducted,
+      ...totals,
     });
   };
 
@@ -207,7 +290,7 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
   return (
     <div className="space-y-6">
       {/* Metrics Banner */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
           <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
             <FileText className="w-6 h-6" />
@@ -224,7 +307,7 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
             <CheckCircle2 className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-medium text-slate-500">Penawaran Disetujui (Deal)</p>
+            <p className="text-xs font-medium text-slate-500">Penawaran Disetujui</p>
             <p className="text-lg font-bold text-emerald-700">{formatRupiah(acceptedQuotationsVal)}</p>
             <p className="text-[11px] text-emerald-600 mt-0.5">
               {quotations.filter((q) => q.status === 'Accepted').length} Project Disetujui Klien
@@ -233,13 +316,24 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-teal-50 text-teal-600 rounded-xl">
+            <ShieldCheck className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-slate-500">Potongan PPh (2%)</p>
+            <p className="text-lg font-bold text-teal-700">{formatRupiah(totalPphVal)}</p>
+            <p className="text-[11px] text-teal-600 mt-0.5">Withholding PPh 23 / Konstruksi</p>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
           <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
             <Clock className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-medium text-slate-500">Status Dalam Evaluasi</p>
+            <p className="text-xs font-medium text-slate-500">Dalam Evaluasi</p>
             <p className="text-lg font-bold text-slate-900">{pendingQuotationsCount} Dokumen</p>
-            <p className="text-[11px] text-blue-600 mt-0.5">Draft & Menunggu Tanggapan Klien</p>
+            <p className="text-[11px] text-blue-600 mt-0.5">Draft & Menunggu Tanggapan</p>
           </div>
         </div>
       </div>
@@ -352,8 +446,18 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
                       </td>
                       <td className="p-3 text-right">
                         <div className="font-extrabold text-slate-900 text-sm">{formatRupiah(q.grandTotal)}</div>
-                        <div className="text-[10px] text-slate-400">
-                          (Subtotal: {formatRupiah(q.subtotal)} + PPN {q.taxPercent}%)
+                        <div className="text-[10px] text-slate-500 font-medium">
+                          <span>Subtotal: {formatRupiah(q.subtotal)}</span>
+                          <span className="text-slate-400"> | </span>
+                          <span className="text-blue-700">PPN {q.taxPercent}%</span>
+                          {q.pphPercent !== undefined && q.pphPercent > 0 && (
+                            <>
+                              <span className="text-slate-400"> | </span>
+                              <span className="text-emerald-700 font-bold">
+                                PPh {q.pphPercent}% (-{formatRupiah(q.pphAmount || Math.round(((q.subtotal || 0) * q.pphPercent) / 100))})
+                              </span>
+                            </>
+                          )}
                         </div>
                       </td>
                       <td className="p-3 text-center">
@@ -725,13 +829,14 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
                       </span>
                     </div>
 
+                    {/* PPN Selector */}
                     <div className="flex items-center justify-between text-slate-600 gap-2">
                       <span className="flex items-center gap-1">
                         <span>PPN:</span>
                         <select
                           value={editingQuotation.taxPercent ?? 11}
                           onChange={(e) => handleTaxChange(Number(e.target.value))}
-                          className="px-1 py-0.5 border border-slate-300 bg-white rounded font-bold text-xs"
+                          className="px-1.5 py-0.5 border border-slate-300 bg-white rounded font-bold text-xs"
                         >
                           <option value={11}>11%</option>
                           <option value={12}>12%</option>
@@ -739,14 +844,61 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
                         </select>
                       </span>
                       <span className="font-bold text-slate-900">
-                        {formatRupiah(editingQuotation.taxAmount || 0)}
+                        +{formatRupiah(editingQuotation.taxAmount || 0)}
                       </span>
                     </div>
 
+                    {/* PPh 2% Selector */}
+                    <div className="pt-1 border-t border-slate-200/80">
+                      <div className="flex items-center justify-between text-slate-700 gap-2">
+                        <span className="flex items-center gap-1 font-semibold text-emerald-800">
+                          <span>PPh:</span>
+                          <select
+                            value={editingQuotation.pphPercent ?? 2}
+                            onChange={(e) => handlePphChange(Number(e.target.value))}
+                            className="px-1.5 py-0.5 border border-emerald-300 bg-emerald-50 text-emerald-900 rounded font-bold text-xs"
+                          >
+                            <option value={2}>2% (PPh 23 / Konstruksi)</option>
+                            <option value={1.75}>1.75% (Konstruksi Kecil)</option>
+                            <option value={2.65}>2.65% (Konstruksi Menengah)</option>
+                            <option value={4}>4% (Non-Kualifikasi)</option>
+                            <option value={0}>0% (Tanpa PPh)</option>
+                          </select>
+                        </span>
+                        <span className="font-bold text-emerald-700 font-mono">
+                          {(editingQuotation.isPphDeducted ?? true) && (editingQuotation.pphAmount || 0) > 0 ? '-' : ''}
+                          {formatRupiah(editingQuotation.pphAmount || 0)}
+                        </span>
+                      </div>
+                      <div className="mt-1 flex items-center justify-end">
+                        <label className="flex items-center gap-1.5 text-[11px] text-slate-500 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={editingQuotation.isPphDeducted ?? true}
+                            onChange={(e) => handleTogglePphDeducted(e.target.checked)}
+                            className="rounded text-amber-600 focus:ring-amber-500 w-3.5 h-3.5"
+                          />
+                          <span>Potong PPh dari Grand Total (Nilai Bersih)</span>
+                        </label>
+                      </div>
+                    </div>
+
                     <div className="flex justify-between text-sm font-extrabold text-amber-800 pt-2 border-t border-amber-300">
-                      <span>GRAND TOTAL SPH:</span>
+                      <span>
+                        GRAND TOTAL SPH
+                        {(editingQuotation.isPphDeducted ?? true) && (editingQuotation.pphAmount || 0) > 0 ? ' (NETTO):' : ':'}
+                      </span>
                       <span className="text-base">{formatRupiah(editingQuotation.grandTotal || 0)}</span>
                     </div>
+
+                    {!(editingQuotation.isPphDeducted ?? true) && (editingQuotation.pphAmount || 0) > 0 && (
+                      <div className="flex justify-between text-xs font-bold text-emerald-700 bg-emerald-50/80 p-1.5 rounded-lg border border-emerald-200">
+                        <span>Estimasi Diterima Bersih:</span>
+                        <span className="font-mono">
+                          {formatRupiah(Math.max(0, (editingQuotation.grandTotal || 0) - (editingQuotation.pphAmount || 0)))}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -927,7 +1079,7 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
                       </tbody>
                       <tfoot className="bg-slate-50 border-t border-slate-300 font-bold">
                         <tr>
-                          <td colSpan={5} className="p-2.5 text-right uppercase text-slate-700">Subtotal Pekerjaan:</td>
+                          <td colSpan={5} className="p-2.5 text-right uppercase text-slate-700">Subtotal Pekerjaan (DPP):</td>
                           <td className="p-2.5 text-right font-extrabold text-slate-900 font-mono">
                             {formatRupiah(selectedQuotationForPrint.subtotal)}
                           </td>
@@ -937,17 +1089,55 @@ export const QuotationManager: React.FC<QuotationManagerProps> = ({
                             PPN ({selectedQuotationForPrint.taxPercent}%):
                           </td>
                           <td className="p-2.5 text-right font-extrabold text-slate-900 font-mono">
-                            {formatRupiah(selectedQuotationForPrint.taxAmount)}
+                            +{formatRupiah(selectedQuotationForPrint.taxAmount)}
                           </td>
                         </tr>
+                        {/* PPh 2% Row */}
+                        {(selectedQuotationForPrint.pphPercent ?? 2) > 0 && (
+                          <tr className="text-emerald-800">
+                            <td colSpan={5} className="p-2.5 text-right uppercase">
+                              Potongan PPh ({selectedQuotationForPrint.pphPercent ?? 2}%) - Jasa Konstruksi / PPh 23:
+                            </td>
+                            <td className="p-2.5 text-right font-extrabold text-emerald-800 font-mono">
+                              {(selectedQuotationForPrint.isPphDeducted ?? true) ? '-' : ''}
+                              {formatRupiah(
+                                selectedQuotationForPrint.pphAmount !== undefined
+                                  ? selectedQuotationForPrint.pphAmount
+                                  : Math.round(((selectedQuotationForPrint.subtotal || 0) * (selectedQuotationForPrint.pphPercent ?? 2)) / 100)
+                              )}
+                            </td>
+                          </tr>
+                        )}
                         <tr className="bg-amber-100/80 text-amber-900 text-sm">
                           <td colSpan={5} className="p-3 text-right uppercase font-black">
-                            GRAND TOTAL PENAWARAN:
+                            GRAND TOTAL PENAWARAN
+                            {(selectedQuotationForPrint.isPphDeducted ?? true) && (selectedQuotationForPrint.pphPercent ?? 2) > 0 ? ' (NETTO):' : ':'}
                           </td>
                           <td className="p-3 text-right font-black font-mono text-amber-900">
                             {formatRupiah(selectedQuotationForPrint.grandTotal)}
                           </td>
                         </tr>
+                        {!(selectedQuotationForPrint.isPphDeducted ?? true) && (selectedQuotationForPrint.pphPercent ?? 2) > 0 && (
+                          <tr className="bg-emerald-50 text-emerald-900 text-xs">
+                            <td colSpan={5} className="p-2.5 text-right uppercase font-bold">
+                              Estimasi Diterima Bersih (Netto Pasca PPh {selectedQuotationForPrint.pphPercent ?? 2}%):
+                            </td>
+                            <td className="p-2.5 text-right font-black font-mono text-emerald-800">
+                              {formatRupiah(
+                                Math.max(
+                                  0,
+                                  (selectedQuotationForPrint.grandTotal || 0) -
+                                    (selectedQuotationForPrint.pphAmount ||
+                                      Math.round(
+                                        ((selectedQuotationForPrint.subtotal || 0) *
+                                          (selectedQuotationForPrint.pphPercent ?? 2)) /
+                                          100
+                                      ))
+                                )
+                              )}
+                            </td>
+                          </tr>
+                        )}
                       </tfoot>
                     </table>
                   </div>

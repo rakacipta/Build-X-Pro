@@ -326,6 +326,9 @@ export interface Quotation {
   taxPercent: number;
   subtotal: number;
   taxAmount: number;
+  pphPercent?: number; // % PPh (default 2% PPh 23 / Jasa Konstruksi)
+  pphAmount?: number; // Nilai potongan PPh (Rp)
+  isPphDeducted?: boolean; // Apakah PPh memotong Grand Total (default: true)
   grandTotal: number;
   notes: string;
   preparedBy?: string;
