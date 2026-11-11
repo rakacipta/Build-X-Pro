@@ -193,6 +193,8 @@ export interface CompanyProfile {
   directorName: string;
   directorTitle: string;
   financeManager: string;
+  financeManagerTitle?: string;
+  financeManagerNik?: string;
   banks: CompanyBank[];
 }
 
@@ -571,6 +573,10 @@ export interface ProjectInvoice {
   paymentDate?: string;
   paymentRefNo?: string;
   financeTransactionId?: string;
+  signatoryName?: string; // Nama Finance Manager / Penanda Tangan
+  signatoryTitle?: string; // Jabatan (default: Finance Manager)
+  signatoryNik?: string; // NIK / NIP Penanda Tangan
+  signatureUrl?: string; // URL / Data URI Tanda Tangan Digital
   createdAt: string;
   updatedAt: string;
 }

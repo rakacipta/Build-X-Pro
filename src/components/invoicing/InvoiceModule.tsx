@@ -31,6 +31,9 @@ import {
   TrendingUp,
   BarChart3,
   Layers,
+  PenTool,
+  UserCheck,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   BarChart,
@@ -50,9 +53,13 @@ import {
   Project,
   CompanyProfile,
   LetterheadSettings,
+  DocumentSignatory,
 } from '../../types';
 import { formatRupiah, formatCompactNumber, formatDate, terbilangRupiah } from '../../utils/formatters';
 import { generatePdfFromElement, triggerPrintFallback } from '../../utils/pdfGenerator';
+import { SignaturePicker } from '../common/SignaturePicker';
+import { getStoredData } from '../../services/firestoreService';
+import { INITIAL_COMPANY_PROFILE, INITIAL_SIGNATORIES } from '../../lib/seedData';
 
 interface InvoiceModuleProps {
   invoices: ProjectInvoice[];
@@ -81,13 +88,36 @@ interface InvoiceModuleProps {
 export const InvoiceModule: React.FC<InvoiceModuleProps> = ({
   invoices = [],
   projects = [],
-  companyProfile,
+  companyProfile: companyProfileProp,
   letterhead,
   onSaveInvoice,
   onDeleteInvoice,
   onMarkInvoiceAsPaid,
   onTriggerNotification,
 }) => {
+  const companyProfile =
+    companyProfileProp || getStoredData<CompanyProfile>('company_profile', INITIAL_COMPANY_PROFILE);
+  const signatories = getStoredData<DocumentSignatory[]>('document_signatories', INITIAL_SIGNATORIES);
+
+  // Default Finance Manager Signatory (Priority: title includes 'finance manager' -> 'keuangan' -> role 'Diverifikasi' default)
+  const defaultFinanceSignatory =
+    signatories.find((s) => s.title?.toLowerCase().includes('finance manager')) ||
+    signatories.find(
+      (s) =>
+        s.title?.toLowerCase().includes('keuangan') ||
+        s.division?.toLowerCase().includes('keuangan') ||
+        s.title?.toLowerCase().includes('accounting')
+    ) ||
+    signatories.find((s) => s.roleType === 'Diverifikasi' && s.isDefault) ||
+    signatories.find((s) => s.roleType === 'Diverifikasi');
+
+  const defaultFinanceManagerName =
+    defaultFinanceSignatory?.name || companyProfile?.financeManager || 'Siti Aminah, SE';
+  const defaultFinanceManagerTitle =
+    defaultFinanceSignatory?.title || companyProfile?.financeManagerTitle || 'Finance Manager';
+  const defaultFinanceManagerNik =
+    defaultFinanceSignatory?.nipOrNik || companyProfile?.financeManagerNik || 'EMP-002';
+
   // Filters & Search State
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -343,6 +373,10 @@ export const InvoiceModule: React.FC<InvoiceModuleProps> = ({
       status: 'Draft',
       notes: 'Pembayaran mohon ditransfer sesuai rekening resmi perusahaan sebelum tanggal jatuh tempo.',
       bankAccountDetails: 'Bank BCA - 8830192831 a.n. PT BuildX Pro Construct',
+      signatoryName: defaultFinanceManagerName,
+      signatoryTitle: defaultFinanceManagerTitle,
+      signatoryNik: defaultFinanceManagerNik,
+      signatureUrl: '',
     });
 
     setFormItems([
@@ -367,7 +401,13 @@ export const InvoiceModule: React.FC<InvoiceModuleProps> = ({
 
   // Open Edit Form
   const handleOpenEdit = (inv: ProjectInvoice) => {
-    setEditingInvoice({ ...inv });
+    setEditingInvoice({
+      ...inv,
+      signatoryName: inv.signatoryName || defaultFinanceManagerName,
+      signatoryTitle: inv.signatoryTitle || defaultFinanceManagerTitle,
+      signatoryNik: inv.signatoryNik || defaultFinanceManagerNik,
+      signatureUrl: inv.signatureUrl || '',
+    });
     const mappedItems = inv.items && inv.items.length > 0
       ? inv.items.map((item) => {
           const sub = item.subtotal || ((item.quantity || 0) * (item.unitPrice || 0));
@@ -543,6 +583,10 @@ export const InvoiceModule: React.FC<InvoiceModuleProps> = ({
       bankAccountDetails:
         editingInvoice.bankAccountDetails || 'Bank Mandiri / BCA PT BuildX Pro Construct',
       status: (editingInvoice.status as any) || 'Draft',
+      signatoryName: editingInvoice.signatoryName || defaultFinanceManagerName,
+      signatoryTitle: editingInvoice.signatoryTitle || defaultFinanceManagerTitle,
+      signatoryNik: editingInvoice.signatoryNik || defaultFinanceManagerNik,
+      signatureUrl: editingInvoice.signatureUrl || '',
       createdAt: editingInvoice.createdAt || now,
       updatedAt: now,
     };
@@ -989,6 +1033,12 @@ export const InvoiceModule: React.FC<InvoiceModuleProps> = ({
                         <span className="font-medium text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg inline-block">
                           {inv.termName}
                         </span>
+                        <div className="text-[10px] text-indigo-700 font-medium flex items-center gap-1 mt-1">
+                          <UserCheck className="w-3 h-3 text-indigo-500 shrink-0" />
+                          <span className="truncate max-w-[140px]" title={inv.signatoryName || defaultFinanceManagerName}>
+                            FM: <strong>{inv.signatoryName || defaultFinanceManagerName}</strong>
+                          </span>
+                        </div>
                       </td>
 
                       <td className="py-3.5 px-4">
@@ -1674,6 +1724,114 @@ export const InvoiceModule: React.FC<InvoiceModuleProps> = ({
                 />
               </div>
 
+              {/* Pengesahan Dokumen Invoice (Finance Manager) */}
+              <div className="bg-gradient-to-br from-indigo-50/70 via-slate-50 to-white p-4 rounded-2xl border border-indigo-200/80 shadow-sm space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-100 pb-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
+                      <PenTool className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-slate-900 text-xs">
+                          Pengesahan & Penandatangan Invoice
+                        </h4>
+                        <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                          <UserCheck className="w-2.5 h-2.5" /> Finance Manager
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500">
+                        Dokumen penagihan resmi disahkan dan ditandatangani oleh pejabat dengan jabatan Finance Manager
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Fast Selector from Document Signatories */}
+                  <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                    <span className="text-[11px] text-slate-500 font-semibold whitespace-nowrap hidden sm:inline">
+                      Pilih Pejabat:
+                    </span>
+                    <select
+                      value={editingInvoice.signatoryName || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const match = signatories.find((s) => s.name === val);
+                        setEditingInvoice({
+                          ...editingInvoice,
+                          signatoryName: val,
+                          signatoryTitle: match?.title || 'Finance Manager',
+                          signatoryNik: match?.nipOrNik || editingInvoice.signatoryNik || '',
+                        });
+                      }}
+                      className="text-xs bg-white border border-indigo-300 rounded-xl px-2.5 py-1.5 font-semibold text-slate-800 shadow-sm focus:border-indigo-600 focus:outline-none"
+                    >
+                      <option value="">-- Pilih dari Master Penandatangan --</option>
+                      {signatories.map((sig) => (
+                        <option key={sig.id} value={sig.name}>
+                          {sig.name} ({sig.title}{sig.division ? ` - ${sig.division}` : ''})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Nama Penanda Tangan *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editingInvoice.signatoryName || ''}
+                      onChange={(e) =>
+                        setEditingInvoice({ ...editingInvoice, signatoryName: e.target.value })
+                      }
+                      placeholder="Nama Finance Manager"
+                      className="w-full border border-slate-300 rounded-xl p-2.5 font-bold text-slate-900 bg-white focus:border-indigo-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Jabatan Resmi *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editingInvoice.signatoryTitle || 'Finance Manager'}
+                      onChange={(e) =>
+                        setEditingInvoice({ ...editingInvoice, signatoryTitle: e.target.value })
+                      }
+                      placeholder="Finance Manager"
+                      className="w-full border border-slate-300 rounded-xl p-2.5 font-bold text-indigo-950 bg-white focus:border-indigo-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      NIK / NIP Pegawai
+                    </label>
+                    <input
+                      type="text"
+                      value={editingInvoice.signatoryNik || ''}
+                      onChange={(e) =>
+                        setEditingInvoice({ ...editingInvoice, signatoryNik: e.target.value })
+                      }
+                      placeholder="Contoh: EMP-002"
+                      className="w-full border border-slate-300 rounded-xl p-2.5 font-medium text-slate-800 bg-white focus:border-indigo-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Digital Signature Picker */}
+                <SignaturePicker
+                  label="Upload / Gambar Tanda Tangan Digital Finance Manager"
+                  value={editingInvoice.signatureUrl}
+                  onChange={(url) => setEditingInvoice({ ...editingInvoice, signatureUrl: url })}
+                />
+              </div>
+
               {/* Actions Buttons */}
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
@@ -2064,23 +2222,72 @@ export const InvoiceModule: React.FC<InvoiceModuleProps> = ({
 
                 {/* Signatures */}
                 <div className="grid grid-cols-2 gap-12 pt-8 text-center text-xs">
-                  <div>
-                    <p className="text-slate-500">Diterima oleh Klien,</p>
-                    <div className="h-16" />
-                    <p className="font-bold text-slate-900 border-t border-slate-300 pt-1 inline-block px-8">
-                      ( {viewingInvoice.clientName} )
+                  <div className="flex flex-col items-center">
+                    <p className="text-slate-500 text-[11px]">Diterima & Disetujui Klien,</p>
+                    <p className="font-semibold text-slate-800 text-xs mt-0.5">
+                      {viewingInvoice.clientName}
                     </p>
+                    <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider mb-2">
+                      Pemberi Tugas / PIC Klien
+                    </p>
+
+                    <div className="h-20 flex items-center justify-center my-1">
+                      <div className="w-32 h-14 border border-dashed border-slate-300 rounded-lg flex items-center justify-center text-[10px] text-slate-400 select-none bg-slate-50/50">
+                        Tanda Tangan & Cap
+                      </div>
+                    </div>
+
+                    <div className="text-center mt-1">
+                      <p className="font-bold text-slate-900 border-b border-slate-900 pb-0.5 inline-block text-xs px-6">
+                        ( .................................................. )
+                      </p>
+                      <p className="font-semibold text-slate-700 text-[11px] mt-0.5">
+                        Perwakilan Sah Klien
+                      </p>
+                    </div>
                   </div>
 
-                  <div>
-                    <p className="text-slate-500">
+                  <div className="flex flex-col items-center">
+                    <p className="text-slate-500 text-[11px]">
                       {companyProfile?.city || 'Jakarta'}, {formatDate(viewingInvoice.issueDate)}
                     </p>
-                    <p className="text-slate-500">Hormat Kami,</p>
-                    <div className="h-16" />
-                    <p className="font-bold text-slate-900 border-t border-slate-300 pt-1 inline-block px-8">
-                      ( {companyProfile?.financeManager || 'Manager Keuangan'} )
+                    <p className="font-semibold text-slate-800 text-xs mt-0.5">
+                      {companyProfile?.name || 'PT RAKA CIPTA SERAYA'}
                     </p>
+                    <p className="text-[10px] text-indigo-700 font-bold uppercase tracking-wider mb-2">
+                      Bagian Keuangan & Penagihan (Finance Department)
+                    </p>
+
+                    <div className="h-20 flex items-center justify-center my-1 relative">
+                      {viewingInvoice.signatureUrl ? (
+                        <img
+                          src={viewingInvoice.signatureUrl}
+                          alt="Tanda Tangan Finance Manager"
+                          className="max-h-16 object-contain"
+                        />
+                      ) : (
+                        <div className="w-32 h-14 border border-dashed border-slate-300 rounded-lg flex items-center justify-center text-[10px] text-slate-400 select-none bg-slate-50/50">
+                          Tanda Tangan & Cap
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="text-center mt-1">
+                      <p className="font-bold text-slate-900 border-b border-slate-900 pb-0.5 inline-block text-xs px-6">
+                        ( {viewingInvoice.signatoryName || defaultFinanceManagerName} )
+                      </p>
+                      <p className="font-bold text-slate-800 text-[11px] mt-0.5">
+                        {viewingInvoice.signatoryTitle || 'Finance Manager'}
+                      </p>
+                      {(viewingInvoice.signatoryNik || defaultFinanceManagerNik) && (
+                        <p className="text-[10px] text-slate-500">
+                          {(viewingInvoice.signatoryNik || defaultFinanceManagerNik).startsWith('NIK') ||
+                          (viewingInvoice.signatoryNik || defaultFinanceManagerNik).startsWith('NIP')
+                            ? (viewingInvoice.signatoryNik || defaultFinanceManagerNik)
+                            : `NIK. ${viewingInvoice.signatoryNik || defaultFinanceManagerNik}`}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2361,23 +2568,72 @@ export function renderPrintableInvoiceView(
 
       {/* Signatures */}
       <div className="grid grid-cols-2 gap-12 pt-8 text-center text-xs">
-        <div>
-          <p className="text-slate-500">Diterima oleh Klien,</p>
-          <div className="h-16" />
-          <p className="font-bold text-slate-900 border-t border-slate-300 pt-1 inline-block px-8">
-            ( {invoice.clientName} )
+        <div className="flex flex-col items-center">
+          <p className="text-slate-500 text-[11px]">Diterima & Disetujui Klien,</p>
+          <p className="font-semibold text-slate-800 text-xs mt-0.5">
+            {invoice.clientName}
           </p>
+          <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider mb-2">
+            Pemberi Tugas / PIC Klien
+          </p>
+
+          <div className="h-20 flex items-center justify-center my-1">
+            <div className="w-32 h-14 border border-dashed border-slate-300 rounded-lg flex items-center justify-center text-[10px] text-slate-400 select-none bg-slate-50/50">
+              Tanda Tangan & Cap
+            </div>
+          </div>
+
+          <div className="text-center mt-1">
+            <p className="font-bold text-slate-900 border-b border-slate-900 pb-0.5 inline-block text-xs px-6">
+              ( .................................................. )
+            </p>
+            <p className="font-semibold text-slate-700 text-[11px] mt-0.5">
+              Perwakilan Sah Klien
+            </p>
+          </div>
         </div>
 
-        <div>
-          <p className="text-slate-500">
+        <div className="flex flex-col items-center">
+          <p className="text-slate-500 text-[11px]">
             {companyProfile?.city || 'Jakarta'}, {formatDate(invoice.issueDate)}
           </p>
-          <p className="text-slate-500">Hormat Kami,</p>
-          <div className="h-16" />
-          <p className="font-bold text-slate-900 border-t border-slate-300 pt-1 inline-block px-8">
-            ( {companyProfile?.financeManager || 'Manager Keuangan'} )
+          <p className="font-semibold text-slate-800 text-xs mt-0.5">
+            {companyProfile?.name || 'PT RAKA CIPTA SERAYA'}
           </p>
+          <p className="text-[10px] text-indigo-700 font-bold uppercase tracking-wider mb-2">
+            Bagian Keuangan & Penagihan (Finance Department)
+          </p>
+
+          <div className="h-20 flex items-center justify-center my-1 relative">
+            {invoice.signatureUrl ? (
+              <img
+                src={invoice.signatureUrl}
+                alt="Tanda Tangan Finance Manager"
+                className="max-h-16 object-contain"
+              />
+            ) : (
+              <div className="w-32 h-14 border border-dashed border-slate-300 rounded-lg flex items-center justify-center text-[10px] text-slate-400 select-none bg-slate-50/50">
+                Tanda Tangan & Cap
+              </div>
+            )}
+          </div>
+
+          <div className="text-center mt-1">
+            <p className="font-bold text-slate-900 border-b border-slate-900 pb-0.5 inline-block text-xs px-6">
+              ( {invoice.signatoryName || companyProfile?.financeManager || 'Siti Aminah, SE'} )
+            </p>
+            <p className="font-bold text-slate-800 text-[11px] mt-0.5">
+              {invoice.signatoryTitle || companyProfile?.financeManagerTitle || 'Finance Manager'}
+            </p>
+            {(invoice.signatoryNik || companyProfile?.financeManagerNik) && (
+              <p className="text-[10px] text-slate-500">
+                {(invoice.signatoryNik || companyProfile?.financeManagerNik)!.startsWith('NIK') ||
+                (invoice.signatoryNik || companyProfile?.financeManagerNik)!.startsWith('NIP')
+                  ? invoice.signatoryNik || companyProfile?.financeManagerNik
+                  : `NIK. ${invoice.signatoryNik || companyProfile?.financeManagerNik}`}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>

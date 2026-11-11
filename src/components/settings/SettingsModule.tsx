@@ -805,15 +805,28 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                 />
               </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Nama Direktur Utama (Penandatangan Dokumen)</label>
-                <input
-                  type="text"
-                  value={profileForm.directorName}
-                  onChange={(e) => setProfileForm({ ...profileForm, directorName: e.target.value })}
-                  className="w-full border border-slate-200 rounded-lg p-2.5 font-medium text-slate-800 focus:outline-none focus:border-blue-500"
-                  required
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Nama Direktur Utama (Penandatangan Kontrak/BAST)</label>
+                  <input
+                    type="text"
+                    value={profileForm.directorName}
+                    onChange={(e) => setProfileForm({ ...profileForm, directorName: e.target.value })}
+                    className="w-full border border-slate-200 rounded-lg p-2.5 font-medium text-slate-800 focus:outline-none focus:border-blue-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Nama Finance Manager (Penandatangan Invoice Penagihan)</label>
+                  <input
+                    type="text"
+                    value={profileForm.financeManager || ''}
+                    onChange={(e) => setProfileForm({ ...profileForm, financeManager: e.target.value })}
+                    placeholder="e.g. Siti Aminah, SE"
+                    className="w-full border border-slate-200 rounded-lg p-2.5 font-medium text-slate-800 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
               </div>
             </div>
           </div>
